@@ -1,14 +1,28 @@
+use chrono::DateTime;
+use chrono::Local;
+use chrono::TimeZone;
+use gdk::glib::ObjectExt;
 use gtk::glib;
-use gtk::prelude::*;
+use gtk::prelude::ApplicationExt;
+use gtk::prelude::ApplicationExtManual;
+use gtk::prelude::ContainerExt;
+use gtk::prelude::GtkListStoreExtManual;
+use gtk::prelude::GtkWindowExt;
+use gtk::prelude::ScrolledWindowExt;
+use gtk::prelude::TreeModelExt;
+use gtk::prelude::TreeSelectionExt;
+use gtk::prelude::TreeViewColumnExt;
+use gtk::prelude::TreeViewExt;
+use gtk::prelude::WidgetExt;
 
+use std::ffi::OsStr;
+use std::fs;
+use std::io;
 use std::rc::Rc;
-use std::time::Duration;
+use std::time::UNIX_EPOCH;
 
 fn main() {
-    let application = gtk::Application::new(
-        Some("com.github.gtk-rs.examples.list-store"),
-        Default::default(),
-    );
+    let application = gtk::Application::new(Some("org.vanderwerff.mview.gtk3"), Default::default());
 
     application.connect_startup(build_ui);
 
@@ -22,19 +36,39 @@ fn main() {
 #[derive(Debug)]
 #[repr(i32)]
 enum Columns {
-    Fixed = 0,
-    Number,
-    Severity,
-    Description,
-    Pulse,
-    Icon,
-    Active,
-    Sensitive,
+    Cat = 0,
+    Name,
+    Size,
+    Modified,
+}
+
+fn read_directory(store: &gtk::ListStore, current_dir: &str) -> io::Result<()> {
+    for entry in fs::read_dir(current_dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        let metadata = fs::metadata(&path)?;
+        let filename = path.file_name().unwrap_or(OsStr::new("-"));
+        let filename = filename.to_str().unwrap_or("-");
+        let modified = metadata.modified().unwrap_or(UNIX_EPOCH);
+        let modified = modified.duration_since(UNIX_EPOCH).unwrap().as_secs();
+        let file_size = metadata.len();
+        let cat: u32 = 0;
+
+        store.insert_with_values(
+            None,
+            &[
+                (0, &cat),
+                (1, &filename),
+                (2, &file_size),
+                (3, &modified),
+            ],
+        );
+    }
+    Ok(())
 }
 
 fn build_ui(application: &gtk::Application) {
     let window = gtk::ApplicationWindow::new(application);
-
     window.set_title("List Store");
     window.set_border_width(10);
     window.set_position(gtk::WindowPosition::Center);
@@ -57,272 +91,144 @@ fn build_ui(application: &gtk::Application) {
     let model = Rc::new(create_model());
     let treeview = gtk::TreeView::with_model(&*model);
     treeview.set_vexpand(true);
-    treeview.set_search_column(Columns::Description as i32);
+    // treeview.set_search_column(Columns::Description as i32);
 
     sw.add(&treeview);
 
-    add_columns(&model, &treeview);
+    add_columns(&treeview);
+
+    treeview.connect_cursor_changed(|tv| {
+        let selection = tv.selection();
+        if let Some((model, iter)) = selection.selected() {
+            println!(
+                "Hello '{}' from row {}",
+                model
+                    .value(&iter, 1)
+                    .get::<String>()
+                    .expect("Treeview selection, column 1: mandatory value not found"),
+                model
+                    .value(&iter, 2)
+                    .get::<u64>()
+                    .expect("Treeview selection, column 0")
+            );
+        }
+    });
+
+    window.connect_key_press_event(move |_s, e| {
+        println!("Key {}", e.keycode().unwrap());
+        match e.keyval() {
+            gdk::keys::constants::z |
+            gdk::keys::constants::Left => {
+                treeview.emit_move_cursor(gtk::MovementStep::DisplayLines, -1);
+            }
+            gdk::keys::constants::x |
+            gdk::keys::constants::Right => {
+                treeview.emit_move_cursor(gtk::MovementStep::DisplayLines, 1);
+            }
+            gdk::keys::constants::Page_Up => {
+                treeview.emit_move_cursor(gtk::MovementStep::Pages, -1);
+            }
+            gdk::keys::constants::Page_Down => {
+                treeview.emit_move_cursor(gtk::MovementStep::Pages, 1);
+            }
+            gdk::keys::constants::Home => {
+                treeview.emit_move_cursor(gtk::MovementStep::BufferEnds, -1);
+            }
+            gdk::keys::constants::End => {
+                treeview.emit_move_cursor(gtk::MovementStep::BufferEnds, 1);
+            }
+            gdk::keys::constants::Up => {
+                let (tp, col) = treeview.cursor();
+                if let Some(mut tp) = tp {
+                    for _ in 0..5 {
+                        tp.prev();
+                    }
+                    treeview.set_cursor(&tp, col.as_ref(), false);
+                }
+            }
+            gdk::keys::constants::Down => {
+                let (tp, col) = treeview.cursor();
+                if let Some(mut tp) = tp {
+                    for _ in 0..5 {
+                        tp.next();
+                    }
+                    treeview.set_cursor(&tp, col.as_ref(), false);
+                }
+            }
+            _ => (),
+        }
+        glib::Propagation::Stop
+    });
 
     window.show_all();
-
-    glib::timeout_add_local(
-        Duration::from_millis(80),
-        glib::clone!(@weak model => @default-return glib::ControlFlow::Break, move || {
-            // println!("timeout");
-            spinner_timeout(&model);
-            glib::ControlFlow::Continue
-        }),
-    );
-}
-
-struct Data {
-    fixed: bool,
-    number: u32,
-    severity: String,
-    description: String,
 }
 
 fn create_model() -> gtk::ListStore {
-    let col_types: [glib::Type; 8] = [
-        glib::Type::BOOL,
+    let col_types: [glib::Type; 5] = [
         glib::Type::U32,
         glib::Type::STRING,
+        glib::Type::U64,
+        glib::Type::U64,
         glib::Type::STRING,
-        glib::Type::U32,
-        glib::Type::STRING,
-        glib::Type::BOOL,
-        glib::Type::BOOL,
     ];
-
-    let data: [Data; 14] = [
-        Data {
-            fixed: false,
-            number: 60482,
-            severity: "Normal".to_string(),
-            description: "scrollable notebooks and hidden tabs".to_string(),
-        },
-        Data {
-            fixed: false,
-            number: 60620,
-            severity: "Critical".to_string(),
-            description: "gdk_surface_clear_area (gdksurface-win32.c) is not thread-safe"
-                .to_string(),
-        },
-        Data {
-            fixed: false,
-            number: 50214,
-            severity: "Major".to_string(),
-            description: "Xft support does not clean up correctly".to_string(),
-        },
-        Data {
-            fixed: true,
-            number: 52877,
-            severity: "Major".to_string(),
-            description: "GtkFileSelection needs a refresh method. ".to_string(),
-        },
-        Data {
-            fixed: false,
-            number: 56070,
-            severity: "Normal".to_string(),
-            description: "Can't click button after setting in sensitive".to_string(),
-        },
-        Data {
-            fixed: true,
-            number: 56355,
-            severity: "Normal".to_string(),
-            description: "GtkLabel - Not all changes propagate correctly".to_string(),
-        },
-        Data {
-            fixed: false,
-            number: 50055,
-            severity: "Normal".to_string(),
-            description: "Rework width/height computations for TreeView".to_string(),
-        },
-        Data {
-            fixed: false,
-            number: 58278,
-            severity: "Normal".to_string(),
-            description: "gtk_dialog_set_response_sensitive () doesn't work".to_string(),
-        },
-        Data {
-            fixed: false,
-            number: 55767,
-            severity: "Normal".to_string(),
-            description: "Getters for all setters".to_string(),
-        },
-        Data {
-            fixed: false,
-            number: 56925,
-            severity: "Normal".to_string(),
-            description: "Gtkcalender size".to_string(),
-        },
-        Data {
-            fixed: false,
-            number: 56221,
-            severity: "Normal".to_string(),
-            description: "Selectable label needs right-click copy menu".to_string(),
-        },
-        Data {
-            fixed: true,
-            number: 50939,
-            severity: "Normal".to_string(),
-            description: "Add shift clicking to GtkTextView".to_string(),
-        },
-        Data {
-            fixed: false,
-            number: 6112,
-            severity: "Normal".to_string(),
-            description: "netscape-like collapsable toolbars".to_string(),
-        },
-        Data {
-            fixed: false,
-            number: 1,
-            severity: "Normal".to_string(),
-            description: "First bug :=)".to_string(),
-        },
-    ];
-
     let store = gtk::ListStore::new(&col_types);
-
-    for (d_idx, d) in data.iter().enumerate() {
-        let icon_name = if d_idx == 1 || d_idx == 3 {
-            "battery-caution-charging-symbolic"
-        } else {
-            ""
-        };
-
-        let sensitive = d_idx != 3;
-
-        let values: [(u32, &dyn ToValue); 8] = [
-            (0, &d.fixed),
-            (1, &d.number),
-            (2, &d.severity),
-            (3, &d.description),
-            (4, &0u32),
-            (5, &icon_name),
-            (6, &false),
-            (7, &sensitive),
-        ];
-        store.set(&store.append(), &values);
-    }
-
+    let current_dir = "/home/martin/Pictures";
+    let _ = read_directory(&store, &current_dir);
     store
 }
 
-fn fixed_toggled<W: IsA<gtk::CellRendererToggle>>(
-    model: &gtk::ListStore,
-    _w: &W,
-    path: gtk::TreePath,
-) {
-    let iter = model.iter(&path).unwrap();
-    let mut fixed = model
-        .value(&iter, Columns::Fixed as i32)
-        .get::<bool>()
-        .unwrap_or_else(|err| {
-            panic!(
-                "ListStore value for {:?} at path {}: {}",
-                Columns::Fixed,
-                path,
-                err
-            )
-        });
-    fixed = !fixed;
-    model.set_value(&iter, Columns::Fixed as u32, &fixed.to_value());
-}
+fn add_columns(treeview: &gtk::TreeView) {
+    // Column for category
+    let renderer = gtk::CellRendererText::new();
+    let column = gtk::TreeViewColumn::new();
+    column.pack_start(&renderer, true);
+    column.set_title("Cat");
+    column.add_attribute(&renderer, "text", Columns::Cat as i32);
+    column.set_sizing(gtk::TreeViewColumnSizing::Fixed);
+    column.set_fixed_width(40);
+    column.set_sort_column_id(Columns::Cat as i32);
+    treeview.append_column(&column);
 
-fn add_columns(model: &Rc<gtk::ListStore>, treeview: &gtk::TreeView) {
-    // Column for fixed toggles
-    {
-        let renderer = gtk::CellRendererToggle::new();
-        let model_clone = model.clone();
-        renderer.connect_toggled(move |w, path| fixed_toggled(&model_clone, w, path));
-        let column = gtk::TreeViewColumn::new();
-        TreeViewColumnExt::pack_start(&column, &renderer, true);
-        column.set_title("Fixed?");
-        TreeViewColumnExt::add_attribute(&column, &renderer, "active", Columns::Fixed as i32);
-        column.set_sizing(gtk::TreeViewColumnSizing::Fixed);
-        column.set_fixed_width(50);
-        treeview.append_column(&column);
-    }
+    // Column for size
+    let renderer = gtk::CellRendererText::new();
+    renderer.set_property("xalign", 1.0 as f32);
+    let column = gtk::TreeViewColumn::new();
+    column.pack_start(&renderer, true);
+    column.set_title("Size");
+    column.set_alignment(1.0);
+    column.add_attribute(&renderer, "text", Columns::Size as i32);
+    column.set_sizing(gtk::TreeViewColumnSizing::Fixed);
+    column.set_fixed_width(90);
+    column.set_sort_column_id(Columns::Size as i32);
+    treeview.append_column(&column);
 
-    // Column for bug numbers
-    {
-        let renderer = gtk::CellRendererText::new();
-        let column = gtk::TreeViewColumn::new();
-        TreeViewColumnExt::pack_start(&column, &renderer, true);
-        column.set_title("Bug number");
-        TreeViewColumnExt::add_attribute(&column, &renderer, "text", Columns::Number as i32);
-        column.set_sort_column_id(Columns::Number as i32);
-        treeview.append_column(&column);
-    }
+    // Column for modified date
+    let renderer = gtk::CellRendererText::new();
+    let column = gtk::TreeViewColumn::new();
+    column.pack_start(&renderer, true);
+    column.set_title("Modified");
+    // column.add_attribute(&renderer, "text", Columns::ModifiedText as i32);
+    column.set_sizing(gtk::TreeViewColumnSizing::Fixed);
+    column.set_fixed_width(140);
+    column.set_sort_column_id(Columns::Modified as i32);
+    column.set_cell_data_func(&renderer, Some(Box::new(
+        |_col, ren, model, iter| {
+            let modified = model.value(iter, Columns::Modified as i32);
+            let modified = modified.get::<u64>().unwrap_or(0);
+            let dt: DateTime<Local> = Local.timestamp_opt(modified as i64, 0).unwrap();
+            let modified_text = dt.format("%d-%m-%Y %H:%M:%S").to_string();
+            ren.set_property("text", modified_text);
+        })));
+    treeview.append_column(&column);
 
-    // Column for severities
-    {
-        let renderer = gtk::CellRendererText::new();
-        let column = gtk::TreeViewColumn::new();
-        TreeViewColumnExt::pack_start(&column, &renderer, true);
-        column.set_title("Severity");
-        TreeViewColumnExt::add_attribute(&column, &renderer, "text", Columns::Severity as i32);
-        column.set_sort_column_id(Columns::Severity as i32);
-        treeview.append_column(&column);
-    }
-
-    // Column for description
-    {
-        let renderer = gtk::CellRendererText::new();
-        let column = gtk::TreeViewColumn::new();
-        TreeViewColumnExt::pack_start(&column, &renderer, true);
-        column.set_title("Description");
-        TreeViewColumnExt::add_attribute(&column, &renderer, "text", Columns::Description as i32);
-        column.set_sort_column_id(Columns::Description as i32);
-        treeview.append_column(&column);
-    }
-
-    // Column for spinner
-    {
-        let renderer = gtk::CellRendererSpinner::new();
-        let column = gtk::TreeViewColumn::new();
-        TreeViewColumnExt::pack_start(&column, &renderer, true);
-        column.set_title("Spinning");
-        TreeViewColumnExt::add_attribute(&column, &renderer, "pulse", Columns::Pulse as i32);
-        TreeViewColumnExt::add_attribute(&column, &renderer, "active", Columns::Active as i32);
-        treeview.append_column(&column);
-    }
-
-    // Column for symbolic icon
-    {
-        let renderer = gtk::CellRendererPixbuf::new();
-        let column = gtk::TreeViewColumn::new();
-        TreeViewColumnExt::pack_start(&column, &renderer, true);
-        column.set_title("Symbolic icon");
-        TreeViewColumnExt::add_attribute(&column, &renderer, "icon-name", Columns::Icon as i32);
-        TreeViewColumnExt::add_attribute(
-            &column,
-            &renderer,
-            "sensitive",
-            Columns::Sensitive as i32,
-        );
-        column.set_sort_column_id(Columns::Icon as i32);
-        treeview.append_column(&column);
-    }
-}
-
-fn spinner_timeout(model: &gtk::ListStore) -> glib::ControlFlow {
-    let iter = model.iter_first().unwrap();
-    let pulse = model
-        .value(&iter, Columns::Pulse as i32)
-        .get::<u32>()
-        .unwrap_or_else(|err| {
-            panic!(
-                "ListStore value for {:?} at first entry: {}",
-                Columns::Pulse,
-                err
-            )
-        })
-        .wrapping_add(1);
-
-    model.set_value(&iter, Columns::Pulse as i32 as u32, &pulse.to_value());
-    model.set_value(&iter, Columns::Active as i32 as u32, &true.to_value());
-
-    glib::ControlFlow::Continue
+    // Column for file/direcory
+    let renderer = gtk::CellRendererText::new();
+    let column = gtk::TreeViewColumn::new();
+    column.pack_start(&renderer, true);
+    column.set_title("Name");
+    column.add_attribute(&renderer, "text", Columns::Name as i32);
+    column.set_sizing(gtk::TreeViewColumnSizing::Fixed);
+    column.set_fixed_width(50);
+    column.set_sort_column_id(Columns::Name as i32);
+    treeview.append_column(&column);
 }

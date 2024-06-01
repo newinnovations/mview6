@@ -4,4 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+chrono = "0.4.38"
+gdk = { version = "0.18.0", features = ["v3_24"] }
 gtk = { version = "0.18.1", features = ["v3_24_30"] }
