@@ -1,9 +1,45 @@
 [package]
-name = "list3"
+name = "neweog"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 chrono = "0.4.38"
-gdk = { version = "0.18.0", features = ["v3_24"] }
-gtk = { version = "0.18.1", features = ["v3_24_30"] }
+
+[dependencies.eog]
+path="../eog/eog"
+
+[dependencies.gtk]
+version = "0.18"
+branch = "0.18"
+git = "https://github.com/gtk-rs/gtk3-rs"
+
+[dependencies.gio]
+version = "0.18"
+branch = "0.18"
+git = "https://github.com/gtk-rs/gtk-rs-core"
+
+[dependencies.glib]
+version = "0.18"
+branch = "0.18"
+git = "https://github.com/gtk-rs/gtk-rs-core"
+
+[dependencies.gdk-pixbuf]
+version = "0.18"
+branch = "0.18"
+git = "https://github.com/gtk-rs/gtk-rs-core"
+
+[dependencies.gdk]
+version = "0.18"
+branch = "0.18"
+git = "https://github.com/gtk-rs/gtk3-rs"
+
+[dependencies.cairo-rs]
+version = "0.18"
+branch = "0.18"
+git = "https://github.com/gtk-rs/gtk-rs-core"
+
+[dependencies.handy-sys]
+package = "libhandy"
+git = "https://gitlab.gnome.org/World/Rust/libhandy-rs"
+rev = "0a0f18734e5054dee3c1667f7f04bb6e93214721"

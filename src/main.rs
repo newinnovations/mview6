@@ -1,10 +1,29 @@
+use std::ffi::OsStr;
+use std::fs;
+use std::io;
+use std::rc::Rc;
+use std::time::UNIX_EPOCH;
+use std::cell::Cell;
+
 use chrono::DateTime;
 use chrono::Local;
 use chrono::TimeZone;
+
 use gdk::glib::ObjectExt;
 use gtk::glib;
+
+use eog::Image;
+use eog::ImageData;
+use eog::ImageExtManual;
+use eog::Job;
+use eog::ScrollView;
+
+use eog::prelude::ImageExt;
+use eog::prelude::ScrollViewExt;
+
 use gtk::prelude::ApplicationExt;
 use gtk::prelude::ApplicationExtManual;
+use gtk::prelude::BoxExt;
 use gtk::prelude::ContainerExt;
 use gtk::prelude::GtkListStoreExtManual;
 use gtk::prelude::GtkWindowExt;
@@ -15,11 +34,9 @@ use gtk::prelude::TreeViewColumnExt;
 use gtk::prelude::TreeViewExt;
 use gtk::prelude::WidgetExt;
 
-use std::ffi::OsStr;
-use std::fs;
-use std::io;
-use std::rc::Rc;
-use std::time::UNIX_EPOCH;
+// use gtk::prelude::CssProviderExt;
+// use gtk::prelude::StyleContextExt;
+// use gtk::CssProvider;
 
 fn main() {
     let application = gtk::Application::new(Some("org.vanderwerff.mview.gtk3"), Default::default());
@@ -56,12 +73,7 @@ fn read_directory(store: &gtk::ListStore, current_dir: &str) -> io::Result<()> {
 
         store.insert_with_values(
             None,
-            &[
-                (0, &cat),
-                (1, &filename),
-                (2, &file_size),
-                (3, &modified),
-            ],
+            &[(0, &cat), (1, &filename), (2, &file_size), (3, &modified)],
         );
     }
     Ok(())
@@ -72,93 +84,176 @@ fn build_ui(application: &gtk::Application) {
     window.set_title("List Store");
     window.set_border_width(10);
     window.set_position(gtk::WindowPosition::Center);
-    window.set_default_size(280, 250);
+    window.set_default_size(1280, 720);
+    // let sc = window.style_context();
+    // let style = include_bytes!("box.css");
+    // let provider = CssProvider::new();
+    // provider.load_from_data(style).unwrap();
+    // sc.add_provider(&provider, GTK_STYLE_PROVIDER_PRIORITY_APPLICATION as u32);
 
-    let vbox = gtk::Box::new(gtk::Orientation::Vertical, 8);
-    window.add(&vbox);
+    let hbox = gtk::Box::new(gtk::Orientation::Horizontal, 8);
 
-    let label = gtk::Label::new(Some(
-        "This is the bug list (note: not based on real data, it would be \
-         nice to have a nice ODBC interface to bugzilla or so, though).",
-    ));
-    vbox.add(&label);
+    window.add(&hbox);
 
     let sw = gtk::ScrolledWindow::new(None::<&gtk::Adjustment>, None::<&gtk::Adjustment>);
     sw.set_shadow_type(gtk::ShadowType::EtchedIn);
     sw.set_policy(gtk::PolicyType::Never, gtk::PolicyType::Automatic);
-    vbox.add(&sw);
+    hbox.add(&sw);
 
     let model = Rc::new(create_model());
     let treeview = gtk::TreeView::with_model(&*model);
     treeview.set_vexpand(true);
-    // treeview.set_search_column(Columns::Description as i32);
+    // treeview.set_search_column(Columns::Name as i32);
 
     sw.add(&treeview);
 
     add_columns(&treeview);
 
-    treeview.connect_cursor_changed(|tv| {
+    let sv = ScrollView::new();
+    sv.add_weak_ref_notify(|| {
+        println!("ScrollView disposed");
+    });
+    sv.set_scroll_wheel_zoom(true);
+
+    hbox.add(&sv);
+
+    let sv_c = sv.clone();
+    treeview.connect_cursor_changed(move |tv| {
+        // let w = tv.parent_window().unwrap().s::<ApplicationWindow>();
+        // println!("TV parent window = {}", tv.parent_window().unwrap().type_());
         let selection = tv.selection();
         if let Some((model, iter)) = selection.selected() {
-            println!(
-                "Hello '{}' from row {}",
-                model
-                    .value(&iter, 1)
-                    .get::<String>()
-                    .expect("Treeview selection, column 1: mandatory value not found"),
-                model
-                    .value(&iter, 2)
-                    .get::<u64>()
-                    .expect("Treeview selection, column 0")
-            );
+            let filename = model
+                .value(&iter, 1)
+                .get::<String>()
+                .unwrap_or("none".to_string());
+            println!("Selected file {}", filename);
+            let mut path = "/home/martin/Pictures/".to_string();
+            path.push_str(&filename);
+            println!("Path = {}", path);
+            let f = gio::File::for_path(path);
+            let img = Image::new_file(&f, "blah");
+            img.add_weak_ref_notify(move || {
+                println!("**image [{}] disposed**", filename);
+            });
+            println!("refc1={}", img.ref_count());
+            // img.data_ref();
+            // img.data_unref();
+            println!("refc2={}", img.ref_count());
+            let result = img.load(ImageData::IMAGE, None::<Job>.as_ref());
+            match result {
+                Ok(()) => {
+                    println!("OK");
+                    let jpg = img.is_jpeg();
+                    println!("is jpg {}", jpg);
+                    let mut width = 0;
+                    let mut height = 0;
+                    img.size(&mut width, &mut height);
+                    println!("Size {} {}", width, height);
+                    sv_c.set_image(&img);
+                }
+                Err(error) => {
+                    println!("Error {}", error);
+                }
+            }
         }
     });
 
-    window.connect_key_press_event(move |_s, e| {
+    let fs = Cell::new(false);
+    let treeview_c = treeview.clone();
+    window.connect_key_press_event(move |app, e| {
         println!("Key {}", e.keycode().unwrap());
+        treeview_c.set_has_focus(true);
         match e.keyval() {
-            gdk::keys::constants::z |
-            gdk::keys::constants::Left => {
-                treeview.emit_move_cursor(gtk::MovementStep::DisplayLines, -1);
+            gdk::keys::constants::q => {
+                app.close();
             }
-            gdk::keys::constants::x |
-            gdk::keys::constants::Right => {
-                treeview.emit_move_cursor(gtk::MovementStep::DisplayLines, 1);
+            gdk::keys::constants::f => {
+                if sw.is_visible() {
+                    sw.set_visible(false);
+                    hbox.set_spacing(0);
+                    app.set_border_width(0);
+                } else {
+                    sw.set_visible(true);
+                    hbox.set_spacing(8);
+                    app.set_border_width(10);
+                }
+            }
+            gdk::keys::constants::space => {
+                if fs.get() {
+                    app.unfullscreen();
+                    fs.set(false);
+                } else {
+                    app.fullscreen();
+                    fs.set(true);
+                }
+            }
+            gdk::keys::constants::z | gdk::keys::constants::Left => {
+                treeview_c.emit_move_cursor(gtk::MovementStep::DisplayLines, -1);
+            }
+            gdk::keys::constants::x | gdk::keys::constants::Right => {
+                treeview_c.emit_move_cursor(gtk::MovementStep::DisplayLines, 1);
             }
             gdk::keys::constants::Page_Up => {
-                treeview.emit_move_cursor(gtk::MovementStep::Pages, -1);
+                treeview_c.emit_move_cursor(gtk::MovementStep::Pages, -1);
             }
             gdk::keys::constants::Page_Down => {
-                treeview.emit_move_cursor(gtk::MovementStep::Pages, 1);
+                treeview_c.emit_move_cursor(gtk::MovementStep::Pages, 1);
             }
             gdk::keys::constants::Home => {
-                treeview.emit_move_cursor(gtk::MovementStep::BufferEnds, -1);
+                treeview_c.emit_move_cursor(gtk::MovementStep::BufferEnds, -1);
             }
             gdk::keys::constants::End => {
-                treeview.emit_move_cursor(gtk::MovementStep::BufferEnds, 1);
+                treeview_c.emit_move_cursor(gtk::MovementStep::BufferEnds, 1);
             }
             gdk::keys::constants::Up => {
-                let (tp, col) = treeview.cursor();
+                let (tp, col) = treeview_c.cursor();
                 if let Some(mut tp) = tp {
                     for _ in 0..5 {
                         tp.prev();
                     }
-                    treeview.set_cursor(&tp, col.as_ref(), false);
+                    treeview_c.set_cursor(&tp, col.as_ref(), false);
                 }
             }
             gdk::keys::constants::Down => {
-                let (tp, col) = treeview.cursor();
+                let (tp, col) = treeview_c.cursor();
                 if let Some(mut tp) = tp {
                     for _ in 0..5 {
                         tp.next();
                     }
-                    treeview.set_cursor(&tp, col.as_ref(), false);
+                    treeview_c.set_cursor(&tp, col.as_ref(), false);
                 }
             }
             _ => (),
         }
         glib::Propagation::Stop
     });
+
+    let f = gio::File::for_path("/home/martin/Pictures/mview-b.png");
+    let img = Image::new_file(&f, "welcome");
+    img.add_weak_ref_notify(move || {
+        println!("**welcome image disposed**");
+    });
+    let result = img.load(ImageData::IMAGE, None::<Job>.as_ref());
+
+    match result {
+        Ok(()) => {
+            println!("OK");
+            let jpg = img.is_jpeg();
+            println!("is jpg {}", jpg);
+
+            let mut width = 0;
+            let mut height = 0;
+            img.size(&mut width, &mut height);
+
+            println!("Size {} {}", width, height);
+
+            sv.set_image(&img);
+        }
+        Err(error) => {
+            println!("Error {}", error);
+        }
+    }
 
     window.show_all();
 }
@@ -189,6 +284,17 @@ fn add_columns(treeview: &gtk::TreeView) {
     column.set_sort_column_id(Columns::Cat as i32);
     treeview.append_column(&column);
 
+    // Column for file/direcory
+    let renderer = gtk::CellRendererText::new();
+    let column = gtk::TreeViewColumn::new();
+    column.pack_start(&renderer, true);
+    column.set_title("Name");
+    column.add_attribute(&renderer, "text", Columns::Name as i32);
+    column.set_sizing(gtk::TreeViewColumnSizing::Fixed);
+    column.set_fixed_width(250);
+    column.set_sort_column_id(Columns::Name as i32);
+    treeview.append_column(&column);
+
     // Column for size
     let renderer = gtk::CellRendererText::new();
     renderer.set_property("xalign", 1.0 as f32);
@@ -207,28 +313,18 @@ fn add_columns(treeview: &gtk::TreeView) {
     let column = gtk::TreeViewColumn::new();
     column.pack_start(&renderer, true);
     column.set_title("Modified");
-    // column.add_attribute(&renderer, "text", Columns::ModifiedText as i32);
     column.set_sizing(gtk::TreeViewColumnSizing::Fixed);
     column.set_fixed_width(140);
     column.set_sort_column_id(Columns::Modified as i32);
-    column.set_cell_data_func(&renderer, Some(Box::new(
-        |_col, ren, model, iter| {
+    column.set_cell_data_func(
+        &renderer,
+        Some(Box::new(|_col, ren, model, iter| {
             let modified = model.value(iter, Columns::Modified as i32);
             let modified = modified.get::<u64>().unwrap_or(0);
             let dt: DateTime<Local> = Local.timestamp_opt(modified as i64, 0).unwrap();
             let modified_text = dt.format("%d-%m-%Y %H:%M:%S").to_string();
             ren.set_property("text", modified_text);
-        })));
-    treeview.append_column(&column);
-
-    // Column for file/direcory
-    let renderer = gtk::CellRendererText::new();
-    let column = gtk::TreeViewColumn::new();
-    column.pack_start(&renderer, true);
-    column.set_title("Name");
-    column.add_attribute(&renderer, "text", Columns::Name as i32);
-    column.set_sizing(gtk::TreeViewColumnSizing::Fixed);
-    column.set_fixed_width(50);
-    column.set_sort_column_id(Columns::Name as i32);
+        })),
+    );
     treeview.append_column(&column);
 }
