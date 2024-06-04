@@ -1,9 +1,9 @@
+use std::cell::Cell;
 use std::ffi::OsStr;
 use std::fs;
 use std::io;
 use std::rc::Rc;
 use std::time::UNIX_EPOCH;
-use std::cell::Cell;
 
 use chrono::DateTime;
 use chrono::Local;
@@ -69,8 +69,7 @@ fn read_directory(store: &gtk::ListStore, current_dir: &str) -> io::Result<()> {
         let modified = metadata.modified().unwrap_or(UNIX_EPOCH);
         let modified = modified.duration_since(UNIX_EPOCH).unwrap().as_secs();
         let file_size = metadata.len();
-        let cat: u32 = 0;
-
+        let cat: u32 = if metadata.is_dir() { 1 } else { 0 };
         store.insert_with_values(
             None,
             &[(0, &cat), (1, &filename), (2, &file_size), (3, &modified)],
@@ -95,17 +94,17 @@ fn build_ui(application: &gtk::Application) {
 
     window.add(&hbox);
 
-    let sw = gtk::ScrolledWindow::new(None::<&gtk::Adjustment>, None::<&gtk::Adjustment>);
-    sw.set_shadow_type(gtk::ShadowType::EtchedIn);
-    sw.set_policy(gtk::PolicyType::Never, gtk::PolicyType::Automatic);
-    hbox.add(&sw);
+    let file_window = gtk::ScrolledWindow::new(None::<&gtk::Adjustment>, None::<&gtk::Adjustment>);
+    file_window.set_shadow_type(gtk::ShadowType::EtchedIn);
+    file_window.set_policy(gtk::PolicyType::Never, gtk::PolicyType::Automatic);
+    hbox.add(&file_window);
 
     let model = Rc::new(create_model());
     let treeview = gtk::TreeView::with_model(&*model);
     treeview.set_vexpand(true);
     // treeview.set_search_column(Columns::Name as i32);
 
-    sw.add(&treeview);
+    file_window.add(&treeview);
 
     add_columns(&treeview);
 
@@ -116,6 +115,8 @@ fn build_ui(application: &gtk::Application) {
     sv.set_scroll_wheel_zoom(true);
 
     hbox.add(&sv);
+
+    sv.set_zoom_mode(eog::ZoomMode::Max);
 
     let sv_c = sv.clone();
     treeview.connect_cursor_changed(move |tv| {
@@ -151,6 +152,8 @@ fn build_ui(application: &gtk::Application) {
                     img.size(&mut width, &mut height);
                     println!("Size {} {}", width, height);
                     sv_c.set_image(&img);
+                    // sv_c.apply_zoom(eog::ZoomMode::Max);
+                    // sv_c.apply_zoom(eog::ZoomMode::None);
                 }
                 Err(error) => {
                     println!("Error {}", error);
@@ -161,6 +164,7 @@ fn build_ui(application: &gtk::Application) {
 
     let fs = Cell::new(false);
     let treeview_c = treeview.clone();
+    let sv_c = sv.clone();
     window.connect_key_press_event(move |app, e| {
         println!("Key {}", e.keycode().unwrap());
         treeview_c.set_has_focus(true);
@@ -168,24 +172,41 @@ fn build_ui(application: &gtk::Application) {
             gdk::keys::constants::q => {
                 app.close();
             }
-            gdk::keys::constants::f => {
-                if sw.is_visible() {
-                    sw.set_visible(false);
+            gdk::keys::constants::space => {
+                if file_window.is_visible() {
+                    file_window.set_visible(false);
                     hbox.set_spacing(0);
                     app.set_border_width(0);
                 } else {
-                    sw.set_visible(true);
+                    file_window.set_visible(true);
                     hbox.set_spacing(8);
                     app.set_border_width(10);
                 }
             }
-            gdk::keys::constants::space => {
+            gdk::keys::constants::f => {
                 if fs.get() {
                     app.unfullscreen();
                     fs.set(false);
                 } else {
+                    file_window.set_visible(false);
+                    hbox.set_spacing(0);
+                    app.set_border_width(0);
                     app.fullscreen();
                     fs.set(true);
+                }
+            }
+            gdk::keys::constants::o => {
+                if sv_c.zoom_mode() == eog::ZoomMode::Fit {
+                    sv_c.set_zoom_mode(eog::ZoomMode::None);
+                } else {
+                    sv_c.set_zoom_mode(eog::ZoomMode::Fit);
+                }
+            }
+            gdk::keys::constants::m => {
+                if sv_c.zoom_mode() == eog::ZoomMode::Max {
+                    sv_c.set_zoom_mode(eog::ZoomMode::Fill);
+                } else {
+                    sv_c.set_zoom_mode(eog::ZoomMode::Max);
                 }
             }
             gdk::keys::constants::z | gdk::keys::constants::Left => {
@@ -229,7 +250,7 @@ fn build_ui(application: &gtk::Application) {
         glib::Propagation::Stop
     });
 
-    let f = gio::File::for_path("/home/martin/Pictures/mview-b.png");
+    let f = gio::File::for_path("/home/martin/Pictures/mview-a.png");
     let img = Image::new_file(&f, "welcome");
     img.add_weak_ref_notify(move || {
         println!("**welcome image disposed**");
