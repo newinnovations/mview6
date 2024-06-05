@@ -1,13 +1,14 @@
+mod category;
+mod filelist;
+
 use std::cell::Cell;
-use std::ffi::OsStr;
-use std::fs;
-use std::io;
-use std::rc::Rc;
-use std::time::UNIX_EPOCH;
 
 use chrono::DateTime;
 use chrono::Local;
 use chrono::TimeZone;
+
+use filelist::FileList;
+use filelist::Columns;
 
 use gdk::glib::ObjectExt;
 use gtk::glib;
@@ -24,8 +25,8 @@ use eog::prelude::ScrollViewExt;
 use gtk::prelude::ApplicationExt;
 use gtk::prelude::ApplicationExtManual;
 use gtk::prelude::BoxExt;
+use gtk::prelude::CellRendererExt;
 use gtk::prelude::ContainerExt;
-use gtk::prelude::GtkListStoreExtManual;
 use gtk::prelude::GtkWindowExt;
 use gtk::prelude::ScrolledWindowExt;
 use gtk::prelude::TreeModelExt;
@@ -33,6 +34,9 @@ use gtk::prelude::TreeSelectionExt;
 use gtk::prelude::TreeViewColumnExt;
 use gtk::prelude::TreeViewExt;
 use gtk::prelude::WidgetExt;
+// use gtk::TreePath;
+// use category::Category;
+
 
 // use gtk::prelude::CssProviderExt;
 // use gtk::prelude::StyleContextExt;
@@ -50,37 +54,9 @@ fn main() {
     application.run();
 }
 
-#[derive(Debug)]
-#[repr(i32)]
-enum Columns {
-    Cat = 0,
-    Name,
-    Size,
-    Modified,
-}
-
-fn read_directory(store: &gtk::ListStore, current_dir: &str) -> io::Result<()> {
-    for entry in fs::read_dir(current_dir)? {
-        let entry = entry?;
-        let path = entry.path();
-        let metadata = fs::metadata(&path)?;
-        let filename = path.file_name().unwrap_or(OsStr::new("-"));
-        let filename = filename.to_str().unwrap_or("-");
-        let modified = metadata.modified().unwrap_or(UNIX_EPOCH);
-        let modified = modified.duration_since(UNIX_EPOCH).unwrap().as_secs();
-        let file_size = metadata.len();
-        let cat: u32 = if metadata.is_dir() { 1 } else { 0 };
-        store.insert_with_values(
-            None,
-            &[(0, &cat), (1, &filename), (2, &file_size), (3, &modified)],
-        );
-    }
-    Ok(())
-}
-
 fn build_ui(application: &gtk::Application) {
     let window = gtk::ApplicationWindow::new(application);
-    window.set_title("List Store");
+    window.set_title("MView6");
     window.set_border_width(10);
     window.set_position(gtk::WindowPosition::Center);
     window.set_default_size(1280, 720);
@@ -99,8 +75,13 @@ fn build_ui(application: &gtk::Application) {
     file_window.set_policy(gtk::PolicyType::Never, gtk::PolicyType::Automatic);
     hbox.add(&file_window);
 
-    let model = Rc::new(create_model());
-    let treeview = gtk::TreeView::with_model(&*model);
+    // let model = Rc::new(FileList::create_model());
+    // let treeview = gtk::TreeView::with_model(&*model);
+    let filelist = FileList::new("/home/martin/Pictures");
+    let model = filelist.read();
+    // let treeview = gtk::TreeView::with_model(&model);
+    let treeview = gtk::TreeView::new();
+    // treeview.set_model(Some(&model));
     treeview.set_vexpand(true);
     // treeview.set_search_column(Columns::Name as i32);
 
@@ -124,8 +105,9 @@ fn build_ui(application: &gtk::Application) {
         // println!("TV parent window = {}", tv.parent_window().unwrap().type_());
         let selection = tv.selection();
         if let Some((model, iter)) = selection.selected() {
+            println!("model type {}", model.type_());
             let filename = model
-                .value(&iter, 1)
+                .value(&iter, Columns::Name as i32)
                 .get::<String>()
                 .unwrap_or("none".to_string());
             println!("Selected file {}", filename);
@@ -183,6 +165,9 @@ fn build_ui(application: &gtk::Application) {
                     app.set_border_width(10);
                 }
             }
+            gdk::keys::constants::d => {
+                treeview_c.set_model(Some(&model));
+            }
             gdk::keys::constants::f => {
                 if fs.get() {
                     app.unfullscreen();
@@ -230,7 +215,19 @@ fn build_ui(application: &gtk::Application) {
             gdk::keys::constants::Up => {
                 let (tp, col) = treeview_c.cursor();
                 if let Some(mut tp) = tp {
-                    for _ in 0..5 {
+                    println!("tp: {:?}", tp.indices());
+                    // TreePath::from_indicesv(&[3]);
+                    let n = tp.indices().get(0).unwrap().to_owned();
+                    let m = treeview_c.model().unwrap();
+                    let i = m.iter_nth_child(None, n).unwrap();
+                    // println!(
+                    //     "Current = {}",
+                    //     model
+                    //         .value(&i, Columns::Name as i32)
+                    //         .get::<String>()
+                    //         .unwrap_or("??".to_string())
+                    // );
+                    for _ in 0..1 {
                         tp.prev();
                     }
                     treeview_c.set_cursor(&tp, col.as_ref(), false);
@@ -239,7 +236,8 @@ fn build_ui(application: &gtk::Application) {
             gdk::keys::constants::Down => {
                 let (tp, col) = treeview_c.cursor();
                 if let Some(mut tp) = tp {
-                    for _ in 0..5 {
+                    println!("tp: {:?}", tp.indices());
+                    for _ in 0..1 {
                         tp.next();
                     }
                     treeview_c.set_cursor(&tp, col.as_ref(), false);
@@ -279,20 +277,6 @@ fn build_ui(application: &gtk::Application) {
     window.show_all();
 }
 
-fn create_model() -> gtk::ListStore {
-    let col_types: [glib::Type; 5] = [
-        glib::Type::U32,
-        glib::Type::STRING,
-        glib::Type::U64,
-        glib::Type::U64,
-        glib::Type::STRING,
-    ];
-    let store = gtk::ListStore::new(&col_types);
-    let current_dir = "/home/martin/Pictures";
-    let _ = read_directory(&store, &current_dir);
-    store
-}
-
 fn add_columns(treeview: &gtk::TreeView) {
     // Column for category
     let renderer = gtk::CellRendererText::new();
@@ -306,11 +290,15 @@ fn add_columns(treeview: &gtk::TreeView) {
     treeview.append_column(&column);
 
     // Column for file/direcory
-    let renderer = gtk::CellRendererText::new();
+    let renderer_txt = gtk::CellRendererText::new();
+    let renderer_icon = gtk::CellRendererPixbuf::new();
+    renderer_icon.set_padding(6, 0);
     let column = gtk::TreeViewColumn::new();
-    column.pack_start(&renderer, true);
+    column.pack_start(&renderer_icon, false);
+    column.pack_start(&renderer_txt, true);
     column.set_title("Name");
-    column.add_attribute(&renderer, "text", Columns::Name as i32);
+    column.add_attribute(&renderer_icon, "icon-name", Columns::Icon as i32);
+    column.add_attribute(&renderer_txt, "text", Columns::Name as i32);
     column.set_sizing(gtk::TreeViewColumnSizing::Fixed);
     column.set_fixed_width(250);
     column.set_sort_column_id(Columns::Name as i32);

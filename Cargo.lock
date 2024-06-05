@@ -3,6 +3,21 @@
 version = 3
 
 [[package]]
+name = "MView6"
+version = "6.0.0"
+dependencies = [
+ "cairo-rs",
+ "chrono",
+ "eog",
+ "gdk",
+ "gdk-pixbuf",
+ "gio",
+ "glib",
+ "gtk",
+ "libhandy",
+]
+
+[[package]]
 name = "android-tzdata"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -537,21 +552,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "488016bfae457b036d996092f6cb448677611ce4449e970ceaf42695203f218a"
 dependencies = [
  "autocfg",
-]
-
-[[package]]
-name = "neweog"
-version = "0.1.0"
-dependencies = [
- "cairo-rs",
- "chrono",
- "eog",
- "gdk",
- "gdk-pixbuf",
- "gio",
- "glib",
- "gtk",
- "libhandy",
 ]
 
 [[package]]
