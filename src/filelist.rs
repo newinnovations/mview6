@@ -1,9 +1,15 @@
 use std::ffi::OsStr;
 use std::fs;
 use std::io;
+use std::path::Path;
 use std::time::UNIX_EPOCH;
 
 use gtk::prelude::GtkListStoreExtManual;
+use gtk::prelude::TreeModelExt;
+use gtk::prelude::TreeViewExt;
+use gtk::TreePath;
+use gtk::TreeView;
+use gtk::TreeViewColumn;
 
 use crate::category::Category;
 
@@ -18,7 +24,7 @@ pub enum Columns {
 }
 
 pub struct FileList {
-    directory: String,
+    pub directory: String,
 }
 
 fn read_directory(store: &gtk::ListStore, current_dir: &str) -> io::Result<()> {
@@ -55,7 +61,7 @@ impl FileList {
         }
     }
 
-    fn empty_model() -> gtk::ListStore {
+    fn empty_store() -> gtk::ListStore {
         let col_types: [glib::Type; 5] = [
             glib::Type::U32,
             glib::Type::STRING,
@@ -66,14 +72,64 @@ impl FileList {
         gtk::ListStore::new(&col_types)
     }
 
-    pub fn read(&self) -> gtk::ListStore {
-        let store = Self::empty_model();
-        let _ = read_directory(&store, &self.directory);
-        store
+    fn read_dir(directory: &str) -> Option<gtk::ListStore> {
+        let store = Self::empty_store();
+        match read_directory(&store, directory) {
+            Ok(()) => Some(store),
+            _ => None,
+        }
     }
 
-    pub fn read_new(&mut self, directory: &str) -> gtk::ListStore {
-        self.directory = directory.to_string();
-        self.read()
+    pub fn read(&self) -> Option<gtk::ListStore> {
+        Self::read_dir(&self.directory)
+    }
+
+    pub fn goto(&mut self, directory: &str) -> Option<gtk::ListStore> {
+        let newstore = Self::read_dir(directory);
+        match newstore {
+            Some(_) => self.directory = directory.to_string(),
+            _ => (),
+        }
+        newstore
+    }
+
+    pub fn enter(&mut self, subdir: &str) -> Option<gtk::ListStore> {
+        self.goto(&format!("{0}/{subdir}", self.directory))
+    }
+
+    pub fn leave(&mut self) -> Option<gtk::ListStore> {
+        let directory_c = self.directory.clone();
+        let parent = Path::new(&directory_c).parent();
+        match parent {
+            Some(parent) => self.goto(parent.to_str().unwrap_or("/")),
+            _ => None,
+        }
+    }
+}
+
+pub struct Navigation {}
+
+impl Navigation {
+    pub fn goto_first(view: &TreeView) {
+        let tp = TreePath::from_indicesv(&[0]);
+        view.set_cursor(&tp, None::<&TreeViewColumn>, false);
+    }
+
+    pub fn filename(view: &TreeView) -> Option<String> {
+        let (tp, _) = view.cursor();
+        let model = view.model().unwrap();
+        if let Some(tp) = tp {
+            if let Some(iter) = model.iter(&tp) {
+                let filename = model
+                .value(&iter, Columns::Name as i32)
+                .get::<String>()
+                .unwrap_or("none".to_string());
+                Some(filename)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
 }

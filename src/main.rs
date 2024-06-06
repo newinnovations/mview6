@@ -2,6 +2,8 @@ mod category;
 mod filelist;
 
 use std::cell::Cell;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 use chrono::DateTime;
 use chrono::Local;
@@ -10,6 +12,7 @@ use chrono::TimeZone;
 use filelist::FileList;
 use filelist::Columns;
 
+use filelist::Navigation;
 use gdk::glib::ObjectExt;
 use gtk::glib;
 
@@ -30,13 +33,9 @@ use gtk::prelude::ContainerExt;
 use gtk::prelude::GtkWindowExt;
 use gtk::prelude::ScrolledWindowExt;
 use gtk::prelude::TreeModelExt;
-use gtk::prelude::TreeSelectionExt;
 use gtk::prelude::TreeViewColumnExt;
 use gtk::prelude::TreeViewExt;
 use gtk::prelude::WidgetExt;
-// use gtk::TreePath;
-// use category::Category;
-
 
 // use gtk::prelude::CssProviderExt;
 // use gtk::prelude::StyleContextExt;
@@ -77,11 +76,10 @@ fn build_ui(application: &gtk::Application) {
 
     // let model = Rc::new(FileList::create_model());
     // let treeview = gtk::TreeView::with_model(&*model);
-    let filelist = FileList::new("/home/martin/Pictures");
-    let model = filelist.read();
-    // let treeview = gtk::TreeView::with_model(&model);
+    // let filelist = Rc<FileList>::;
+    let filelist = Rc::new(RefCell::new(FileList::new("/home/martin/Pictures")));
     let treeview = gtk::TreeView::new();
-    // treeview.set_model(Some(&model));
+    treeview.set_model(filelist.borrow().read().as_ref());
     treeview.set_vexpand(true);
     // treeview.set_search_column(Columns::Name as i32);
 
@@ -100,42 +98,27 @@ fn build_ui(application: &gtk::Application) {
     sv.set_zoom_mode(eog::ZoomMode::Max);
 
     let sv_c = sv.clone();
+    let f_c = filelist.clone();
     treeview.connect_cursor_changed(move |tv| {
-        // let w = tv.parent_window().unwrap().s::<ApplicationWindow>();
-        // println!("TV parent window = {}", tv.parent_window().unwrap().type_());
-        let selection = tv.selection();
-        if let Some((model, iter)) = selection.selected() {
-            println!("model type {}", model.type_());
-            let filename = model
-                .value(&iter, Columns::Name as i32)
-                .get::<String>()
-                .unwrap_or("none".to_string());
+        if let Some(filename) = Navigation::filename(&tv) {
             println!("Selected file {}", filename);
-            let mut path = "/home/martin/Pictures/".to_string();
-            path.push_str(&filename);
+            let path = format!("{0}/{filename}", f_c.borrow().directory);
             println!("Path = {}", path);
             let f = gio::File::for_path(path);
             let img = Image::new_file(&f, "blah");
             img.add_weak_ref_notify(move || {
                 println!("**image [{}] disposed**", filename);
             });
-            println!("refc1={}", img.ref_count());
-            // img.data_ref();
-            // img.data_unref();
-            println!("refc2={}", img.ref_count());
+            // println!("refc1={}", img.ref_count());
+            // // img.data_ref();
+            // // img.data_unref();
+            // println!("refc2={}", img.ref_count());
             let result = img.load(ImageData::IMAGE, None::<Job>.as_ref());
             match result {
                 Ok(()) => {
-                    println!("OK");
-                    let jpg = img.is_jpeg();
-                    println!("is jpg {}", jpg);
-                    let mut width = 0;
-                    let mut height = 0;
-                    img.size(&mut width, &mut height);
-                    println!("Size {} {}", width, height);
+                    let (width, height) = img.size();
+                    println!("OK: size {} {}", width, height);
                     sv_c.set_image(&img);
-                    // sv_c.apply_zoom(eog::ZoomMode::Max);
-                    // sv_c.apply_zoom(eog::ZoomMode::None);
                 }
                 Err(error) => {
                     println!("Error {}", error);
@@ -147,8 +130,9 @@ fn build_ui(application: &gtk::Application) {
     let fs = Cell::new(false);
     let treeview_c = treeview.clone();
     let sv_c = sv.clone();
+    let f_c = filelist.clone();
     window.connect_key_press_event(move |app, e| {
-        println!("Key {}", e.keycode().unwrap());
+        // println!("Key {}", e.keycode().unwrap());
         treeview_c.set_has_focus(true);
         match e.keyval() {
             gdk::keys::constants::q => {
@@ -165,8 +149,23 @@ fn build_ui(application: &gtk::Application) {
                     app.set_border_width(10);
                 }
             }
-            gdk::keys::constants::d => {
-                treeview_c.set_model(Some(&model));
+            gdk::keys::constants::Return => {
+                if let Some(subdir) = Navigation::filename(&treeview_c) {
+                    let mut filelist = f_c.borrow_mut();
+                    let newstore = filelist.enter(&subdir);
+                    drop(filelist);
+                    if newstore.is_some() {
+                        treeview_c.set_model(newstore.as_ref());
+                        Navigation::goto_first(&treeview_c);
+                    }
+               }
+            }
+            gdk::keys::constants::BackSpace => {
+                let mut filelist = f_c.borrow_mut();
+                let newstore = filelist.leave();
+                drop(filelist);
+                treeview_c.set_model(newstore.as_ref());
+                Navigation::goto_first(&treeview_c);
             }
             gdk::keys::constants::f => {
                 if fs.get() {
@@ -261,10 +260,7 @@ fn build_ui(application: &gtk::Application) {
             let jpg = img.is_jpeg();
             println!("is jpg {}", jpg);
 
-            let mut width = 0;
-            let mut height = 0;
-            img.size(&mut width, &mut height);
-
+            let (width, height) = img.size();
             println!("Size {} {}", width, height);
 
             sv.set_image(&img);
