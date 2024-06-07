@@ -1,5 +1,5 @@
 use crate::filelist::Columns;
-use crate::filelist_view;
+use crate::filelistview;
 use chrono::{DateTime, Local, TimeZone};
 use glib::ObjectExt;
 use gtk::glib;
@@ -15,15 +15,9 @@ pub struct FileListView {
 #[glib::object_subclass]
 impl ObjectSubclass for FileListView {
     const NAME: &'static str = "FileListView";
-    type Type = filelist_view::FileListView;
+    type Type = filelistview::FileListView;
     type ParentType = gtk::TreeView;
 }
-
-impl WidgetImpl for FileListView {}
-
-impl ContainerImpl for FileListView {}
-
-impl TreeViewImpl for FileListView {}
 
 impl ObjectImpl for FileListView {
     // Here we are overriding the glib::Object::contructed
@@ -93,6 +87,12 @@ impl ObjectImpl for FileListView {
         instance.append_column(&column);
     }
 }
+
+impl WidgetImpl for FileListView {}
+
+impl ContainerImpl for FileListView {}
+
+impl TreeViewImpl for FileListView {}
 
 impl FileListView {
     // fn on_increment_clicked(&self) {

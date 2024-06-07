@@ -4,19 +4,10 @@ use std::io;
 use std::path::Path;
 use std::time::UNIX_EPOCH;
 
-use glib::Cast;
-use glib::IsA;
 use gtk::prelude::GtkListStoreExtManual;
-use gtk::prelude::TreeModelExt;
-use gtk::prelude::TreeViewExt;
 use gtk::ListStore;
-use gtk::TreeIter;
-use gtk::TreePath;
-use gtk::TreeView;
-use gtk::TreeViewColumn;
 
 use crate::category::Category;
-use crate::filelist_view::FileListView;
 
 #[derive(Debug)]
 #[repr(i32)]
@@ -111,58 +102,3 @@ impl FileList {
         }
     }
 }
-
-pub struct Navigation {}
-
-impl Navigation {
-
-    pub fn filename(view: &FileListView) -> Option<String> {
-        if let Some((model, iter)) = view.iter() {
-            let filename = model
-                .value(&iter, Columns::Name as i32)
-                .get::<String>()
-                .unwrap_or("none".to_string());
-            Some(filename)
-        } else {
-            None
-        }
-    }
-
-    pub fn write(view: &FileListView) {
-        let model = view.model().unwrap().downcast::<ListStore>().unwrap();
-        let iter = model.iter_first().unwrap();
-        // model.set_value(&iter, Columns::Name as u32, &Value::from("xxx"));
-        let c = 100 as u32;
-        model.set(
-            &iter,
-            &[(Columns::Cat as u32, &c), (Columns::Name as u32, &"blah")],
-        )
-    }
-}
-
-pub trait TreeviewExtManual: 'static {
-    fn goto_first(&self);
-    fn iter(&self) -> Option<(ListStore, TreeIter)>;
-}
-
-impl<O: IsA<TreeView>> TreeviewExtManual for O {
-    fn goto_first(&self) {
-        let tp = TreePath::from_indicesv(&[0]);
-        self.set_cursor(&tp, None::<&TreeViewColumn>, false);
-    }
-
-    fn iter(&self) -> Option<(ListStore, TreeIter)> {
-        let (tp, _) = self.cursor();
-        let model = self.model().unwrap().downcast::<ListStore>().unwrap();
-        if let Some(path) = tp {
-            if let Some(iter) = model.iter(&path) {
-                Some((model, iter))
-            } else {
-                None
-            }
-        } else {
-            None
-        }
-    }
-}
-

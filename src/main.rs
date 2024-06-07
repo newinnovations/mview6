@@ -1,15 +1,14 @@
 mod category;
 mod filelist;
-pub mod filelist_view;
+pub mod filelistview;
 
 use std::cell::Cell;
 use std::cell::RefCell;
 use std::rc::Rc;
 
 use filelist::FileList;
-use filelist::Navigation;
-use filelist::TreeviewExtManual;
-use filelist_view::FileListView;
+use filelistview::FileListView;
+use filelistview::FileListViewExt;
 
 use gdk::glib::ObjectExt;
 use gdk::Screen;
@@ -51,7 +50,6 @@ fn main() {
 }
 
 fn build_ui(application: &gtk::Application) {
-
     let window = gtk::ApplicationWindow::new(application);
     window.set_title("MView6");
     window.set_border_width(10);
@@ -107,7 +105,7 @@ fn build_ui(application: &gtk::Application) {
     let sv_c = sv.clone();
     let f_c = filelist.clone();
     treeview.connect_cursor_changed(move |tv| {
-        if let Some(filename) = Navigation::filename(&tv) {
+        if let Some(filename) = tv.filename() {
             println!("Selected file {}", filename);
             let path = format!("{0}/{filename}", f_c.borrow().directory);
             println!("Path = {}", path);
@@ -157,7 +155,7 @@ fn build_ui(application: &gtk::Application) {
                 }
             }
             gdk::keys::constants::Return => {
-                if let Some(subdir) = Navigation::filename(&treeview_c) {
+                if let Some(subdir) = &treeview_c.filename() {
                     let mut filelist = f_c.borrow_mut();
                     let newstore = filelist.enter(&subdir);
                     drop(filelist);
@@ -175,7 +173,7 @@ fn build_ui(application: &gtk::Application) {
                 treeview_c.goto_first();
             }
             gdk::keys::constants::d => {
-                Navigation::write(&treeview_c);
+                treeview_c.write();
             }
             gdk::keys::constants::f => {
                 if fs.get() {
