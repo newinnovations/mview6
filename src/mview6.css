@@ -1,0 +1,8 @@
+.view button {
+    /* background: #eee; */
+    color: #666;
+    border-radius: 0px;
+    border-width: 0px 1px 1px 0px;
+    border-color: #ccc;
+    font-weight: bold;
+}
