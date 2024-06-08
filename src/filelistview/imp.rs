@@ -7,19 +7,19 @@ use gtk::prelude::{CellRendererExt, TreeModelExt, TreeViewColumnExt, TreeViewExt
 use gtk::subclass::prelude::*;
 
 #[derive(Debug, Default)]
-pub struct FileListView {
+pub struct FileListViewImp {
     // widgets: OnceCell<WindowWidgets>,
     // counter: Cell<u64>,
 }
 
 #[glib::object_subclass]
-impl ObjectSubclass for FileListView {
+impl ObjectSubclass for FileListViewImp {
     const NAME: &'static str = "FileListView";
     type Type = filelistview::FileListView;
     type ParentType = gtk::TreeView;
 }
 
-impl ObjectImpl for FileListView {
+impl ObjectImpl for FileListViewImp {
     // Here we are overriding the glib::Object::contructed
     // method. Its what gets called when we create our Object
     // and where we can initialize things.
@@ -88,13 +88,13 @@ impl ObjectImpl for FileListView {
     }
 }
 
-impl WidgetImpl for FileListView {}
+impl WidgetImpl for FileListViewImp {}
 
-impl ContainerImpl for FileListView {}
+impl ContainerImpl for FileListViewImp {}
 
-impl TreeViewImpl for FileListView {}
+impl TreeViewImpl for FileListViewImp {}
 
-impl FileListView {
+impl FileListViewImp {
     // fn on_increment_clicked(&self) {
     //     self.counter.set(self.counter.get() + 1);
     //     let w = self.widgets.get().unwrap();

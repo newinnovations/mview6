@@ -10,7 +10,7 @@ use gtk::{
 use crate::filelist::Columns;
 
 glib::wrapper! {
-pub struct FileListView(ObjectSubclass<imp::FileListView>)
+pub struct FileListView(ObjectSubclass<imp::FileListViewImp>)
     @extends gtk::Container, gtk::Widget, gtk::TreeView, gtk::Scrollable;
 }
 
@@ -25,6 +25,7 @@ impl FileListView {
 
 pub trait FileListViewExt: IsA<FileListView> + IsA<TreeView> + 'static {
     fn goto_first(&self);
+    fn goto(&self, filename: &str) -> bool;
     fn iter(&self) -> Option<(ListStore, TreeIter)>;
     fn filename(&self) -> Option<String>;
     fn write(&self);
@@ -71,5 +72,27 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
             &iter,
             &[(Columns::Cat as u32, &c), (Columns::Name as u32, &"blah")],
         )
+    }
+
+    fn goto(&self, filename: &str) -> bool {
+        println!("Goto {filename}");
+        let model = self.model().unwrap().downcast::<ListStore>().unwrap();
+        if let Some(iter) = model.iter_first() {
+            loop {
+                let entry = model
+                    .value(&iter, Columns::Name as i32)
+                    .get::<String>()
+                    .unwrap_or("none".to_string());
+                if entry == filename {
+                    let tp = model.path(&iter).unwrap_or_default();
+                    self.set_cursor(&tp, None::<&TreeViewColumn>, false);
+                    return true;
+                }
+                if !model.iter_next(&iter) {
+                    return false;
+                }
+            }
+        }
+        return false;
     }
 }
