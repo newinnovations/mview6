@@ -1,0 +1,17 @@
+mod imp;
+
+use gtk::{gio, glib};
+
+glib::wrapper! {
+    pub struct MviewApplication(ObjectSubclass<imp::MviewApplicationSub>)
+        @extends gio::Application, gtk::Application;
+}
+
+impl MviewApplication {
+    #[allow(clippy::new_without_default)]
+    pub fn new() -> Self {
+        glib::Object::builder()
+            .property("application-id", "org.gtk-rs.SimpleApplication")
+            .build()
+    }
+}

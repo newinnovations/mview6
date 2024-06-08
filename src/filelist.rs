@@ -19,6 +19,7 @@ pub enum Columns {
     Modified,
 }
 
+#[derive(Debug)]
 pub struct FileList {
     pub directory: String,
 }
