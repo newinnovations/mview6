@@ -1,6 +1,7 @@
 use std::fs::Metadata;
 
 #[derive(Debug, Copy, Clone)]
+#[repr(u32)]
 pub enum Category {
     Direcory = 0,
     Archive,
@@ -50,8 +51,8 @@ impl Category {
         }
     }
 
-    pub fn id(&self) -> i32 {
-        *self as i32
+    pub fn id(&self) -> u32 {
+        *self as u32
     }
 
     pub fn icon(&self) -> &str {

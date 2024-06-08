@@ -4,7 +4,7 @@ use eog::ScrollViewExt;
 use gdk::EventKey;
 use gtk::{prelude::*, subclass::prelude::*};
 
-use crate::filelistview::FileListViewExt;
+use crate::filelistview::{Direction, FileListViewExt, Filter};
 
 impl MViewWindowImp {
     pub(super) fn on_key_press(&self, e: &EventKey) {
@@ -39,7 +39,7 @@ impl MViewWindowImp {
                 }
             }
             gdk::keys::constants::Return => {
-                if let Some(subdir) = &w.treeview.filename() {
+                if let Some(subdir) = &w.treeview.current_filename() {
                     let mut filelist = w.file_list.borrow_mut();
                     let newstore = filelist.enter(subdir);
                     drop(filelist);
@@ -74,12 +74,28 @@ impl MViewWindowImp {
                 }
             }
             gdk::keys::constants::z | gdk::keys::constants::Left => {
-                w.treeview
-                    .emit_move_cursor(gtk::MovementStep::DisplayLines, -1);
+                w.treeview.navigate(Direction::Up, Filter::Image, 1);
             }
             gdk::keys::constants::x | gdk::keys::constants::Right => {
-                w.treeview
-                    .emit_move_cursor(gtk::MovementStep::DisplayLines, 1);
+                w.treeview.navigate(Direction::Down, Filter::Image, 1);
+            }
+            gdk::keys::constants::a  => {
+                w.treeview.navigate(Direction::Up, Filter::Favorite, 1);
+            }
+            gdk::keys::constants::s  => {
+                w.treeview.navigate(Direction::Down, Filter::Favorite, 1);
+            }
+            gdk::keys::constants::Z => {
+                w.treeview.navigate(Direction::Up, Filter::None, 1);
+            }
+            gdk::keys::constants::X => {
+                w.treeview.navigate(Direction::Down, Filter::None, 1);
+            }
+            gdk::keys::constants::Up => {
+                w.treeview.navigate(Direction::Up, Filter::None, 5);
+            }
+            gdk::keys::constants::Down => {
+                w.treeview.navigate(Direction::Down, Filter::None, 5);
             }
             gdk::keys::constants::Page_Up => {
                 w.treeview.emit_move_cursor(gtk::MovementStep::Pages, -1);
@@ -94,37 +110,6 @@ impl MViewWindowImp {
             gdk::keys::constants::End => {
                 w.treeview
                     .emit_move_cursor(gtk::MovementStep::BufferEnds, 1);
-            }
-            gdk::keys::constants::Up => {
-                let (tp, col) = w.treeview.cursor();
-                if let Some(mut tp) = tp {
-                    println!("tp: {:?}", tp.indices());
-                    // TreePath::from_indicesv(&[3]);
-                    // let n = tp.indices().get(0).unwrap().to_owned();
-                    // let m = w.treeview.model().unwrap();
-                    // let i = m.iter_nth_child(None, n).unwrap();
-                    // println!(
-                    //     "Current = {}",
-                    //     model
-                    //         .value(&i, Columns::Name as i32)
-                    //         .get::<String>()
-                    //         .unwrap_or("??".to_string())
-                    // );
-                    for _ in 0..1 {
-                        tp.prev();
-                    }
-                    w.treeview.set_cursor(&tp, col.as_ref(), false);
-                }
-            }
-            gdk::keys::constants::Down => {
-                let (tp, col) = w.treeview.cursor();
-                if let Some(mut tp) = tp {
-                    println!("tp: {:?}", tp.indices());
-                    for _ in 0..1 {
-                        tp.next();
-                    }
-                    w.treeview.set_cursor(&tp, col.as_ref(), false);
-                }
             }
             _ => (),
         }

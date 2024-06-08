@@ -10,7 +10,7 @@ use gtk::prelude::*;
 impl MViewWindowImp {
     pub(super) fn on_cursor_changed(&self) {
         let w = self.widgets.get().unwrap();
-        if let Some(filename) = w.treeview.filename() {
+        if let Some(filename) = w.treeview.current_filename() {
             println!("Selected file {}", filename);
             let path = format!("{0}/{filename}", w.file_list.borrow().directory);
             println!("Path = {}", path);
