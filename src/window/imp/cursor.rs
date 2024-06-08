@@ -65,7 +65,7 @@ impl MViewWindowImp {
         println!("filename = {filename}");
         println!("directory = {directory}");
         let mut filelist = w.file_list.borrow_mut();
-        let newstore = filelist.goto(&directory);
+        let newstore = filelist.goto(directory);
         drop(filelist);
         if newstore.is_some() {
             w.treeview.set_model(newstore.as_ref());

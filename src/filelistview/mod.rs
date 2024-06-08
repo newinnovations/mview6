@@ -23,6 +23,12 @@ impl FileListView {
     }
 }
 
+impl Default for FileListView {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub trait FileListViewExt: IsA<FileListView> + IsA<TreeView> + 'static {
     fn goto_first(&self);
     fn goto(&self, filename: &str) -> bool;
@@ -41,11 +47,12 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
         let (tp, _) = self.cursor();
         let model = self.model().unwrap().downcast::<ListStore>().unwrap();
         if let Some(path) = tp {
-            if let Some(iter) = model.iter(&path) {
-                Some((model, iter))
-            } else {
-                None
-            }
+            // if let Some(iter) = model.iter(&path) {
+            //     Some((model, iter))
+            // } else {
+            //     None
+            // }
+            model.iter(&path).map(|iter| (model, iter))
         } else {
             None
         }
@@ -67,7 +74,7 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
         let model = self.model().unwrap().downcast::<ListStore>().unwrap();
         let iter = model.iter_first().unwrap();
         // model.set_value(&iter, Columns::Name as u32, &Value::from("xxx"));
-        let c = 100 as u32;
+        let c = 100_u32;
         model.set(
             &iter,
             &[(Columns::Cat as u32, &c), (Columns::Name as u32, &"blah")],
@@ -93,6 +100,6 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
                 }
             }
         }
-        return false;
+        false
     }
 }

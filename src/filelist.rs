@@ -83,9 +83,8 @@ impl FileList {
 
     pub fn goto(&mut self, directory: &str) -> Option<ListStore> {
         let newstore = Self::read_dir(directory);
-        match newstore {
-            Some(_) => self.directory = directory.to_string(),
-            _ => (),
+        if newstore.is_some() {
+            self.directory = directory.to_string();
         }
         newstore
     }

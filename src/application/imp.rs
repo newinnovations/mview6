@@ -45,7 +45,7 @@ impl ApplicationImpl for MviewApplicationImp {
     fn open(&self, files: &[File], hint: &str) {
         println!("OPEN");
         dbg!(files, hint);
-        if files.len() > 0 {
+        if !files.is_empty() {
             let file = &files[0];
             let window = self.window.get().expect("failed to get window");
             window.load(file);

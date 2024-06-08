@@ -55,7 +55,7 @@ impl ObjectImpl for FileListViewImp {
 
         // Column for size
         let renderer = gtk::CellRendererText::new();
-        renderer.set_property("xalign", 1.0 as f32);
+        renderer.set_property("xalign", 1.0_f32);
         let column = gtk::TreeViewColumn::new();
         column.pack_start(&renderer, true);
         column.set_title("Size");

@@ -41,7 +41,7 @@ impl MViewWindowImp {
             gdk::keys::constants::Return => {
                 if let Some(subdir) = &w.treeview.filename() {
                     let mut filelist = w.file_list.borrow_mut();
-                    let newstore = filelist.enter(&subdir);
+                    let newstore = filelist.enter(subdir);
                     drop(filelist);
                     if newstore.is_some() {
                         w.treeview.set_model(newstore.as_ref());

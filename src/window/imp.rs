@@ -98,7 +98,7 @@ impl ObjectImpl for MViewWindowImp {
         }
 
         window.connect_key_press_event(clone!(@weak self as imp => @default-panic, move |_, e| {
-            imp.on_key_press(&e);
+            imp.on_key_press(e);
             glib::Propagation::Stop
         }));
 
