@@ -20,14 +20,6 @@ impl Category {
 
         let filename_lower = filename.to_lowercase();
 
-        if filename_lower.contains(".hi.") {
-            return Self::Favorite;
-        }
-
-        if filename_lower.contains(".lo.") {
-            return Self::Trash;
-        }
-
         let archive = filename_lower.ends_with(".zip")
             | filename_lower.ends_with(".rar")
             | filename_lower.ends_with(".tar")
@@ -45,6 +37,14 @@ impl Category {
             | filename_lower.ends_with(".png");
 
         if supported {
+            if filename_lower.contains(".hi.") {
+                return Self::Favorite;
+            }
+
+            if filename_lower.contains(".lo.") {
+                return Self::Trash;
+            }
+
             Self::Image
         } else {
             Self::Unsupported
