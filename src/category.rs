@@ -4,9 +4,9 @@ use std::fs::Metadata;
 #[repr(u32)]
 pub enum Category {
     Direcory = 0,
-    Archive,
-    Image,
     Favorite,
+    Image,
+    Archive,
     Trash,
     Unsupported,
 }
@@ -40,11 +40,9 @@ impl Category {
             if filename_lower.contains(".hi.") {
                 return Self::Favorite;
             }
-
             if filename_lower.contains(".lo.") {
                 return Self::Trash;
             }
-
             Self::Image
         } else {
             Self::Unsupported

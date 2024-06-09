@@ -3,14 +3,17 @@ mod keyboard;
 
 use eog::{Image, ImageData, ImageExt, ImageExtManual, Job, ScrollView, ScrollViewExt};
 use glib::{clone, once_cell::unsync::OnceCell};
-use gtk::{glib, prelude::*, subclass::prelude::*, Box, ScrolledWindow};
+use gtk::{glib, prelude::*, subclass::prelude::*, Box, ScrolledWindow, SortColumn, SortType};
 use std::{
     cell::{Cell, RefCell},
     rc::Rc,
 };
 
-use crate::filelist::FileList;
 use crate::filelistview::FileListView;
+use crate::{
+    filelist::{Columns, FileList},
+    filelistview::FileListViewExt,
+};
 
 #[derive(Debug)]
 struct MViewWidgets {
@@ -62,7 +65,7 @@ impl ObjectImpl for MViewWindowImp {
         let treeview = FileListView::new();
         treeview.set_model(file_list.borrow().read().as_ref());
         treeview.set_vexpand(true);
-        // treeview.set_search_column(Columns::Name as i32);
+        treeview.set_sort_column(SortColumn::Index(Columns::Cat as u32), SortType::Ascending);
 
         file_window.add(&treeview);
 
@@ -121,7 +124,6 @@ impl ObjectImpl for MViewWindowImp {
         self.widgets.get().unwrap().sv.set_offset(0, 0);
 
         println!("MViewWindowSub: constructed done");
-
     }
 }
 

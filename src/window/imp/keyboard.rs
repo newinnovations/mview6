@@ -2,9 +2,9 @@ use super::MViewWindowImp;
 
 use eog::ScrollViewExt;
 use gdk::EventKey;
-use gtk::{prelude::*, subclass::prelude::*};
+use gtk::{prelude::*, subclass::prelude::*, SortColumn, SortType};
 
-use crate::filelistview::{Direction, FileListViewExt, Filter};
+use crate::{filelist::Columns, filelistview::{Direction, FileListViewExt, Filter}};
 
 impl MViewWindowImp {
     pub(super) fn on_key_press(&self, e: &EventKey) {
@@ -44,6 +44,7 @@ impl MViewWindowImp {
                     drop(filelist);
                     if newstore.is_some() {
                         w.treeview.set_model(newstore.as_ref());
+                        w.treeview.set_sort_column(SortColumn::Index(Columns::Cat as u32), SortType::Ascending);
                         w.treeview.goto_first();
                     }
                 }
@@ -53,6 +54,7 @@ impl MViewWindowImp {
                 let newstore = filelist.leave();
                 drop(filelist);
                 w.treeview.set_model(newstore.as_ref());
+                w.treeview.set_sort_column(SortColumn::Index(Columns::Cat as u32), SortType::Ascending);
                 w.treeview.goto_first();
             }
             gdk::keys::constants::n => {

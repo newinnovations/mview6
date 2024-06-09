@@ -5,12 +5,16 @@ use std::path::Path;
 use std::time::UNIX_EPOCH;
 
 use gtk::prelude::GtkListStoreExtManual;
+use gtk::prelude::TreeModelExt;
+use gtk::prelude::TreeSortableExtManual;
 use gtk::ListStore;
+use gtk::TreeIter;
+use gtk::TreeModel;
 
 use crate::category::Category;
 
 #[derive(Debug)]
-#[repr(i32)]
+#[repr(u32)]
 pub enum Columns {
     Cat = 0,
     Icon,
@@ -51,6 +55,21 @@ fn read_directory(store: &ListStore, current_dir: &str) -> io::Result<()> {
     Ok(())
 }
 
+// TODO: move to trait or new store type
+fn model_filename(model: &TreeModel, iter: &TreeIter) -> String {
+    model
+        .value(iter, Columns::Name as i32)
+        .get::<String>()
+        .unwrap_or_default()
+}
+
+fn model_category(model: &TreeModel, iter: &TreeIter) -> u32 {
+    model
+        .value(iter, Columns::Cat as i32)
+        .get::<u32>()
+        .unwrap_or(Category::Unsupported.id())
+}
+
 impl FileList {
     pub fn new(directory: &str) -> Self {
         Self {
@@ -66,7 +85,20 @@ impl FileList {
             glib::Type::U64,
             glib::Type::U64,
         ];
-        ListStore::new(&col_types)
+        let store = ListStore::new(&col_types);
+        store.set_sort_func(gtk::SortColumn::Index(Columns::Cat as u32), |model,iter1,iter2| {
+            let cat1 = model_category(model, iter1);
+            let cat2 = model_category(model, iter2);
+            let result = cat1.cmp(&cat2);
+            if result.is_eq() {
+                let filename1 = model_filename(model, iter1).to_lowercase();
+                let filename2 = model_filename(model, iter2).to_lowercase();
+                filename1.cmp(&filename2)
+            } else {
+                result
+            }
+        });
+        store
     }
 
     fn read_dir(directory: &str) -> Option<ListStore> {

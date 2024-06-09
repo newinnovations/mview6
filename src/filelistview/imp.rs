@@ -3,7 +3,7 @@ use crate::filelistview;
 use chrono::{DateTime, Local, TimeZone};
 use glib::ObjectExt;
 use gtk::glib;
-use gtk::prelude::{CellRendererExt, TreeModelExt, TreeViewColumnExt, TreeViewExt};
+use gtk::prelude::{TreeModelExt, TreeViewColumnExt, TreeViewExt};
 use gtk::subclass::prelude::*;
 
 #[derive(Debug, Default)]
@@ -24,26 +24,26 @@ impl ObjectImpl for FileListViewImp {
         self.parent_constructed();
         let instance = self.obj();
 
-        // // Column for category
-        // let renderer = gtk::CellRendererText::new();
-        // let column = gtk::TreeViewColumn::new();
-        // column.pack_start(&renderer, true);
+        // Column for category
+        let renderer = gtk::CellRendererPixbuf::new();
+        let column = gtk::TreeViewColumn::new();
+        column.pack_start(&renderer, true);
         // column.set_title("Cat");
-        // column.add_attribute(&renderer, "text", Columns::Cat as i32);
-        // column.set_sizing(gtk::TreeViewColumnSizing::Fixed);
-        // column.set_fixed_width(40);
-        // column.set_sort_column_id(Columns::Cat as i32);
-        // instance.append_column(&column);
+        column.add_attribute(&renderer, "icon-name", Columns::Icon as i32);
+        column.set_sizing(gtk::TreeViewColumnSizing::Fixed);
+        column.set_fixed_width(30);
+        column.set_sort_column_id(Columns::Cat as i32);
+        instance.append_column(&column);
 
         // Column for file/direcory
         let renderer_txt = gtk::CellRendererText::new();
-        let renderer_icon = gtk::CellRendererPixbuf::new();
-        renderer_icon.set_padding(6, 0);
+        // let renderer_icon = gtk::CellRendererPixbuf::new();
+        // renderer_icon.set_padding(6, 0);
         let column = gtk::TreeViewColumn::new();
-        column.pack_start(&renderer_icon, false);
+        // column.pack_start(&renderer_icon, false);
         column.pack_start(&renderer_txt, true);
         column.set_title("Name");
-        column.add_attribute(&renderer_icon, "icon-name", Columns::Icon as i32);
+        // column.add_attribute(&renderer_icon, "icon-name", Columns::Icon as i32);
         column.add_attribute(&renderer_txt, "text", Columns::Name as i32);
         column.set_sizing(gtk::TreeViewColumnSizing::Fixed);
         column.set_fixed_width(300);

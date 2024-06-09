@@ -5,8 +5,8 @@ use std::fs::rename;
 use glib::{Cast, IsA};
 use gtk::{
     glib,
-    prelude::{GtkListStoreExtManual, TreeModelExt, TreeViewExt},
-    ListStore, TreeIter, TreePath, TreeView, TreeViewColumn,
+    prelude::{GtkListStoreExtManual, TreeModelExt, TreeSortableExtManual, TreeViewExt},
+    ListStore, SortColumn, SortType, TreeIter, TreePath, TreeView, TreeViewColumn,
 };
 use regex::Regex;
 
@@ -66,6 +66,7 @@ pub trait FileListViewExt: IsA<FileListView> + IsA<TreeView> + 'static {
     fn current_filename(&self) -> Option<String>;
     fn navigate(&self, direction: Direction, filter: Filter, count: i32) -> bool;
     fn favorite(&self, directory: &str, direction: Direction) -> bool;
+    fn set_sort_column(&self, sort_column_id: SortColumn, order: SortType);
 }
 
 impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
@@ -80,7 +81,7 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
         if let Some(path) = tp {
             model.iter(&path).map(|iter| (model, iter))
         } else {
-            None
+            model.iter_first().map(|iter| (model, iter))
         }
     }
 
@@ -197,5 +198,10 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
             }
         }
         false
+    }
+
+    fn set_sort_column(&self, sort_column_id: SortColumn, order: SortType) {
+        let model = self.model().unwrap().downcast::<ListStore>().unwrap();
+        model.set_sort_column_id(sort_column_id, order);
     }
 }
