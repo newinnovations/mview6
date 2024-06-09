@@ -1,11 +1,14 @@
 mod imp;
 
+use std::fs::rename;
+
 use glib::{Cast, IsA};
 use gtk::{
     glib,
     prelude::{GtkListStoreExtManual, TreeModelExt, TreeViewExt},
     ListStore, TreeIter, TreePath, TreeView, TreeViewColumn,
 };
+use regex::Regex;
 
 use crate::{category::Category, filelist::Columns};
 
@@ -41,13 +44,28 @@ pub enum Filter {
     Favorite,
 }
 
+// TODO: move to trait or new store type
+fn model_filename(model: &ListStore, iter: &TreeIter) -> String {
+    model
+        .value(iter, Columns::Name as i32)
+        .get::<String>()
+        .unwrap_or_default()
+}
+
+fn model_category(model: &ListStore, iter: &TreeIter) -> u32 {
+    model
+        .value(iter, Columns::Cat as i32)
+        .get::<u32>()
+        .unwrap_or(Category::Unsupported.id())
+}
+
 pub trait FileListViewExt: IsA<FileListView> + IsA<TreeView> + 'static {
     fn goto_first(&self);
     fn goto(&self, filename: &str) -> bool;
     fn iter(&self) -> Option<(ListStore, TreeIter)>;
     fn current_filename(&self) -> Option<String>;
-    fn write(&self);
     fn navigate(&self, direction: Direction, filter: Filter, count: i32) -> bool;
+    fn favorite(&self, directory: &str, direction: Direction) -> bool;
 }
 
 impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
@@ -68,25 +86,10 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
 
     fn current_filename(&self) -> Option<String> {
         if let Some((model, iter)) = self.iter() {
-            let filename = model
-                .value(&iter, Columns::Name as i32)
-                .get::<String>()
-                .unwrap_or_default();
-            Some(filename)
+            Some(model_filename(&model, &iter))
         } else {
             None
         }
-    }
-
-    fn write(&self) {
-        let model = self.model().unwrap().downcast::<ListStore>().unwrap();
-        let iter = model.iter_first().unwrap();
-        // model.set_value(&iter, Columns::Name as u32, &Value::from("xxx"));
-        let c = 100_u32;
-        model.set(
-            &iter,
-            &[(Columns::Cat as u32, &c), (Columns::Name as u32, &"blah")],
-        )
     }
 
     fn goto(&self, filename: &str) -> bool {
@@ -94,17 +97,13 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
         let model = self.model().unwrap().downcast::<ListStore>().unwrap();
         if let Some(iter) = model.iter_first() {
             loop {
-                let entry = model
-                    .value(&iter, Columns::Name as i32)
-                    .get::<String>()
-                    .unwrap_or("none".to_string());
-                if entry == filename {
+                if filename == model_filename(&model, &iter) {
                     let tp = model.path(&iter).unwrap_or_default();
                     self.set_cursor(&tp, None::<&TreeViewColumn>, false);
                     return true;
                 }
                 if !model.iter_next(&iter) {
-                    return false;
+                    break;
                 }
             }
         }
@@ -115,7 +114,7 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
         if let Some((model, iter)) = self.iter() {
             let mut cnt = count;
             loop {
-                let last = iter.clone();
+                let last = iter;
                 let result = if matches!(direction, Direction::Up) {
                     model.iter_previous(&iter)
                 } else {
@@ -129,10 +128,7 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
                     return false;
                 }
 
-                let cat = model
-                    .value(&iter, Columns::Cat as i32)
-                    .get::<u32>()
-                    .unwrap_or(Category::Unsupported.id());
+                let cat = model_category(&model, &iter);
 
                 let skip = match filter {
                     Filter::None => false,
@@ -144,7 +140,7 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
                     continue;
                 }
 
-                cnt = cnt - 1;
+                cnt -= 1;
                 if cnt == 0 {
                     break;
                 }
@@ -155,5 +151,51 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
         } else {
             false
         }
+    }
+
+    fn favorite(&self, directory: &str, direction: Direction) -> bool {
+        if let Some((model, iter)) = self.iter() {
+            let filename = model_filename(&model, &iter);
+            let re = Regex::new(r"\.([^\.]+)$").unwrap();
+            let (new_filename, new_cat) = if matches!(direction, Direction::Up) {
+                if filename.contains(".hi.") {
+                    return false;
+                } else if filename.contains(".lo.") {
+                    (filename.replace(".lo", ""), Category::Image)
+                } else {
+                    (
+                        re.replace(&filename, ".hi.$1").to_string(),
+                        Category::Favorite,
+                    )
+                }
+            } else if filename.contains(".lo.") {
+                return false;
+            } else if filename.contains(".hi.") {
+                (filename.replace(".hi", ""), Category::Image)
+            } else {
+                (re.replace(&filename, ".lo.$1").to_string(), Category::Trash)
+            };
+            dbg!(directory, &filename, &new_filename);
+            match rename(
+                format!("{directory}/{}", &filename),
+                format!("{directory}/{}", &new_filename),
+            ) {
+                Ok(()) => {
+                    model.set(
+                        &iter,
+                        &[
+                            (Columns::Cat as u32, &new_cat.id()),
+                            (Columns::Icon as u32, &new_cat.icon()),
+                            (Columns::Name as u32, &new_filename),
+                        ],
+                    );
+                    return true;
+                }
+                Err(e) => {
+                    println!("Failed to rename {filename} to {new_filename}: {:?}", e)
+                }
+            }
+        }
+        false
     }
 }

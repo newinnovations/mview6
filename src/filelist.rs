@@ -101,4 +101,9 @@ impl FileList {
             _ => None,
         }
     }
+
+    pub fn directory(&self) -> String {
+        self.directory.clone()
+    }
 }
+

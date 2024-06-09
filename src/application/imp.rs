@@ -30,6 +30,7 @@ impl ApplicationImpl for MviewApplicationImp {
     /// aksed to present itself.
     fn activate(&self) {
         let window = self.window.get().expect("failed to get window");
+        println!("window:activate");
         window.show_all();
         window.present();
     }

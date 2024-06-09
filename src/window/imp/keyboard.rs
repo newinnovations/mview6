@@ -8,7 +8,6 @@ use crate::filelistview::{Direction, FileListViewExt, Filter};
 
 impl MViewWindowImp {
     pub(super) fn on_key_press(&self, e: &EventKey) {
-        println!("Key {}", e.keycode().unwrap());
         let w = self.widgets.get().unwrap();
         w.treeview.set_has_focus(true);
         match e.keyval() {
@@ -56,10 +55,7 @@ impl MViewWindowImp {
                 w.treeview.set_model(newstore.as_ref());
                 w.treeview.goto_first();
             }
-            gdk::keys::constants::d => {
-                w.treeview.write();
-            }
-            gdk::keys::constants::o => {
+            gdk::keys::constants::n => {
                 if w.sv.zoom_mode() == eog::ZoomMode::Fit {
                     w.sv.set_zoom_mode(eog::ZoomMode::None);
                 } else {
@@ -72,6 +68,14 @@ impl MViewWindowImp {
                 } else {
                     w.sv.set_zoom_mode(eog::ZoomMode::Max);
                 }
+            }
+            gdk::keys::constants::minus | gdk::keys::constants::KP_Subtract => {
+                w.treeview
+                    .favorite(&w.file_list.borrow().directory(), Direction::Down);
+            }
+            gdk::keys::constants::equal | gdk::keys::constants::KP_Add => {
+                w.treeview
+                    .favorite(&w.file_list.borrow().directory(), Direction::Up);
             }
             gdk::keys::constants::z | gdk::keys::constants::Left | gdk::keys::constants::KP_4 => {
                 w.treeview.navigate(Direction::Up, Filter::Image, 1);

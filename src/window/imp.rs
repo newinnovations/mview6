@@ -74,7 +74,7 @@ impl ObjectImpl for MViewWindowImp {
         sv.set_zoom_mode(eog::ZoomMode::Max);
         hbox.add(&sv);
 
-        let f = gio::File::for_path("/home/martin/Pictures/mview-a.png");
+        let f = gio::File::for_path("/home/martin/Pictures/mview-logo.jpg");
         let img = Image::new_file(&f, "welcome");
         img.add_weak_ref_notify(move || {
             println!("**welcome image disposed**");
@@ -117,6 +117,8 @@ impl ObjectImpl for MViewWindowImp {
             .expect("Failed to initialize MView window");
 
         window.show_all();
+
+        self.widgets.get().unwrap().sv.set_offset(0, 0);
 
         println!("MViewWindowSub: constructed done");
 

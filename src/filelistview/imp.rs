@@ -20,23 +20,20 @@ impl ObjectSubclass for FileListViewImp {
 }
 
 impl ObjectImpl for FileListViewImp {
-    // Here we are overriding the glib::Object::contructed
-    // method. Its what gets called when we create our Object
-    // and where we can initialize things.
     fn constructed(&self) {
         self.parent_constructed();
         let instance = self.obj();
 
-        // Column for category
-        let renderer = gtk::CellRendererText::new();
-        let column = gtk::TreeViewColumn::new();
-        column.pack_start(&renderer, true);
-        column.set_title("Cat");
-        column.add_attribute(&renderer, "text", Columns::Cat as i32);
-        column.set_sizing(gtk::TreeViewColumnSizing::Fixed);
-        column.set_fixed_width(40);
-        column.set_sort_column_id(Columns::Cat as i32);
-        instance.append_column(&column);
+        // // Column for category
+        // let renderer = gtk::CellRendererText::new();
+        // let column = gtk::TreeViewColumn::new();
+        // column.pack_start(&renderer, true);
+        // column.set_title("Cat");
+        // column.add_attribute(&renderer, "text", Columns::Cat as i32);
+        // column.set_sizing(gtk::TreeViewColumnSizing::Fixed);
+        // column.set_fixed_width(40);
+        // column.set_sort_column_id(Columns::Cat as i32);
+        // instance.append_column(&column);
 
         // Column for file/direcory
         let renderer_txt = gtk::CellRendererText::new();
@@ -49,7 +46,7 @@ impl ObjectImpl for FileListViewImp {
         column.add_attribute(&renderer_icon, "icon-name", Columns::Icon as i32);
         column.add_attribute(&renderer_txt, "text", Columns::Name as i32);
         column.set_sizing(gtk::TreeViewColumnSizing::Fixed);
-        column.set_fixed_width(250);
+        column.set_fixed_width(300);
         column.set_sort_column_id(Columns::Name as i32);
         instance.append_column(&column);
 
@@ -94,11 +91,4 @@ impl ContainerImpl for FileListViewImp {}
 
 impl TreeViewImpl for FileListViewImp {}
 
-impl FileListViewImp {
-    // fn on_increment_clicked(&self) {
-    //     self.counter.set(self.counter.get() + 1);
-    //     let w = self.widgets.get().unwrap();
-    //     w.label
-    //         .set_text(&format!("Counter is {}", self.counter.get()));
-    // }
-}
+impl FileListViewImp {}
