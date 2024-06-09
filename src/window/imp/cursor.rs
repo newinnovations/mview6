@@ -10,7 +10,7 @@ use gtk::prelude::*;
 impl MViewWindowImp {
     pub(super) fn on_cursor_changed(&self) {
         let w = self.widgets.get().unwrap();
-        if let Some(filename) = w.treeview.current_filename() {
+        if let Some(filename) = w.file_list_view.current_filename() {
             println!("Selected file {}", filename);
             let path = format!("{0}/{filename}", w.file_list.borrow().directory);
             println!("Path = {}", path);
@@ -40,7 +40,7 @@ impl MViewWindowImp {
         });
         match image.load(ImageData::IMAGE, None::<Job>.as_ref()) {
             Ok(()) => {
-                w.sv.set_image(&image);
+                w.eog.set_image(&image);
                 self.current_file.replace(filename);
             }
             Err(error) => {
@@ -68,8 +68,8 @@ impl MViewWindowImp {
         let newstore = filelist.goto(directory);
         drop(filelist);
         if newstore.is_some() {
-            w.treeview.set_model(newstore.as_ref());
-            w.treeview.goto(filename);
+            w.file_list_view.set_model(newstore.as_ref());
+            w.file_list_view.goto(filename);
         }
     }
 }

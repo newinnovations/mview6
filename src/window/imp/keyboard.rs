@@ -9,43 +9,43 @@ use crate::{filelist::Columns, filelistview::{Direction, FileListViewExt, Filter
 impl MViewWindowImp {
     pub(super) fn on_key_press(&self, e: &EventKey) {
         let w = self.widgets.get().unwrap();
-        w.treeview.set_has_focus(true);
+        w.file_list_view.set_has_focus(true);
         match e.keyval() {
             gdk::keys::constants::q => {
                 self.obj().close();
             }
             gdk::keys::constants::space | gdk::keys::constants::KP_Divide => {
-                if w.file_window.is_visible() {
-                    w.file_window.set_visible(false);
+                if w.files_widget.is_visible() {
+                    w.files_widget.set_visible(false);
                     w.hbox.set_spacing(0);
                     self.obj().set_border_width(0);
                 } else {
-                    w.file_window.set_visible(true);
+                    w.files_widget.set_visible(true);
                     w.hbox.set_spacing(8);
                     self.obj().set_border_width(10);
                 }
             }
             gdk::keys::constants::f | gdk::keys::constants::KP_Multiply => {
-                if self.fs.get() {
+                if self.full_screen.get() {
                     self.obj().unfullscreen();
-                    self.fs.set(false);
+                    self.full_screen.set(false);
                 } else {
-                    w.file_window.set_visible(false);
+                    w.files_widget.set_visible(false);
                     w.hbox.set_spacing(0);
                     self.obj().set_border_width(0);
                     self.obj().fullscreen();
-                    self.fs.set(true);
+                    self.full_screen.set(true);
                 }
             }
             gdk::keys::constants::Return => {
-                if let Some(subdir) = &w.treeview.current_filename() {
+                if let Some(subdir) = &w.file_list_view.current_filename() {
                     let mut filelist = w.file_list.borrow_mut();
                     let newstore = filelist.enter(subdir);
                     drop(filelist);
                     if newstore.is_some() {
-                        w.treeview.set_model(newstore.as_ref());
-                        w.treeview.set_sort_column(SortColumn::Index(Columns::Cat as u32), SortType::Ascending);
-                        w.treeview.goto_first();
+                        w.file_list_view.set_model(newstore.as_ref());
+                        w.file_list_view.set_sort_column(SortColumn::Index(Columns::Cat as u32), SortType::Ascending);
+                        w.file_list_view.goto_first();
                     }
                 }
             }
@@ -53,68 +53,68 @@ impl MViewWindowImp {
                 let mut filelist = w.file_list.borrow_mut();
                 let newstore = filelist.leave();
                 drop(filelist);
-                w.treeview.set_model(newstore.as_ref());
-                w.treeview.set_sort_column(SortColumn::Index(Columns::Cat as u32), SortType::Ascending);
-                w.treeview.goto_first();
+                w.file_list_view.set_model(newstore.as_ref());
+                w.file_list_view.set_sort_column(SortColumn::Index(Columns::Cat as u32), SortType::Ascending);
+                w.file_list_view.goto_first();
             }
             gdk::keys::constants::n => {
-                if w.sv.zoom_mode() == eog::ZoomMode::Fit {
-                    w.sv.set_zoom_mode(eog::ZoomMode::None);
+                if w.eog.zoom_mode() == eog::ZoomMode::Fit {
+                    w.eog.set_zoom_mode(eog::ZoomMode::None);
                 } else {
-                    w.sv.set_zoom_mode(eog::ZoomMode::Fit);
+                    w.eog.set_zoom_mode(eog::ZoomMode::Fit);
                 }
             }
             gdk::keys::constants::m | gdk::keys::constants::KP_0 => {
-                if w.sv.zoom_mode() == eog::ZoomMode::Max {
-                    w.sv.set_zoom_mode(eog::ZoomMode::Fill);
+                if w.eog.zoom_mode() == eog::ZoomMode::Max {
+                    w.eog.set_zoom_mode(eog::ZoomMode::Fill);
                 } else {
-                    w.sv.set_zoom_mode(eog::ZoomMode::Max);
+                    w.eog.set_zoom_mode(eog::ZoomMode::Max);
                 }
             }
             gdk::keys::constants::minus | gdk::keys::constants::KP_Subtract => {
-                w.treeview
+                w.file_list_view
                     .favorite(&w.file_list.borrow().directory(), Direction::Down);
             }
             gdk::keys::constants::equal | gdk::keys::constants::KP_Add => {
-                w.treeview
+                w.file_list_view
                     .favorite(&w.file_list.borrow().directory(), Direction::Up);
             }
             gdk::keys::constants::z | gdk::keys::constants::Left | gdk::keys::constants::KP_4 => {
-                w.treeview.navigate(Direction::Up, Filter::Image, 1);
+                w.file_list_view.navigate(Direction::Up, Filter::Image, 1);
             }
             gdk::keys::constants::x | gdk::keys::constants::Right | gdk::keys::constants::KP_6 => {
-                w.treeview.navigate(Direction::Down, Filter::Image, 1);
+                w.file_list_view.navigate(Direction::Down, Filter::Image, 1);
             }
             gdk::keys::constants::a => {
-                w.treeview.navigate(Direction::Up, Filter::Favorite, 1);
+                w.file_list_view.navigate(Direction::Up, Filter::Favorite, 1);
             }
             gdk::keys::constants::s => {
-                w.treeview.navigate(Direction::Down, Filter::Favorite, 1);
+                w.file_list_view.navigate(Direction::Down, Filter::Favorite, 1);
             }
             gdk::keys::constants::Z => {
-                w.treeview.navigate(Direction::Up, Filter::None, 1);
+                w.file_list_view.navigate(Direction::Up, Filter::None, 1);
             }
             gdk::keys::constants::X => {
-                w.treeview.navigate(Direction::Down, Filter::None, 1);
+                w.file_list_view.navigate(Direction::Down, Filter::None, 1);
             }
             gdk::keys::constants::Up | gdk::keys::constants::KP_8 => {
-                w.treeview.navigate(Direction::Up, Filter::Image, 5);
+                w.file_list_view.navigate(Direction::Up, Filter::Image, 5);
             }
             gdk::keys::constants::Down | gdk::keys::constants::KP_2 => {
-                w.treeview.navigate(Direction::Down, Filter::Image, 5);
+                w.file_list_view.navigate(Direction::Down, Filter::Image, 5);
             }
             gdk::keys::constants::Page_Up => {
-                w.treeview.emit_move_cursor(gtk::MovementStep::Pages, -1);
+                w.file_list_view.emit_move_cursor(gtk::MovementStep::Pages, -1);
             }
             gdk::keys::constants::Page_Down => {
-                w.treeview.emit_move_cursor(gtk::MovementStep::Pages, 1);
+                w.file_list_view.emit_move_cursor(gtk::MovementStep::Pages, 1);
             }
             gdk::keys::constants::Home => {
-                w.treeview
+                w.file_list_view
                     .emit_move_cursor(gtk::MovementStep::BufferEnds, -1);
             }
             gdk::keys::constants::End => {
-                w.treeview
+                w.file_list_view
                     .emit_move_cursor(gtk::MovementStep::BufferEnds, 1);
             }
             _ => (),

@@ -18,16 +18,16 @@ use crate::{
 #[derive(Debug)]
 struct MViewWidgets {
     hbox: Box,
+    files_widget: ScrolledWindow,
     file_list: Rc<RefCell<FileList>>,
-    file_window: ScrolledWindow,
-    sv: ScrollView,
-    treeview: FileListView,
+    file_list_view: FileListView,
+    eog: ScrollView,
 }
 
 #[derive(Debug, Default)]
 pub struct MViewWindowImp {
     widgets: OnceCell<MViewWidgets>,
-    fs: Cell<bool>,
+    full_screen: Cell<bool>,
     current_file: RefCell<String>,
 }
 
@@ -41,7 +41,7 @@ impl ObjectSubclass for MViewWindowImp {
 impl ObjectImpl for MViewWindowImp {
     fn constructed(&self) {
         self.parent_constructed();
-        self.fs.set(false);
+        self.full_screen.set(false);
 
         let window = self.obj();
 
@@ -56,26 +56,25 @@ impl ObjectImpl for MViewWindowImp {
 
         window.add(&hbox);
 
-        let file_window = ScrolledWindow::new(None::<&gtk::Adjustment>, None::<&gtk::Adjustment>);
-        file_window.set_shadow_type(gtk::ShadowType::EtchedIn);
-        file_window.set_policy(gtk::PolicyType::Never, gtk::PolicyType::Automatic);
-        hbox.add(&file_window);
+        let files_widget = ScrolledWindow::new(None::<&gtk::Adjustment>, None::<&gtk::Adjustment>);
+        files_widget.set_shadow_type(gtk::ShadowType::EtchedIn);
+        files_widget.set_policy(gtk::PolicyType::Never, gtk::PolicyType::Automatic);
+        hbox.add(&files_widget);
 
         let file_list = Rc::new(RefCell::new(FileList::new("/home/martin/Pictures")));
-        let treeview = FileListView::new();
-        treeview.set_model(file_list.borrow().read().as_ref());
-        treeview.set_vexpand(true);
-        treeview.set_sort_column(SortColumn::Index(Columns::Cat as u32), SortType::Ascending);
+        let file_list_view = FileListView::new();
+        file_list_view.set_model(file_list.borrow().read().as_ref());
+        file_list_view.set_vexpand(true);
+        file_list_view.set_sort_column(SortColumn::Index(Columns::Cat as u32), SortType::Ascending);
+        files_widget.add(&file_list_view);
 
-        file_window.add(&treeview);
-
-        let sv = ScrollView::new();
-        sv.add_weak_ref_notify(|| {
-            println!("ScrollView disposed");
+        let eog = ScrollView::new();
+        eog.add_weak_ref_notify(|| {
+            println!("**eog::ScrollView disposed**");
         });
-        sv.set_scroll_wheel_zoom(true);
-        sv.set_zoom_mode(eog::ZoomMode::Max);
-        hbox.add(&sv);
+        eog.set_scroll_wheel_zoom(true);
+        eog.set_zoom_mode(eog::ZoomMode::Max);
+        hbox.add(&eog);
 
         let f = gio::File::for_path("/home/martin/Pictures/mview-logo.jpg");
         let img = Image::new_file(&f, "welcome");
@@ -93,7 +92,7 @@ impl ObjectImpl for MViewWindowImp {
                 let (width, height) = img.size();
                 println!("Size {} {}", width, height);
 
-                sv.set_image(&img);
+                eog.set_image(&img);
             }
             Err(error) => {
                 println!("Error {}", error);
@@ -105,23 +104,23 @@ impl ObjectImpl for MViewWindowImp {
             glib::Propagation::Stop
         }));
 
-        treeview.connect_cursor_changed(clone!(@weak self as imp => move |_| {
+        file_list_view.connect_cursor_changed(clone!(@weak self as imp => move |_| {
             imp.on_cursor_changed();
         }));
 
         self.widgets
             .set(MViewWidgets {
-                file_list,
-                file_window,
                 hbox,
-                sv,
-                treeview,
+                file_list,
+                file_list_view,
+                files_widget,
+                eog,
             })
             .expect("Failed to initialize MView window");
 
         window.show_all();
 
-        self.widgets.get().unwrap().sv.set_offset(0, 0);
+        self.widgets.get().unwrap().eog.set_offset(0, 0);
 
         println!("MViewWindowSub: constructed done");
     }
