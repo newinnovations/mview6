@@ -46,11 +46,13 @@ impl MViewWindowImp {
                     let newstore = filelist.enter(subdir);
                     drop(filelist);
                     if newstore.is_some() {
+                        self.skip_loading.set(true);
                         w.file_list_view.set_model(newstore.as_ref());
                         w.file_list_view.set_sort_column(
                             SortColumn::Index(Columns::Cat as u32),
                             SortType::Ascending,
                         );
+                        self.skip_loading.set(false);
                         w.file_list_view.goto_first();
                     }
                 }
@@ -59,10 +61,17 @@ impl MViewWindowImp {
                 let mut filelist = w.file_list.borrow_mut();
                 let newstore = filelist.leave();
                 drop(filelist);
-                w.file_list_view.set_model(newstore.as_ref());
-                w.file_list_view
-                    .set_sort_column(SortColumn::Index(Columns::Cat as u32), SortType::Ascending);
-                w.file_list_view.goto_first();
+                if newstore.is_some() {
+                    let (newstore, current_dir) = newstore.unwrap();
+                    self.skip_loading.set(true);
+                    w.file_list_view.set_model(Some(&newstore));
+                    w.file_list_view.set_sort_column(
+                        SortColumn::Index(Columns::Cat as u32),
+                        SortType::Ascending,
+                    );
+                    self.skip_loading.set(false);
+                    w.file_list_view.goto(&current_dir);
+                }
             }
             gdk::keys::constants::n => {
                 if w.eog.zoom_mode() == eog::ZoomMode::Fit {

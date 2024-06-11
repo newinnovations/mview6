@@ -20,6 +20,12 @@ impl MViewWindowImp {
     }
 
     pub fn load(&self, file: &File) {
+
+        if self.skip_loading.get() {
+            println!("Skipping load");
+            return;
+        }
+
         let w = self.widgets.get().unwrap();
         let filename = file
             .path()

@@ -29,6 +29,7 @@ struct MViewWidgets {
 pub struct MViewWindowImp {
     widgets: OnceCell<MViewWidgets>,
     full_screen: Cell<bool>,
+    skip_loading: Cell<bool>,
     current_file: RefCell<String>,
 }
 
@@ -43,6 +44,7 @@ impl ObjectImpl for MViewWindowImp {
     fn constructed(&self) {
         self.parent_constructed();
         self.full_screen.set(false);
+        self.skip_loading.set(false);
 
         let window = self.obj();
 

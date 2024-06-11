@@ -91,18 +91,21 @@ impl FileList {
             glib::Type::U64,
         ];
         let store = ListStore::new(&col_types);
-        store.set_sort_func(gtk::SortColumn::Index(Columns::Cat as u32), |model,iter1,iter2| {
-            let cat1 = model_category(model, iter1);
-            let cat2 = model_category(model, iter2);
-            let result = cat1.cmp(&cat2);
-            if result.is_eq() {
-                let filename1 = model_filename(model, iter1).to_lowercase();
-                let filename2 = model_filename(model, iter2).to_lowercase();
-                filename1.cmp(&filename2)
-            } else {
-                result
-            }
-        });
+        store.set_sort_func(
+            gtk::SortColumn::Index(Columns::Cat as u32),
+            |model, iter1, iter2| {
+                let cat1 = model_category(model, iter1);
+                let cat2 = model_category(model, iter2);
+                let result = cat1.cmp(&cat2);
+                if result.is_eq() {
+                    let filename1 = model_filename(model, iter1).to_lowercase();
+                    let filename2 = model_filename(model, iter2).to_lowercase();
+                    filename1.cmp(&filename2)
+                } else {
+                    result
+                }
+            },
+        );
         store
     }
 
@@ -130,11 +133,17 @@ impl FileList {
         self.goto(&format!("{0}/{subdir}", self.directory))
     }
 
-    pub fn leave(&mut self) -> Option<ListStore> {
+    pub fn leave(&mut self) -> Option<(ListStore, String)> {
         let directory_c = self.directory.clone();
-        let parent = Path::new(&directory_c).parent();
+        let directory_p = Path::new(&directory_c);
+        let parent = directory_p.parent();
+        let current = directory_p
+            .file_name()
+            .unwrap_or_default()
+            .to_str()
+            .unwrap_or_default().to_string();
         match parent {
-            Some(parent) => self.goto(parent.to_str().unwrap_or("/")),
+            Some(parent) => self.goto(parent.to_str().unwrap_or("/")).map(|model| {(model, current)}),
             _ => None,
         }
     }
@@ -143,4 +152,3 @@ impl FileList {
         self.directory.clone()
     }
 }
-
