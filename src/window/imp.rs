@@ -2,6 +2,7 @@ mod cursor;
 mod keyboard;
 
 use eog::{Image, ImageData, ImageExt, ImageExtManual, Job, ScrollView, ScrollViewExt};
+use gdk_pixbuf::PixbufLoader;
 use glib::{clone, once_cell::unsync::OnceCell};
 use gtk::{glib, prelude::*, subclass::prelude::*, Box, ScrolledWindow, SortColumn, SortType};
 use std::{
@@ -51,6 +52,11 @@ impl ObjectImpl for MViewWindowImp {
         window.set_border_width(10);
         window.set_position(gtk::WindowPosition::Center);
         window.set_default_size(1280, 720);
+
+        let loader = PixbufLoader::with_type("svg").unwrap();
+        loader.write(include_bytes!("icon.svg")).unwrap();
+        loader.close().unwrap();
+        window.set_icon(Some(&loader.pixbuf().unwrap()));
 
         let hbox = gtk::Box::new(gtk::Orientation::Horizontal, 8);
 

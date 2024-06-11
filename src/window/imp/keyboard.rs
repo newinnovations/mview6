@@ -4,7 +4,10 @@ use eog::ScrollViewExt;
 use gdk::EventKey;
 use gtk::{prelude::*, subclass::prelude::*, SortColumn, SortType};
 
-use crate::{filelist::Columns, filelistview::{Direction, FileListViewExt, Filter}};
+use crate::{
+    filelist::Columns,
+    filelistview::{Direction, FileListViewExt, Filter},
+};
 
 impl MViewWindowImp {
     pub(super) fn on_key_press(&self, e: &EventKey) {
@@ -44,7 +47,10 @@ impl MViewWindowImp {
                     drop(filelist);
                     if newstore.is_some() {
                         w.file_list_view.set_model(newstore.as_ref());
-                        w.file_list_view.set_sort_column(SortColumn::Index(Columns::Cat as u32), SortType::Ascending);
+                        w.file_list_view.set_sort_column(
+                            SortColumn::Index(Columns::Cat as u32),
+                            SortType::Ascending,
+                        );
                         w.file_list_view.goto_first();
                     }
                 }
@@ -54,7 +60,8 @@ impl MViewWindowImp {
                 let newstore = filelist.leave();
                 drop(filelist);
                 w.file_list_view.set_model(newstore.as_ref());
-                w.file_list_view.set_sort_column(SortColumn::Index(Columns::Cat as u32), SortType::Ascending);
+                w.file_list_view
+                    .set_sort_column(SortColumn::Index(Columns::Cat as u32), SortType::Ascending);
                 w.file_list_view.goto_first();
             }
             gdk::keys::constants::n => {
@@ -72,24 +79,44 @@ impl MViewWindowImp {
                 }
             }
             gdk::keys::constants::minus | gdk::keys::constants::KP_Subtract => {
-                w.file_list_view
-                    .favorite(&w.file_list.borrow().directory(), Direction::Down);
+                w.file_list_view.set_unsorted();
+                if w.file_list_view
+                    .favorite(&w.file_list.borrow().directory(), Direction::Down)
+                {
+                    w.file_list_view.navigate(Direction::Down, Filter::Image, 1);
+                }
             }
             gdk::keys::constants::equal | gdk::keys::constants::KP_Add => {
-                w.file_list_view
-                    .favorite(&w.file_list.borrow().directory(), Direction::Up);
+                w.file_list_view.set_unsorted();
+                if w.file_list_view
+                    .favorite(&w.file_list.borrow().directory(), Direction::Up)
+                {
+                    w.file_list_view.navigate(Direction::Down, Filter::Image, 1);
+                }
             }
             gdk::keys::constants::z | gdk::keys::constants::Left | gdk::keys::constants::KP_4 => {
-                w.file_list_view.navigate(Direction::Up, Filter::Image, 1);
+                let filter = if w.files_widget.is_visible() {
+                    Filter::None
+                } else {
+                    Filter::Image
+                };
+                w.file_list_view.navigate(Direction::Up, filter, 1);
             }
             gdk::keys::constants::x | gdk::keys::constants::Right | gdk::keys::constants::KP_6 => {
-                w.file_list_view.navigate(Direction::Down, Filter::Image, 1);
+                let filter = if w.files_widget.is_visible() {
+                    Filter::None
+                } else {
+                    Filter::Image
+                };
+                w.file_list_view.navigate(Direction::Down, filter, 1);
             }
             gdk::keys::constants::a => {
-                w.file_list_view.navigate(Direction::Up, Filter::Favorite, 1);
+                w.file_list_view
+                    .navigate(Direction::Up, Filter::Favorite, 1);
             }
             gdk::keys::constants::s => {
-                w.file_list_view.navigate(Direction::Down, Filter::Favorite, 1);
+                w.file_list_view
+                    .navigate(Direction::Down, Filter::Favorite, 1);
             }
             gdk::keys::constants::Z => {
                 w.file_list_view.navigate(Direction::Up, Filter::None, 1);
@@ -98,16 +125,28 @@ impl MViewWindowImp {
                 w.file_list_view.navigate(Direction::Down, Filter::None, 1);
             }
             gdk::keys::constants::Up | gdk::keys::constants::KP_8 => {
-                w.file_list_view.navigate(Direction::Up, Filter::Image, 5);
+                let filter = if w.files_widget.is_visible() {
+                    Filter::None
+                } else {
+                    Filter::Image
+                };
+                w.file_list_view.navigate(Direction::Up, filter, 5);
             }
             gdk::keys::constants::Down | gdk::keys::constants::KP_2 => {
-                w.file_list_view.navigate(Direction::Down, Filter::Image, 5);
+                let filter = if w.files_widget.is_visible() {
+                    Filter::None
+                } else {
+                    Filter::Image
+                };
+                w.file_list_view.navigate(Direction::Down, filter, 5);
             }
             gdk::keys::constants::Page_Up => {
-                w.file_list_view.emit_move_cursor(gtk::MovementStep::Pages, -1);
+                w.file_list_view
+                    .emit_move_cursor(gtk::MovementStep::Pages, -1);
             }
             gdk::keys::constants::Page_Down => {
-                w.file_list_view.emit_move_cursor(gtk::MovementStep::Pages, 1);
+                w.file_list_view
+                    .emit_move_cursor(gtk::MovementStep::Pages, 1);
             }
             gdk::keys::constants::Home => {
                 w.file_list_view

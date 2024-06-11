@@ -67,6 +67,7 @@ pub trait FileListViewExt: IsA<FileListView> + IsA<TreeView> + 'static {
     fn navigate(&self, direction: Direction, filter: Filter, count: i32) -> bool;
     fn favorite(&self, directory: &str, direction: Direction) -> bool;
     fn set_sort_column(&self, sort_column_id: SortColumn, order: SortType);
+    fn set_unsorted(&self);
 }
 
 impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
@@ -156,6 +157,14 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
 
     fn favorite(&self, directory: &str, direction: Direction) -> bool {
         if let Some((model, iter)) = self.iter() {
+            let cat = model_category(&model, &iter);
+            if cat != Category::Image.id()
+                && cat != Category::Favorite.id()
+                && cat != Category::Trash.id()
+            {
+                return false;
+            }
+
             let filename = model_filename(&model, &iter);
             let re = Regex::new(r"\.([^\.]+)$").unwrap();
             let (new_filename, new_cat) = if matches!(direction, Direction::Up) {
@@ -203,5 +212,10 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
     fn set_sort_column(&self, sort_column_id: SortColumn, order: SortType) {
         let model = self.model().unwrap().downcast::<ListStore>().unwrap();
         model.set_sort_column_id(sort_column_id, order);
+    }
+
+    fn set_unsorted(&self) {
+        let model = self.model().unwrap().downcast::<ListStore>().unwrap();
+        model.set_unsorted();
     }
 }

@@ -32,9 +32,14 @@ fn read_directory(store: &ListStore, current_dir: &str) -> io::Result<()> {
     for entry in fs::read_dir(current_dir)? {
         let entry = entry?;
         let path = entry.path();
-        let metadata = fs::metadata(&path)?;
         let filename = path.file_name().unwrap_or(OsStr::new("-"));
         let filename = filename.to_str().unwrap_or("-");
+
+        if filename.starts_with(".") {
+            continue;
+        }
+
+        let metadata = fs::metadata(&path)?;
         let modified = metadata.modified().unwrap_or(UNIX_EPOCH);
         let modified = modified.duration_since(UNIX_EPOCH).unwrap().as_secs();
         let file_size = metadata.len();

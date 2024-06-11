@@ -12,8 +12,11 @@ impl MviewApplication {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         glib::Object::builder()
-            .property("application-id", "org.gtk-rs.SimpleApplication")
-            .property("flags", ApplicationFlags::NON_UNIQUE.union(ApplicationFlags::HANDLES_OPEN))
+            .property("application-id", "org.vanderwerff.mview.mview6")
+            .property(
+                "flags",
+                ApplicationFlags::NON_UNIQUE.union(ApplicationFlags::HANDLES_OPEN),
+            )
             .build()
     }
 }
