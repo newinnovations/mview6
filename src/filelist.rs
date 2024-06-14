@@ -35,7 +35,7 @@ fn read_directory(store: &ListStore, current_dir: &str) -> io::Result<()> {
         let filename = path.file_name().unwrap_or(OsStr::new("-"));
         let filename = filename.to_str().unwrap_or("-");
 
-        if filename.starts_with(".") {
+        if filename.starts_with('.') {
             continue;
         }
 

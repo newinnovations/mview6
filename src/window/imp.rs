@@ -1,19 +1,18 @@
 mod cursor;
 mod keyboard;
 
-use eog::{Image, ImageData, ImageExt, ImageExtManual, Job, ScrollView, ScrollViewExt};
+use crate::{
+    draw::draw,
+    filelist::{Columns, FileList},
+    filelistview::{FileListView, FileListViewExt},
+};
+use eog::{ImageData, ImageExt, ImageExtManual, Job, ScrollView, ScrollViewExt};
 use gdk_pixbuf::PixbufLoader;
 use glib::{clone, once_cell::unsync::OnceCell};
 use gtk::{glib, prelude::*, subclass::prelude::*, Box, ScrolledWindow, SortColumn, SortType};
 use std::{
     cell::{Cell, RefCell},
     rc::Rc,
-};
-
-use crate::filelistview::FileListView;
-use crate::{
-    filelist::{Columns, FileList},
-    filelistview::FileListViewExt,
 };
 
 #[derive(Debug)]
@@ -84,28 +83,37 @@ impl ObjectImpl for MViewWindowImp {
         eog.set_zoom_mode(eog::ZoomMode::Max);
         hbox.add(&eog);
 
-        let f = gio::File::for_path("/home/martin/Pictures/mview-logo.jpg");
-        let img = Image::new_file(&f, "welcome");
-        img.add_weak_ref_notify(move || {
-            println!("**welcome image disposed**");
-        });
-        let result = img.load(ImageData::IMAGE, None::<Job>.as_ref());
+        // let f = gio::File::for_path("/home/martin/Pictures/mview-logo.jpg");
+        // let img = Image::new_file(&f, "welcome");
+        // img.add_weak_ref_notify(move || {
+        //     println!("**welcome image disposed**");
+        // });
+        // let result = img.load(ImageData::IMAGE, None::<Job>.as_ref());
 
-        match result {
-            Ok(()) => {
-                println!("OK");
-                let jpg = img.is_jpeg();
-                println!("is jpg {}", jpg);
-
-                let (width, height) = img.size();
-                println!("Size {} {}", width, height);
-
-                eog.set_image(&img);
-            }
-            Err(error) => {
-                println!("Error {}", error);
-            }
+        let result = draw();
+        if result.is_ok() {
+            let img = result.unwrap();
+            img.add_weak_ref_notify(move || {
+                println!("**welcome image disposed**");
+            });
+            eog.set_image(&img);
         }
+
+        // match result {
+        //     Ok(img) => {
+        //         println!("OK");
+        //         let jpg = img.is_jpeg();
+        //         println!("is jpg {}", jpg);
+
+        //         let (width, height) = img.size();
+        //         println!("Size {} {}", width, height);
+
+        //         eog.set_image(&img);
+        //     }
+        //     Err(error) => {
+        //         println!("Error {}", error);
+        //     }
+        // }
 
         window.connect_key_press_event(clone!(@weak self as imp => @default-panic, move |_, e| {
             imp.on_key_press(e);

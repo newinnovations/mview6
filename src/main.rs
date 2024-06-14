@@ -1,18 +1,16 @@
+mod application;
 mod category;
+mod draw;
 mod filelist;
 mod filelistview;
-mod application;
 mod window;
 
-use std::env;
-
 use gdk::Screen;
-use gtk::prelude::ApplicationExtManual;
-use gtk::StyleContext;
-
-use gtk::prelude::CssProviderExt;
-use gtk::CssProvider;
-use gtk::STYLE_PROVIDER_PRIORITY_USER;
+use gtk::{
+    prelude::ApplicationExtManual, prelude::CssProviderExt, CssProvider, StyleContext,
+    STYLE_PROVIDER_PRIORITY_USER,
+};
+use std::env;
 
 fn main() {
     gtk::init().expect("Failed to initialize gtk");
