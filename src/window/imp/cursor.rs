@@ -1,8 +1,8 @@
-use std::path::Path;
+use std::{fs, path::Path};
 
 use super::MViewWindowImp;
 
-use crate::filelistview::FileListViewExt;
+use crate::{category::Category, draw::draw, filelistview::FileListViewExt};
 use eog::{Image, ImageData, ImageExt, Job, ScrollViewExt};
 use gio::File;
 use gtk::prelude::*;
@@ -20,37 +20,56 @@ impl MViewWindowImp {
     }
 
     pub fn load(&self, file: &File) {
-
         if self.skip_loading.get() {
             println!("Skipping load");
             return;
         }
 
-        let w = self.widgets.get().unwrap();
-        let filename = file
-            .path()
-            .unwrap_or_default()
-            .to_str()
-            .unwrap_or_default()
-            .to_string();
+        let path = file.path().unwrap_or_default();
+
+        let filename = path.to_str().unwrap_or_default().to_string();
+
+        let cat = match fs::metadata(&path) {
+            Ok(metadata) => Category::determine(&filename, &metadata),
+            Err(_) => Category::Unsupported,
+        };
+
         let current = self.current_file.borrow();
         if current.eq(&filename) {
             println!("File {filename} already loaded, skipping");
             return;
         }
         drop(current);
-        let image = Image::new_file(file, &filename);
-        let filename_c = filename.clone();
-        image.add_weak_ref_notify(move || {
-            println!("**image [{filename_c}] disposed**");
-        });
-        match image.load(ImageData::IMAGE, None::<Job>.as_ref()) {
-            Ok(()) => {
-                w.eog.set_image(&image);
-                self.current_file.replace(filename);
+
+        let image = match cat {
+            Category::Direcory | Category::Archive | Category::Unsupported => {
+                let name = path
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_str()
+                    .unwrap_or_default();
+                draw(name)
             }
-            Err(error) => {
-                println!("Error {}", error);
+            _ => Ok(Image::new_file(file, &filename)),
+        };
+
+        if image.is_ok() {
+            let image = image.unwrap();
+            let filename_c = filename.clone();
+            image.add_weak_ref_notify(move || {
+                println!("**image [{filename_c}] disposed**");
+            });
+
+            let w = self.widgets.get().unwrap();
+
+            match image.load(ImageData::IMAGE, None::<Job>.as_ref()) {
+                Ok(()) => {
+                    w.eog.set_image(&image);
+                    self.current_file.replace(filename);
+                }
+                Err(error) => {
+                    println!("Error {}", error);
+                }
             }
         }
     }

@@ -6,7 +6,7 @@ use crate::{
     filelist::{Columns, FileList},
     filelistview::{FileListView, FileListViewExt},
 };
-use eog::{ImageData, ImageExt, ImageExtManual, Job, ScrollView, ScrollViewExt};
+use eog::{ScrollView, ScrollViewExt};
 use gdk_pixbuf::PixbufLoader;
 use glib::{clone, once_cell::unsync::OnceCell};
 use gtk::{glib, prelude::*, subclass::prelude::*, Box, ScrolledWindow, SortColumn, SortType};
@@ -90,7 +90,7 @@ impl ObjectImpl for MViewWindowImp {
         // });
         // let result = img.load(ImageData::IMAGE, None::<Job>.as_ref());
 
-        let result = draw();
+        let result = draw("MView6 - Advanced Image Viewer");
         if result.is_ok() {
             let img = result.unwrap();
             img.add_weak_ref_notify(move || {
@@ -136,7 +136,7 @@ impl ObjectImpl for MViewWindowImp {
 
         window.show_all();
 
-        self.widgets.get().unwrap().eog.set_offset(0, 0);
+        // self.widgets.get().unwrap().eog.set_offset(0, 0);
 
         println!("MViewWindowSub: constructed done");
     }
