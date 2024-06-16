@@ -124,6 +124,10 @@ impl ObjectImpl for MViewWindowImp {
             imp.on_cursor_changed();
         }));
 
+        file_list_view.connect_row_activated(clone!(@weak self as imp => move |_, path, column| {
+            imp.on_row_activated(path, column);
+        }));
+
         self.widgets
             .set(MViewWidgets {
                 hbox,

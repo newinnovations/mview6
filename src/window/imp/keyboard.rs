@@ -2,12 +2,9 @@ use super::MViewWindowImp;
 
 use eog::ScrollViewExt;
 use gdk::EventKey;
-use gtk::{prelude::*, subclass::prelude::*, SortColumn, SortType};
+use gtk::{prelude::*, subclass::prelude::*};
 
-use crate::{
-    filelist::Columns,
-    filelistview::{Direction, FileListViewExt, Filter},
-};
+use crate::filelistview::{Direction, FileListViewExt, Filter};
 
 impl MViewWindowImp {
     pub(super) fn on_key_press(&self, e: &EventKey) {
@@ -41,37 +38,10 @@ impl MViewWindowImp {
                 }
             }
             gdk::keys::constants::Return => {
-                if let Some(subdir) = &w.file_list_view.current_filename() {
-                    let mut filelist = w.file_list.borrow_mut();
-                    let newstore = filelist.enter(subdir);
-                    drop(filelist);
-                    if newstore.is_some() {
-                        self.skip_loading.set(true);
-                        w.file_list_view.set_model(newstore.as_ref());
-                        w.file_list_view.set_sort_column(
-                            SortColumn::Index(Columns::Cat as u32),
-                            SortType::Ascending,
-                        );
-                        self.skip_loading.set(false);
-                        w.file_list_view.goto_first();
-                    }
-                }
+                self.dir_enter();
             }
             gdk::keys::constants::BackSpace => {
-                let mut filelist = w.file_list.borrow_mut();
-                let newstore = filelist.leave();
-                drop(filelist);
-                if newstore.is_some() {
-                    let (newstore, current_dir) = newstore.unwrap();
-                    self.skip_loading.set(true);
-                    w.file_list_view.set_model(Some(&newstore));
-                    w.file_list_view.set_sort_column(
-                        SortColumn::Index(Columns::Cat as u32),
-                        SortType::Ascending,
-                    );
-                    self.skip_loading.set(false);
-                    w.file_list_view.goto(&current_dir);
-                }
+                self.dir_leave();
             }
             gdk::keys::constants::n => {
                 if w.eog.zoom_mode() == eog::ZoomMode::Fit {

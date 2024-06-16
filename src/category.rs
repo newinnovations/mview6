@@ -13,7 +13,6 @@ pub enum Category {
 
 impl Category {
     pub fn determine(filename: &str, metadata: &Metadata) -> Self {
-
         if metadata.is_dir() {
             return Self::Direcory;
         }
@@ -63,5 +62,4 @@ impl Category {
             Self::Unsupported => "text-x-generic",
         }
     }
-
 }

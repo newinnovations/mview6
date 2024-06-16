@@ -2,10 +2,10 @@ use std::{fs, path::Path};
 
 use super::MViewWindowImp;
 
-use crate::{category::Category, draw::draw, filelistview::FileListViewExt};
+use crate::{category::Category, draw::draw, filelist::Columns, filelistview::FileListViewExt};
 use eog::{Image, ImageData, ImageExt, Job, ScrollViewExt};
 use gio::File;
-use gtk::prelude::*;
+use gtk::{prelude::*, SortColumn, SortType, TreePath, TreeViewColumn};
 
 impl MViewWindowImp {
     pub(super) fn on_cursor_changed(&self) {
@@ -16,6 +16,44 @@ impl MViewWindowImp {
             println!("Path = {}", path);
             let file = File::for_path(path);
             self.load(&file);
+        }
+    }
+
+    pub(super) fn on_row_activated(&self, _path: &TreePath, _column: &TreeViewColumn) {
+        println!("on_row_activated");
+        self.dir_enter();
+    }
+
+    pub fn dir_enter(&self) {
+        let w = self.widgets.get().unwrap();
+        if let Some(subdir) = &w.file_list_view.current_filename() {
+            let mut filelist = w.file_list.borrow_mut();
+            let newstore = filelist.enter(subdir);
+            drop(filelist);
+            if newstore.is_some() {
+                self.skip_loading.set(true);
+                w.file_list_view.set_model(newstore.as_ref());
+                w.file_list_view
+                    .set_sort_column(SortColumn::Index(Columns::Cat as u32), SortType::Ascending);
+                self.skip_loading.set(false);
+                w.file_list_view.goto_first();
+            }
+        }
+    }
+
+    pub fn dir_leave(&self) {
+        let w = self.widgets.get().unwrap();
+        let mut filelist = w.file_list.borrow_mut();
+        let newstore = filelist.leave();
+        drop(filelist);
+        if newstore.is_some() {
+            let (newstore, current_dir) = newstore.unwrap();
+            self.skip_loading.set(true);
+            w.file_list_view.set_model(Some(&newstore));
+            w.file_list_view
+                .set_sort_column(SortColumn::Index(Columns::Cat as u32), SortType::Ascending);
+            self.skip_loading.set(false);
+            w.file_list_view.goto(&current_dir);
         }
     }
 

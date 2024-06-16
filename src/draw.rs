@@ -30,7 +30,11 @@ pub fn draw(text: &str) -> Result<Image, Error> {
     // context.select_font_face("Arial", cairo::FontSlant::Normal, cairo::FontWeight::Normal);
     // context.select_font_face("Ubuntu", cairo::FontSlant::Normal, cairo::FontWeight::Normal); //Bold);
 
-    context.select_font_face("Liberation Sans", cairo::FontSlant::Normal, cairo::FontWeight::Normal); //Bold);
+    context.select_font_face(
+        "Liberation Sans",
+        cairo::FontSlant::Normal,
+        cairo::FontWeight::Normal,
+    ); //Bold);
     let extends = context.text_extents(text)?;
 
     dbg!(extends);
@@ -60,9 +64,13 @@ pub fn draw(text: &str) -> Result<Image, Error> {
 
     context.stroke()?;
 
-    context.select_font_face("Liberation Sans", cairo::FontSlant::Normal, cairo::FontWeight::Bold);
+    context.select_font_face(
+        "Liberation Sans",
+        cairo::FontSlant::Normal,
+        cairo::FontWeight::Bold,
+    );
     let extends = context.text_extents("MView6")?;
-    context.move_to(595.0-extends.width(), 598.0);
+    context.move_to(595.0 - extends.width(), 598.0);
     context.set_source_rgb(1.0, 0.0, 0.0);
     context.show_text("M")?;
     context.set_source_rgb(1.0, 1.0, 1.0);

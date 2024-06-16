@@ -113,7 +113,10 @@ impl FileList {
         let store = Self::empty_store();
         match read_directory(&store, directory) {
             Ok(()) => Some(store),
-            _ => None,
+            Err(e) => {
+                println!("read_dir failed {:?}", e);
+                None
+            }
         }
     }
 
@@ -141,9 +144,12 @@ impl FileList {
             .file_name()
             .unwrap_or_default()
             .to_str()
-            .unwrap_or_default().to_string();
+            .unwrap_or_default()
+            .to_string();
         match parent {
-            Some(parent) => self.goto(parent.to_str().unwrap_or("/")).map(|model| {(model, current)}),
+            Some(parent) => self
+                .goto(parent.to_str().unwrap_or("/"))
+                .map(|model| (model, current)),
             _ => None,
         }
     }
