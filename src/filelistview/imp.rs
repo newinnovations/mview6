@@ -1,4 +1,4 @@
-use crate::filelist::Columns;
+use crate::backends::Columns;
 use crate::filelistview;
 use chrono::{DateTime, Local, TimeZone};
 use glib::ObjectExt;

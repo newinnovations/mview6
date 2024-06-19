@@ -4,7 +4,10 @@ use eog::ScrollViewExt;
 use gdk::EventKey;
 use gtk::{prelude::*, subclass::prelude::*};
 
-use crate::filelistview::{Direction, FileListViewExt, Filter};
+use crate::{
+    backends::filesystem::FileSystem,
+    filelistview::{Direction, FileListViewExt, Filter},
+};
 
 impl MViewWindowImp {
     pub(super) fn on_key_press(&self, e: &EventKey) {
@@ -13,6 +16,14 @@ impl MViewWindowImp {
         match e.keyval() {
             gdk::keys::constants::q => {
                 self.obj().close();
+            }
+            gdk::keys::constants::d => {
+                let b2 = Box::new(FileSystem::new("replaced"));
+                let y = w.backend.replace(b2);
+                let x = w.backend.borrow();
+                x.create_store();
+                y.create_store();
+                dbg!(y);
             }
             gdk::keys::constants::space | gdk::keys::constants::KP_Divide => {
                 if w.files_widget.is_visible() {

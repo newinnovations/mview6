@@ -2,7 +2,7 @@ use std::{fs, path::Path};
 
 use super::MViewWindowImp;
 
-use crate::{category::Category, draw::draw, filelist::Columns, filelistview::FileListViewExt};
+use crate::{backends::Columns, category::Category, draw::draw, filelistview::FileListViewExt};
 use eog::{Image, ImageData, ImageExt, Job, ScrollViewExt};
 use gio::File;
 use gtk::{prelude::*, SortColumn, SortType, TreePath, TreeViewColumn};

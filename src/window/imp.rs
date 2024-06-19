@@ -2,14 +2,15 @@ mod cursor;
 mod keyboard;
 
 use crate::{
+    backends::{filesystem::FileSystem, Backend, Columns},
     draw::draw,
-    filelist::{Columns, FileList},
+    filelist::FileList,
     filelistview::{FileListView, FileListViewExt},
 };
 use eog::{ScrollView, ScrollViewExt};
 use gdk_pixbuf::PixbufLoader;
 use glib::{clone, once_cell::unsync::OnceCell};
-use gtk::{glib, prelude::*, subclass::prelude::*, Box, ScrolledWindow, SortColumn, SortType};
+use gtk::{glib, prelude::*, subclass::prelude::*, ScrolledWindow, SortColumn, SortType};
 use std::{
     cell::{Cell, RefCell},
     rc::Rc,
@@ -17,14 +18,16 @@ use std::{
 
 #[derive(Debug)]
 struct MViewWidgets {
-    hbox: Box,
+    hbox: gtk::Box,
     files_widget: ScrolledWindow,
     file_list: Rc<RefCell<FileList>>,
     file_list_view: FileListView,
+    backend: RefCell<Box<dyn Backend>>,
     eog: ScrollView,
 }
 
-#[derive(Debug, Default)]
+// #[derive(Debug, Default)]
+#[derive(Default)]
 pub struct MViewWindowImp {
     widgets: OnceCell<MViewWidgets>,
     full_screen: Cell<bool>,
@@ -83,6 +86,8 @@ impl ObjectImpl for MViewWindowImp {
         eog.set_zoom_mode(eog::ZoomMode::Max);
         hbox.add(&eog);
 
+        let backend = RefCell::new(Box::new(FileSystem::new("init")));
+
         // let f = gio::File::for_path("/home/martin/Pictures/mview-logo.jpg");
         // let img = Image::new_file(&f, "welcome");
         // img.add_weak_ref_notify(move || {
@@ -132,6 +137,7 @@ impl ObjectImpl for MViewWindowImp {
             .set(MViewWidgets {
                 hbox,
                 file_list,
+                backend,
                 file_list_view,
                 files_widget,
                 eog,

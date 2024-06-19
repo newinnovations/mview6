@@ -10,7 +10,7 @@ use gtk::{
 };
 use regex::Regex;
 
-use crate::{category::Category, filelist::Columns};
+use crate::{backends::Columns, category::Category};
 
 glib::wrapper! {
 pub struct FileListView(ObjectSubclass<imp::FileListViewImp>)

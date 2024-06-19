@@ -11,17 +11,8 @@ use gtk::ListStore;
 use gtk::TreeIter;
 use gtk::TreeModel;
 
+use crate::backends::Columns;
 use crate::category::Category;
-
-#[derive(Debug)]
-#[repr(u32)]
-pub enum Columns {
-    Cat = 0,
-    Icon,
-    Name,
-    Size,
-    Modified,
-}
 
 #[derive(Debug)]
 pub struct FileList {
@@ -76,10 +67,30 @@ fn model_category(model: &TreeModel, iter: &TreeIter) -> u32 {
 }
 
 impl FileList {
+    // extern nodig in initiele lijst (window construct)
     pub fn new(directory: &str) -> Self {
         Self {
             directory: directory.to_string(),
         }
+    }
+
+    // extern nodig in initiele lijst (window construct)
+    pub fn read(&self) -> Option<ListStore> {
+        Self::create_store(&self.directory)
+    }
+
+    // extern nodig voor window::navigate_to(file)
+    pub fn goto(&mut self, directory: &str) -> Option<ListStore> {
+        let newstore = Self::create_store(directory);
+        if newstore.is_some() {
+            self.directory = directory.to_string();
+        }
+        newstore
+    }
+
+    // extern nodig voor nodig voor favorite
+    pub fn directory(&self) -> String {
+        self.directory.clone()
     }
 
     fn empty_store() -> ListStore {
@@ -109,7 +120,7 @@ impl FileList {
         store
     }
 
-    fn read_dir(directory: &str) -> Option<ListStore> {
+    fn create_store(directory: &str) -> Option<ListStore> {
         let store = Self::empty_store();
         match read_directory(&store, directory) {
             Ok(()) => Some(store),
@@ -118,18 +129,6 @@ impl FileList {
                 None
             }
         }
-    }
-
-    pub fn read(&self) -> Option<ListStore> {
-        Self::read_dir(&self.directory)
-    }
-
-    pub fn goto(&mut self, directory: &str) -> Option<ListStore> {
-        let newstore = Self::read_dir(directory);
-        if newstore.is_some() {
-            self.directory = directory.to_string();
-        }
-        newstore
     }
 
     pub fn enter(&mut self, subdir: &str) -> Option<ListStore> {
@@ -152,9 +151,5 @@ impl FileList {
                 .map(|model| (model, current)),
             _ => None,
         }
-    }
-
-    pub fn directory(&self) -> String {
-        self.directory.clone()
     }
 }
