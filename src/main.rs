@@ -2,7 +2,6 @@ mod application;
 mod backends;
 mod category;
 mod draw;
-mod filelist;
 mod filelistview;
 mod window;
 

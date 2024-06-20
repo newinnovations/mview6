@@ -2,12 +2,9 @@ use super::MViewWindowImp;
 
 use eog::ScrollViewExt;
 use gdk::EventKey;
-use gtk::{prelude::*, subclass::prelude::*, TreeModel};
+use gtk::{prelude::*, subclass::prelude::*};
 
-use crate::{
-    backends::Backend,
-    filelistview::{Direction, FileListViewExt, Filter},
-};
+use crate::filelistview::{Direction, FileListViewExt, Filter};
 
 impl MViewWindowImp {
     pub(super) fn on_key_press(&self, e: &EventKey) {
@@ -16,15 +13,6 @@ impl MViewWindowImp {
         match e.keyval() {
             gdk::keys::constants::q => {
                 self.obj().close();
-            }
-            gdk::keys::constants::d => {
-                // let b2 = Box::new(FileSystem::new("replaced"));
-                let (b3, _) = <dyn Backend>::new("keyboard");
-                let y = w.backend.replace(b3);
-                let x = w.backend.borrow();
-                x.create_store();
-                y.create_store();
-                dbg!(y);
             }
             gdk::keys::constants::space | gdk::keys::constants::KP_Divide => {
                 if w.files_widget.is_visible() {
@@ -76,11 +64,6 @@ impl MViewWindowImp {
                         w.file_list_view.navigate(Direction::Down, Filter::Image, 1);
                     }
                 }
-                // if w.file_list_view
-                //     .favorite(&w.file_list.borrow().directory(), Direction::Down)
-                // {
-                //     w.file_list_view.navigate(Direction::Down, Filter::Image, 1);
-                // }
             }
             gdk::keys::constants::equal | gdk::keys::constants::KP_Add => {
                 w.file_list_view.set_unsorted();
@@ -89,11 +72,6 @@ impl MViewWindowImp {
                         w.file_list_view.navigate(Direction::Down, Filter::Image, 1);
                     }
                 }
-                // if w.file_list_view
-                //     .favorite(&w.file_list.borrow().directory(), Direction::Up)
-                // {
-                //     w.file_list_view.navigate(Direction::Down, Filter::Image, 1);
-                // }
             }
             gdk::keys::constants::z | gdk::keys::constants::Left | gdk::keys::constants::KP_4 => {
                 let filter = if w.files_widget.is_visible() {

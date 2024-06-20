@@ -1,3 +1,4 @@
+use eog::Image;
 use filesystem::FileSystem;
 use glib::IsA;
 use gtk::{
@@ -24,13 +25,11 @@ pub enum Columns {
 
 pub trait Backend {
     fn class_name(&self) -> &str;
-    fn directory(&self) -> &str;
     fn create_store(&self) -> Option<ListStore>;
     fn favorite(&self, model: ListStore, iter: TreeIter, direction: Direction) -> bool;
-    // load image
-    // enter
-    // leave
-    // favorite
+    fn enter(&self, model: ListStore, iter: TreeIter) -> Box<dyn Backend>;
+    fn leave(&self) -> (Box<dyn Backend>, String);
+    fn image(&self, model: ListStore, iter: TreeIter) -> Image;
 }
 
 impl std::fmt::Debug for dyn Backend {
@@ -41,9 +40,9 @@ impl std::fmt::Debug for dyn Backend {
 
 impl dyn Backend {
     pub fn new(directory: &str) -> (Box<dyn Backend>, ListStore) {
-        let b = FileSystem::new(directory);
-        let store = b.create_store().unwrap(); //FIXME
-        (Box::new(b), store)
+        let backend = FileSystem::new(directory);
+        let store = backend.create_store().unwrap(); //FIXME
+        (Box::new(backend), store)
     }
 }
 

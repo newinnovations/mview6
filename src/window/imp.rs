@@ -3,7 +3,6 @@ mod keyboard;
 
 use crate::{
     backends::{Backend, Columns},
-    draw::draw,
     filelistview::{FileListView, FileListViewExt},
 };
 use eog::{ScrollView, ScrollViewExt};
@@ -16,19 +15,17 @@ use std::cell::{Cell, RefCell};
 struct MViewWidgets {
     hbox: gtk::Box,
     files_widget: ScrolledWindow,
-    // file_list: Rc<RefCell<FileList>>,
     file_list_view: FileListView,
     backend: RefCell<Box<dyn Backend>>,
     eog: ScrollView,
 }
 
-// #[derive(Debug, Default)]
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct MViewWindowImp {
     widgets: OnceCell<MViewWidgets>,
     full_screen: Cell<bool>,
     skip_loading: Cell<bool>,
-    current_file: RefCell<String>,
+    // current_file: RefCell<String>,
 }
 
 #[glib::object_subclass]
@@ -45,8 +42,6 @@ impl ObjectImpl for MViewWindowImp {
         self.skip_loading.set(false);
 
         let window = self.obj();
-
-        // let a = window.clone().upcast::<gtk::Window>().accessible();
 
         window.set_title("MView6");
         window.set_border_width(10);
@@ -68,10 +63,7 @@ impl ObjectImpl for MViewWindowImp {
         hbox.add(&files_widget);
 
         let (backend, model) = <dyn Backend>::new("/home/martin/Pictures");
-
-        // let file_list = Rc::new(RefCell::new(FileList::new("/home/martin/Pictures")));
         let file_list_view = FileListView::new();
-        // file_list_view.set_model(file_list.borrow().read().as_ref());
         file_list_view.set_model(Some(&model));
         file_list_view.set_vexpand(true);
         file_list_view.set_sort_column(SortColumn::Index(Columns::Cat as u32), SortType::Ascending);
@@ -84,40 +76,6 @@ impl ObjectImpl for MViewWindowImp {
         eog.set_scroll_wheel_zoom(true);
         eog.set_zoom_mode(eog::ZoomMode::Max);
         hbox.add(&eog);
-
-        // let backend = RefCell::new(Box::new(FileSystem::new("init")));
-
-        // let f = gio::File::for_path("/home/martin/Pictures/mview-logo.jpg");
-        // let img = Image::new_file(&f, "welcome");
-        // img.add_weak_ref_notify(move || {
-        //     println!("**welcome image disposed**");
-        // });
-        // let result = img.load(ImageData::IMAGE, None::<Job>.as_ref());
-
-        let result = draw("MView6 - Advanced Image Viewer");
-        if result.is_ok() {
-            let img = result.unwrap();
-            img.add_weak_ref_notify(move || {
-                println!("**welcome image disposed**");
-            });
-            eog.set_image(&img);
-        }
-
-        // match result {
-        //     Ok(img) => {
-        //         println!("OK");
-        //         let jpg = img.is_jpeg();
-        //         println!("is jpg {}", jpg);
-
-        //         let (width, height) = img.size();
-        //         println!("Size {} {}", width, height);
-
-        //         eog.set_image(&img);
-        //     }
-        //     Err(error) => {
-        //         println!("Error {}", error);
-        //     }
-        // }
 
         window.connect_key_press_event(clone!(@weak self as imp => @default-panic, move |_, e| {
             imp.on_key_press(e);
@@ -136,7 +94,6 @@ impl ObjectImpl for MViewWindowImp {
         self.widgets
             .set(MViewWidgets {
                 hbox,
-                // file_list,
                 backend,
                 file_list_view,
                 files_widget,

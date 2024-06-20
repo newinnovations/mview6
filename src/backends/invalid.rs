@@ -1,18 +1,15 @@
+use eog::Image;
 use gtk::{ListStore, TreeIter};
 
-use crate::filelistview::Direction;
+use crate::{draw::draw, filelistview::Direction};
 
 use super::Backend;
 
-pub struct Invalid {
-    directory: String,
-}
+pub struct Invalid {}
 
 impl Invalid {
-    pub fn new(directory: &str) -> Self {
-        Invalid {
-            directory: directory.to_string(),
-        }
+    pub fn new() -> Self {
+        Invalid {}
     }
 }
 
@@ -21,16 +18,24 @@ impl Backend for Invalid {
         "Invalid"
     }
 
-    fn directory(&self) -> &str {
-        return "none";
-    }
-
     fn create_store(&self) -> Option<ListStore> {
-        println!("create_store Invalid {}", self.directory);
+        println!("create_store Invalid");
         None
     }
 
     fn favorite(&self, _model: ListStore, _iter: TreeIter, _direction: Direction) -> bool {
         false
+    }
+
+    fn enter(&self, _model: ListStore, _iter: TreeIter) -> Box<dyn Backend> {
+        Box::new(Invalid::new())
+    }
+
+    fn leave(&self) -> (Box<dyn Backend>, String) {
+        (Box::new(Invalid::new()), "/".to_string())
+    }
+
+    fn image(&self, _model: ListStore, _iter: TreeIter) -> Image {
+        draw("invalid").unwrap()
     }
 }
