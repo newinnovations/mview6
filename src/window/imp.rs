@@ -2,25 +2,21 @@ mod cursor;
 mod keyboard;
 
 use crate::{
-    backends::{filesystem::FileSystem, Backend, Columns},
+    backends::{Backend, Columns},
     draw::draw,
-    filelist::FileList,
     filelistview::{FileListView, FileListViewExt},
 };
 use eog::{ScrollView, ScrollViewExt};
 use gdk_pixbuf::PixbufLoader;
 use glib::{clone, once_cell::unsync::OnceCell};
 use gtk::{glib, prelude::*, subclass::prelude::*, ScrolledWindow, SortColumn, SortType};
-use std::{
-    cell::{Cell, RefCell},
-    rc::Rc,
-};
+use std::cell::{Cell, RefCell};
 
 #[derive(Debug)]
 struct MViewWidgets {
     hbox: gtk::Box,
     files_widget: ScrolledWindow,
-    file_list: Rc<RefCell<FileList>>,
+    // file_list: Rc<RefCell<FileList>>,
     file_list_view: FileListView,
     backend: RefCell<Box<dyn Backend>>,
     eog: ScrollView,
@@ -71,9 +67,12 @@ impl ObjectImpl for MViewWindowImp {
         files_widget.set_policy(gtk::PolicyType::Never, gtk::PolicyType::Automatic);
         hbox.add(&files_widget);
 
-        let file_list = Rc::new(RefCell::new(FileList::new("/home/martin/Pictures")));
+        let (backend, model) = <dyn Backend>::new("/home/martin/Pictures");
+
+        // let file_list = Rc::new(RefCell::new(FileList::new("/home/martin/Pictures")));
         let file_list_view = FileListView::new();
-        file_list_view.set_model(file_list.borrow().read().as_ref());
+        // file_list_view.set_model(file_list.borrow().read().as_ref());
+        file_list_view.set_model(Some(&model));
         file_list_view.set_vexpand(true);
         file_list_view.set_sort_column(SortColumn::Index(Columns::Cat as u32), SortType::Ascending);
         files_widget.add(&file_list_view);
@@ -86,7 +85,7 @@ impl ObjectImpl for MViewWindowImp {
         eog.set_zoom_mode(eog::ZoomMode::Max);
         hbox.add(&eog);
 
-        let backend = RefCell::new(Box::new(FileSystem::new("init")));
+        // let backend = RefCell::new(Box::new(FileSystem::new("init")));
 
         // let f = gio::File::for_path("/home/martin/Pictures/mview-logo.jpg");
         // let img = Image::new_file(&f, "welcome");
@@ -133,10 +132,11 @@ impl ObjectImpl for MViewWindowImp {
             imp.on_row_activated(path, column);
         }));
 
+        let backend = RefCell::new(backend);
         self.widgets
             .set(MViewWidgets {
                 hbox,
-                file_list,
+                // file_list,
                 backend,
                 file_list_view,
                 files_widget,

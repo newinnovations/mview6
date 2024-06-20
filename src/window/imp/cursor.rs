@@ -12,7 +12,7 @@ impl MViewWindowImp {
         let w = self.widgets.get().unwrap();
         if let Some(filename) = w.file_list_view.current_filename() {
             println!("Selected file {}", filename);
-            let path = format!("{0}/{filename}", w.file_list.borrow().directory);
+            let path = format!("{0}/{filename}", w.backend.borrow().directory());
             println!("Path = {}", path);
             let file = File::for_path(path);
             self.load(&file);
@@ -25,36 +25,36 @@ impl MViewWindowImp {
     }
 
     pub fn dir_enter(&self) {
-        let w = self.widgets.get().unwrap();
-        if let Some(subdir) = &w.file_list_view.current_filename() {
-            let mut filelist = w.file_list.borrow_mut();
-            let newstore = filelist.enter(subdir);
-            drop(filelist);
-            if newstore.is_some() {
-                self.skip_loading.set(true);
-                w.file_list_view.set_model(newstore.as_ref());
-                w.file_list_view
-                    .set_sort_column(SortColumn::Index(Columns::Cat as u32), SortType::Ascending);
-                self.skip_loading.set(false);
-                w.file_list_view.goto_first();
-            }
-        }
+        // let w = self.widgets.get().unwrap();
+        // if let Some(subdir) = &w.file_list_view.current_filename() {
+        //     let mut filelist = w.file_list.borrow_mut();
+        //     let newstore = filelist.enter(subdir);
+        //     drop(filelist);
+        //     if newstore.is_some() {
+        //         self.skip_loading.set(true);
+        //         w.file_list_view.set_model(newstore.as_ref());
+        //         w.file_list_view
+        //             .set_sort_column(SortColumn::Index(Columns::Cat as u32), SortType::Ascending);
+        //         self.skip_loading.set(false);
+        //         w.file_list_view.goto_first();
+        //     }
+        // }
     }
 
     pub fn dir_leave(&self) {
-        let w = self.widgets.get().unwrap();
-        let mut filelist = w.file_list.borrow_mut();
-        let newstore = filelist.leave();
-        drop(filelist);
-        if newstore.is_some() {
-            let (newstore, current_dir) = newstore.unwrap();
-            self.skip_loading.set(true);
-            w.file_list_view.set_model(Some(&newstore));
-            w.file_list_view
-                .set_sort_column(SortColumn::Index(Columns::Cat as u32), SortType::Ascending);
-            self.skip_loading.set(false);
-            w.file_list_view.goto(&current_dir);
-        }
+        // let w = self.widgets.get().unwrap();
+        // let mut filelist = w.file_list.borrow_mut();
+        // let newstore = filelist.leave();
+        // drop(filelist);
+        // if newstore.is_some() {
+        //     let (newstore, current_dir) = newstore.unwrap();
+        //     self.skip_loading.set(true);
+        //     w.file_list_view.set_model(Some(&newstore));
+        //     w.file_list_view
+        //         .set_sort_column(SortColumn::Index(Columns::Cat as u32), SortType::Ascending);
+        //     self.skip_loading.set(false);
+        //     w.file_list_view.goto(&current_dir);
+        // }
     }
 
     pub fn load(&self, file: &File) {
@@ -113,26 +113,26 @@ impl MViewWindowImp {
     }
 
     pub fn navigate_to(&self, file: &File) {
-        let w = self.widgets.get().unwrap();
-        let path = file.path().unwrap_or_default().clone();
-        let filename = path
-            .file_name()
-            .unwrap_or_default()
-            .to_str()
-            .unwrap_or_default();
-        let directory = path
-            .parent()
-            .unwrap_or_else(|| Path::new("/"))
-            .to_str()
-            .unwrap_or("/");
-        println!("filename = {filename}");
-        println!("directory = {directory}");
-        let mut filelist = w.file_list.borrow_mut();
-        let newstore = filelist.goto(directory);
-        drop(filelist);
-        if newstore.is_some() {
-            w.file_list_view.set_model(newstore.as_ref());
-            w.file_list_view.goto(filename);
-        }
+        // let w = self.widgets.get().unwrap();
+        // let path = file.path().unwrap_or_default().clone();
+        // let filename = path
+        //     .file_name()
+        //     .unwrap_or_default()
+        //     .to_str()
+        //     .unwrap_or_default();
+        // let directory = path
+        //     .parent()
+        //     .unwrap_or_else(|| Path::new("/"))
+        //     .to_str()
+        //     .unwrap_or("/");
+        // println!("filename = {filename}");
+        // println!("directory = {directory}");
+        // let mut filelist = w.file_list.borrow_mut();
+        // let newstore = filelist.goto(directory);
+        // drop(filelist);
+        // if newstore.is_some() {
+        //     w.file_list_view.set_model(newstore.as_ref());
+        //     w.file_list_view.goto(filename);
+        // }
     }
 }

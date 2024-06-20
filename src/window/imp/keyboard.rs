@@ -2,10 +2,10 @@ use super::MViewWindowImp;
 
 use eog::ScrollViewExt;
 use gdk::EventKey;
-use gtk::{prelude::*, subclass::prelude::*};
+use gtk::{prelude::*, subclass::prelude::*, TreeModel};
 
 use crate::{
-    backends::filesystem::FileSystem,
+    backends::Backend,
     filelistview::{Direction, FileListViewExt, Filter},
 };
 
@@ -18,8 +18,9 @@ impl MViewWindowImp {
                 self.obj().close();
             }
             gdk::keys::constants::d => {
-                let b2 = Box::new(FileSystem::new("replaced"));
-                let y = w.backend.replace(b2);
+                // let b2 = Box::new(FileSystem::new("replaced"));
+                let (b3, _) = <dyn Backend>::new("keyboard");
+                let y = w.backend.replace(b3);
                 let x = w.backend.borrow();
                 x.create_store();
                 y.create_store();
@@ -70,19 +71,29 @@ impl MViewWindowImp {
             }
             gdk::keys::constants::minus | gdk::keys::constants::KP_Subtract => {
                 w.file_list_view.set_unsorted();
-                if w.file_list_view
-                    .favorite(&w.file_list.borrow().directory(), Direction::Down)
-                {
-                    w.file_list_view.navigate(Direction::Down, Filter::Image, 1);
+                if let Some((model, iter)) = w.file_list_view.iter() {
+                    if w.backend.borrow().favorite(model, iter, Direction::Down) {
+                        w.file_list_view.navigate(Direction::Down, Filter::Image, 1);
+                    }
                 }
+                // if w.file_list_view
+                //     .favorite(&w.file_list.borrow().directory(), Direction::Down)
+                // {
+                //     w.file_list_view.navigate(Direction::Down, Filter::Image, 1);
+                // }
             }
             gdk::keys::constants::equal | gdk::keys::constants::KP_Add => {
                 w.file_list_view.set_unsorted();
-                if w.file_list_view
-                    .favorite(&w.file_list.borrow().directory(), Direction::Up)
-                {
-                    w.file_list_view.navigate(Direction::Down, Filter::Image, 1);
+                if let Some((model, iter)) = w.file_list_view.iter() {
+                    if w.backend.borrow().favorite(model, iter, Direction::Up) {
+                        w.file_list_view.navigate(Direction::Down, Filter::Image, 1);
+                    }
                 }
+                // if w.file_list_view
+                //     .favorite(&w.file_list.borrow().directory(), Direction::Up)
+                // {
+                //     w.file_list_view.navigate(Direction::Down, Filter::Image, 1);
+                // }
             }
             gdk::keys::constants::z | gdk::keys::constants::Left | gdk::keys::constants::KP_4 => {
                 let filter = if w.files_widget.is_visible() {
