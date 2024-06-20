@@ -62,9 +62,9 @@ impl ObjectImpl for MViewWindowImp {
         files_widget.set_policy(gtk::PolicyType::Never, gtk::PolicyType::Automatic);
         hbox.add(&files_widget);
 
-        let (backend, model) = <dyn Backend>::new("/home/martin/Pictures");
+        let backend = <dyn Backend>::new("/home/martin/Pictures");
         let file_list_view = FileListView::new();
-        file_list_view.set_model(Some(&model));
+        file_list_view.set_model(backend.create_store().as_ref());
         file_list_view.set_vexpand(true);
         file_list_view.set_sort_column(SortColumn::Index(Columns::Cat as u32), SortType::Ascending);
         files_widget.add(&file_list_view);

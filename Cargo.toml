@@ -7,6 +7,7 @@ edition = "2021"
 chrono = "0.4.38"
 rand = "0.8.5"
 regex = "1.10.4"
+zip = "2.1.3"
 
 [dependencies.eog]
 path="../eog/eog"

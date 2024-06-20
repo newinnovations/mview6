@@ -44,7 +44,7 @@ impl FileSystem {
             let modified = modified.duration_since(UNIX_EPOCH).unwrap().as_secs();
             let file_size = metadata.len();
 
-            let cat = Category::determine(filename, &metadata);
+            let cat = Category::determine(filename, metadata.is_dir());
 
             store.insert_with_values(
                 None,
@@ -58,6 +58,40 @@ impl FileSystem {
             );
         }
         Ok(())
+    }
+
+    pub fn image(filename: &str) -> Image {
+        let path = Path::new(&filename);
+        let file = File::for_path(path);
+
+        let cat = match fs::metadata(path) {
+            Ok(metadata) => Category::determine(filename, metadata.is_dir()),
+            Err(_) => Category::Unsupported,
+        };
+
+        let image = match cat {
+            Category::Direcory | Category::Archive | Category::Unsupported => {
+                let name = path
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_str()
+                    .unwrap_or_default();
+                draw(name)
+            }
+            _ => Ok(Image::new_file(&file, filename)),
+        };
+
+        let image = image.unwrap();
+
+        let filename_c = filename.to_string();
+        image.add_weak_ref_notify(move || {
+            println!("**image [{filename_c}] disposed**");
+        });
+
+        match image.load(ImageData::IMAGE, None::<Job>.as_ref()) {
+            Ok(()) => image,
+            Err(error) => draw(&format!("Error {}", error)).unwrap(),
+        }
     }
 }
 
@@ -78,11 +112,7 @@ impl Backend for FileSystem {
     }
 
     fn enter(&self, model: ListStore, iter: TreeIter) -> Box<dyn Backend> {
-        Box::new(FileSystem::new(&format!(
-            "{}/{}",
-            self.directory,
-            model.filename(&iter)
-        )))
+        <dyn Backend>::new(&format!("{}/{}", self.directory, model.filename(&iter)))
     }
 
     fn leave(&self) -> (Box<dyn Backend>, String) {
@@ -107,38 +137,7 @@ impl Backend for FileSystem {
 
     fn image(&self, model: ListStore, iter: TreeIter) -> Image {
         let filename = format!("{}/{}", self.directory, model.filename(&iter));
-
-        let path = Path::new(&filename);
-        let file = File::for_path(path);
-
-        let cat = match fs::metadata(path) {
-            Ok(metadata) => Category::determine(&filename, &metadata),
-            Err(_) => Category::Unsupported,
-        };
-
-        let image = match cat {
-            Category::Direcory | Category::Archive | Category::Unsupported => {
-                let name = path
-                    .file_name()
-                    .unwrap_or_default()
-                    .to_str()
-                    .unwrap_or_default();
-                draw(name)
-            }
-            _ => Ok(Image::new_file(&file, &filename)),
-        };
-
-        let image = image.unwrap();
-
-        let filename_c = filename.clone();
-        image.add_weak_ref_notify(move || {
-            println!("**image [{filename_c}] disposed**");
-        });
-
-        match image.load(ImageData::IMAGE, None::<Job>.as_ref()) {
-            Ok(()) => image,
-            Err(error) => draw(&format!("Error {}", error)).unwrap(),
-        }
+        Self::image(&filename)
     }
 
     fn favorite(&self, model: ListStore, iter: TreeIter, direction: Direction) -> bool {

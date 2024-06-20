@@ -1,5 +1,3 @@
-use std::fs::Metadata;
-
 #[derive(Debug, Copy, Clone)]
 #[repr(u32)]
 pub enum Category {
@@ -12,8 +10,8 @@ pub enum Category {
 }
 
 impl Category {
-    pub fn determine(filename: &str, metadata: &Metadata) -> Self {
-        if metadata.is_dir() {
+    pub fn determine(filename: &str, is_dir: bool) -> Self {
+        if is_dir {
             return Self::Direcory;
         }
 

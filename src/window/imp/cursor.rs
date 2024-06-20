@@ -75,9 +75,11 @@ impl MViewWindowImp {
             .unwrap_or("/");
         println!("filename = {filename}");
         println!("directory = {directory}");
-        let (backend, model) = <dyn Backend>::new(directory);
+        let backend = <dyn Backend>::new(directory);
+        w.file_list_view.set_model(backend.create_store().as_ref());
         w.backend.replace(backend);
-        w.file_list_view.set_model(Some(&model));
+        w.file_list_view
+            .set_sort_column(SortColumn::Index(Columns::Cat as u32), SortType::Ascending);
         w.file_list_view.goto(filename);
     }
 }

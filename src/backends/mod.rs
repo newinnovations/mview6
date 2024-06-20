@@ -1,3 +1,4 @@
+use archive_zip::ZipArchive;
 use eog::Image;
 use filesystem::FileSystem;
 use glib::IsA;
@@ -8,10 +9,10 @@ use gtk::{
 
 use crate::{category::Category, filelistview::Direction};
 
-pub mod archive_rar;
-pub mod archive_zip;
-pub mod filesystem;
-pub mod invalid;
+mod archive_rar;
+mod archive_zip;
+mod filesystem;
+mod invalid;
 
 #[derive(Debug)]
 #[repr(u32)]
@@ -21,6 +22,7 @@ pub enum Columns {
     Name,
     Size,
     Modified,
+    Index,
 }
 
 pub trait Backend {
@@ -39,10 +41,23 @@ impl std::fmt::Debug for dyn Backend {
 }
 
 impl dyn Backend {
-    pub fn new(directory: &str) -> (Box<dyn Backend>, ListStore) {
-        let backend = FileSystem::new(directory);
-        let store = backend.create_store().unwrap(); //FIXME
-        (Box::new(backend), store)
+    // pub fn xnew(filename: &str) -> (Box<dyn Backend>, ListStore) {
+    //     if filename.ends_with(".zip") {
+    //         let backend = ZipArchive::new(filename);
+    //         let store = backend.create_store().unwrap(); //FIXME
+    //         (Box::new(backend), store)
+    //     } else {
+    //         let backend = FileSystem::new(filename);
+    //         let store = backend.create_store().unwrap(); //FIXME
+    //         (Box::new(backend), store)
+    //     }
+    // }
+    pub fn new(filename: &str) -> Box<dyn Backend> {
+        if filename.ends_with(".zip") {
+            Box::new(ZipArchive::new(filename))
+        } else {
+            Box::new(FileSystem::new(filename))
+        }
     }
 }
 
@@ -57,17 +72,23 @@ pub trait TreeModelMviewExt: IsA<TreeModel> + 'static {
             .get::<u32>()
             .unwrap_or(Category::Unsupported.id())
     }
+    fn index(&self, iter: &TreeIter) -> u32 {
+        self.value(iter, Columns::Index as i32)
+            .get::<u32>()
+            .unwrap_or(0)
+    }
 }
 
 impl<O: IsA<TreeModel>> TreeModelMviewExt for O {}
 
 pub fn empty_store() -> ListStore {
-    let col_types: [glib::Type; 5] = [
+    let col_types: [glib::Type; 6] = [
         glib::Type::U32,
         glib::Type::STRING,
         glib::Type::STRING,
         glib::Type::U64,
         glib::Type::U64,
+        glib::Type::U32,
     ];
     let store = ListStore::new(&col_types);
     store.set_sort_func(
