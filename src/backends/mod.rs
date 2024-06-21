@@ -1,3 +1,4 @@
+use archive_rar::RarArchive;
 use archive_zip::ZipArchive;
 use eog::Image;
 use filesystem::FileSystem;
@@ -55,6 +56,8 @@ impl dyn Backend {
     pub fn new(filename: &str) -> Box<dyn Backend> {
         if filename.ends_with(".zip") {
             Box::new(ZipArchive::new(filename))
+        } else if filename.ends_with(".rar") {
+            Box::new(RarArchive::new(filename))
         } else {
             Box::new(FileSystem::new(filename))
         }
