@@ -1,7 +1,9 @@
-use cairo::{Context, Error, Format, ImageSurface};
+use cairo::{Context, Format, ImageSurface};
 use eog::{Image, ImageExt};
 
-pub fn draw(text: &str) -> Result<Image, Error> {
+use crate::error::MviewResult;
+
+pub fn draw(text: &str) -> MviewResult<Image> {
     let surface = ImageSurface::create(Format::ARgb32, 600, 600)?;
     let context = Context::new(&surface)?;
 

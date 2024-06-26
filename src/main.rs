@@ -2,7 +2,9 @@ mod application;
 mod backends;
 mod category;
 mod draw;
+mod error;
 mod filelistview;
+mod loader;
 mod window;
 
 use gdk::Screen;

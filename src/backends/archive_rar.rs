@@ -2,9 +2,11 @@ use std::path::Path;
 
 use eog::Image;
 use gtk::{prelude::GtkListStoreExtManual, ListStore, TreeIter};
-use unrar::{Archive, UnrarResult};
+use unrar::{error::UnrarError, Archive, UnrarResult};
 
-use crate::{backends::empty_store, category::Category, draw::draw, filelistview::Direction};
+use crate::{
+    backends::empty_store, category::Category, draw::draw, filelistview::Direction, loader::Loader,
+};
 
 use super::{filesystem::FileSystem, Backend, Columns, TreeModelMviewExt};
 
@@ -61,21 +63,20 @@ impl Backend for RarArchive {
     fn image(&self, model: ListStore, iter: TreeIter) -> Image {
         let sel = model.filename(&iter);
         match extract_rar(&self.filename, &sel) {
-            Ok(()) => FileSystem::image("/tmp/rar.jpg"),
+            Ok(bytes) => Loader::image_from_memory(bytes),
             Err(error) => draw(&format!("Error {}", error)).unwrap(),
         }
     }
 }
 
-fn extract_rar(filename: &str, sel: &str) -> UnrarResult<()> {
+fn extract_rar(filename: &str, sel: &str) -> UnrarResult<Vec<u8>> {
     let mut archive = Archive::new(filename).open_for_processing()?;
     while let Some(header) = archive.read_header()? {
         let e_filename = header.entry().filename.as_os_str().to_str().unwrap_or("-");
-        println!("{} bytes: {}", header.entry().unpacked_size, e_filename);
         archive = if header.entry().is_file() {
             if e_filename == sel {
-                println!("Should extract");
-                header.extract_to("/tmp/rar.jpg")?
+                let (bytes, _) = header.read()?;
+                return Ok(bytes);
             } else {
                 header.skip()?
             }
@@ -83,7 +84,10 @@ fn extract_rar(filename: &str, sel: &str) -> UnrarResult<()> {
             header.skip()?
         };
     }
-    Ok(())
+    Err(UnrarError {
+        code: unrar::error::Code::EndArchive,
+        when: unrar::error::When::Read,
+    })
 }
 
 fn list_rar(filename: &str, store: &ListStore) -> UnrarResult<()> {

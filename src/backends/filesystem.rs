@@ -1,3 +1,9 @@
+use crate::{
+    backends::TreeModelMviewExt, category::Category, filelistview::Direction, loader::Loader,
+};
+use eog::Image;
+use gtk::{prelude::GtkListStoreExtManual, ListStore, TreeIter};
+use regex::Regex;
 use std::{
     ffi::OsStr,
     fs::{self, rename},
@@ -5,15 +11,6 @@ use std::{
     path::Path,
     time::UNIX_EPOCH,
 };
-
-use eog::{Image, ImageData, ImageExt, Job};
-use gio::File;
-use glib::ObjectExt;
-use gtk::{prelude::GtkListStoreExtManual, ListStore, TreeIter};
-
-use regex::Regex;
-
-use crate::{backends::TreeModelMviewExt, category::Category, draw::draw, filelistview::Direction};
 
 use super::{empty_store, Backend, Columns};
 
@@ -59,40 +56,6 @@ impl FileSystem {
         }
         Ok(())
     }
-
-    pub fn image(filename: &str) -> Image {
-        let path = Path::new(&filename);
-        let file = File::for_path(path);
-
-        let cat = match fs::metadata(path) {
-            Ok(metadata) => Category::determine(filename, metadata.is_dir()),
-            Err(_) => Category::Unsupported,
-        };
-
-        let image = match cat {
-            Category::Direcory | Category::Archive | Category::Unsupported => {
-                let name = path
-                    .file_name()
-                    .unwrap_or_default()
-                    .to_str()
-                    .unwrap_or_default();
-                draw(name)
-            }
-            _ => Ok(Image::new_file(&file, filename)),
-        };
-
-        let image = image.unwrap();
-
-        let filename_c = filename.to_string();
-        image.add_weak_ref_notify(move || {
-            println!("**image [{filename_c}] disposed**");
-        });
-
-        match image.load(ImageData::IMAGE, None::<Job>.as_ref()) {
-            Ok(()) => image,
-            Err(error) => draw(&format!("Error {}", error)).unwrap(),
-        }
-    }
 }
 
 impl Backend for FileSystem {
@@ -137,7 +100,7 @@ impl Backend for FileSystem {
 
     fn image(&self, model: ListStore, iter: TreeIter) -> Image {
         let filename = format!("{}/{}", self.directory, model.filename(&iter));
-        Self::image(&filename)
+        Loader::image_from_file(&filename)
     }
 
     fn favorite(&self, model: ListStore, iter: TreeIter, direction: Direction) -> bool {

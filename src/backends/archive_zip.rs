@@ -1,6 +1,6 @@
 use std::{
     fs,
-    io::{self, BufReader},
+    io::{BufReader, Read},
     path::Path,
 };
 
@@ -8,7 +8,9 @@ use eog::Image;
 use gtk::{prelude::GtkListStoreExtManual, ListStore, TreeIter};
 use zip::result::ZipResult;
 
-use crate::{backends::empty_store, category::Category, draw::draw, filelistview::Direction};
+use crate::{
+    backends::empty_store, category::Category, draw::draw, filelistview::Direction, loader::Loader,
+};
 
 use super::{filesystem::FileSystem, Backend, Columns, TreeModelMviewExt};
 
@@ -64,29 +66,22 @@ impl Backend for ZipArchive {
 
     fn image(&self, model: ListStore, iter: TreeIter) -> Image {
         match extract_zip(&self.filename, model.index(&iter).try_into().unwrap()) {
-            Ok(()) => FileSystem::image("/tmp/zip.jpg"),
+            Ok(bytes) => Loader::image_from_memory(bytes),
             Err(error) => draw(&format!("Error {}", error)).unwrap(),
         }
-        // let filename = format!("ZipArchive: {}", model.index(&iter));
-        // draw(&filename).unwrap()
     }
 }
 
-fn extract_zip(filename: &str, index: usize) -> ZipResult<()> {
+fn extract_zip(filename: &str, index: usize) -> ZipResult<Vec<u8>> {
     let fname = std::path::Path::new(filename);
     let file = fs::File::open(fname)?;
     let reader = BufReader::new(file);
-
     let mut archive = zip::ZipArchive::new(reader)?;
-
     let mut file = archive.by_index(index)?;
-
-    let outpath = "/tmp/zip.jpg";
-
-    let mut outfile = fs::File::create(outpath)?;
-    io::copy(&mut file, &mut outfile)?;
-
-    Ok(())
+    let mut buf = Vec::<u8>::new();
+    let size = file.read_to_end(&mut buf)?;
+    println!("extract_zip_to_memory::size={}", size);
+    Ok(buf)
 }
 
 fn list_zip(filename: &str, store: &ListStore) -> ZipResult<()> {
