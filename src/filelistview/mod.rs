@@ -67,14 +67,6 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
         }
     }
 
-    // fn current_filename(&self) -> Option<String> {
-    //     if let Some((model, iter)) = self.iter() {
-    //         Some(model.filename(&iter))
-    //     } else {
-    //         None
-    //     }
-    // }
-
     fn goto(&self, filename: &str) -> bool {
         println!("Goto {filename}");
         let model = self.model().unwrap().downcast::<ListStore>().unwrap();

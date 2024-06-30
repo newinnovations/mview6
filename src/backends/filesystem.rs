@@ -36,7 +36,15 @@ impl FileSystem {
                 continue;
             }
 
-            let metadata = fs::metadata(&path)?;
+            let metadata;
+            match fs::metadata(&path) {
+                Ok(m) => metadata=m,
+                Err(e) => {
+                    println!("{}: Err = {:?}", filename, e);
+                    continue;
+                },
+            }
+
             let modified = metadata.modified().unwrap_or(UNIX_EPOCH);
             let modified = modified.duration_since(UNIX_EPOCH).unwrap().as_secs();
             let file_size = metadata.len();
@@ -69,7 +77,8 @@ impl Backend for FileSystem {
             Ok(()) => Some(store),
             Err(e) => {
                 println!("read_dir failed {:?}", e);
-                None
+                // None
+                Some(store)
             }
         }
     }

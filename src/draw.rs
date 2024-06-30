@@ -39,7 +39,7 @@ pub fn draw(text: &str) -> MviewResult<Image> {
     ); //Bold);
     let extends = context.text_extents(text)?;
 
-    dbg!(extends);
+    // dbg!(extends);
 
     let text_x = 300.0 - extends.width() / 2.0;
     let text_y = 300.0;

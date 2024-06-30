@@ -12,7 +12,8 @@ unrar = "0.5.3"
 zip = "2.1.3"
 
 [dependencies.eog]
-path="../eog/eog"
+# path="../eog/eog"
+path="../libeog/rust/eog"
 
 [dependencies.gtk]
 version = "0.18"
