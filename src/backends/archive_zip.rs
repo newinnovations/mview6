@@ -4,6 +4,7 @@ use std::{
     path::Path,
 };
 
+use chrono::{Local, TimeZone};
 use eog::Image;
 use gtk::{prelude::GtkListStoreExtManual, ListStore, TreeIter};
 use zip::result::ZipResult;
@@ -112,27 +113,24 @@ fn list_zip(filename: &str, store: &ListStore) -> ZipResult<()> {
         let filename = outpath.display().to_string();
         let cat = Category::determine(&filename, file.is_dir());
         let file_size = file.size();
-        let modified = 0_u64;
         let index = i as u32;
-        // let x=file.last_modified().unwrap();
-        // x.q
-        // if x.is_some()
-        // .unwrap_or(UNIX_EPOCH);
 
-        // if file.is_dir() {
-        //     println!(
-        //         "Entry {} is a directory with name \"{}\"",
-        //         i,
-        //         outpath.display()
-        //     );
-        // } else {
-        //     println!(
-        //         "Entry {} is a file with name \"{}\" ({} bytes)",
-        //         i,
-        //         outpath.display(),
-        //         file.size()
-        //     );
-        // }
+        let m = file.last_modified().unwrap_or_default();
+        let modified = match Local.with_ymd_and_hms(
+            m.year() as i32,
+            m.month() as u32,
+            m.day() as u32,
+            m.hour() as u32,
+            m.minute() as u32,
+            m.second() as u32,
+        ) {
+            chrono::offset::LocalResult::Single(datetime) => datetime.timestamp() as u64,
+            _ => {
+                println!("Could not create local datetime (Ambiguous or None)");
+                0_u64
+            }
+        };
+        dbg!(modified);
 
         store.insert_with_values(
             None,

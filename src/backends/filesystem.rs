@@ -36,14 +36,13 @@ impl FileSystem {
                 continue;
             }
 
-            let metadata;
-            match fs::metadata(&path) {
-                Ok(m) => metadata=m,
+            let metadata = match fs::metadata(&path) {
+                Ok(m) => m,
                 Err(e) => {
                     println!("{}: Err = {:?}", filename, e);
                     continue;
-                },
-            }
+                }
+            };
 
             let modified = metadata.modified().unwrap_or(UNIX_EPOCH);
             let modified = modified.duration_since(UNIX_EPOCH).unwrap().as_secs();

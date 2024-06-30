@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use chrono::{Local, TimeZone};
 use eog::Image;
 use gtk::{prelude::GtkListStoreExtManual, ListStore, TreeIter};
 use unrar::{error::UnrarError, Archive, UnrarResult};
@@ -96,8 +97,8 @@ fn list_rar(filename: &str, store: &ListStore) -> UnrarResult<()> {
         let entry = e?;
         let filename = entry.filename.as_os_str().to_str().unwrap_or("???");
         let cat = Category::determine(filename, false); //file.is_dir());
-        let file_size = entry.unpacked_size; // file.size();
-        let modified = 0_u64;
+        let file_size = entry.unpacked_size;
+        let modified = unix_from_msdos(entry.file_time);
         store.insert_with_values(
             None,
             &[
@@ -110,4 +111,23 @@ fn list_rar(filename: &str, store: &ListStore) -> UnrarResult<()> {
         );
     }
     Ok(())
+}
+
+pub fn unix_from_msdos(dostime: u32) -> u64 {
+    let second = (dostime & 0b0000000000011111) << 1;
+    let minute = (dostime & 0b0000011111100000) >> 5;
+    let hour = (dostime & 0b1111100000000000) >> 11;
+
+    let datepart = dostime >> 16;
+    let day = datepart & 0b0000000000011111;
+    let month = (datepart & 0b0000000111100000) >> 5;
+    let year = 1980 + ((datepart & 0b1111111000000000) >> 9);
+
+    match Local.with_ymd_and_hms(year as i32, month, day, hour, minute, second) {
+        chrono::offset::LocalResult::Single(datetime) => datetime.timestamp() as u64,
+        _ => {
+            println!("Could not create local datetime (Ambiguous or None)");
+            0_u64
+        }
+    }
 }
