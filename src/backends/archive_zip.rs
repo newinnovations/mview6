@@ -17,13 +17,25 @@ use super::{filesystem::FileSystem, Backend, Columns, TreeModelMviewExt};
 
 pub struct ZipArchive {
     filename: String,
+    store: ListStore,
 }
 
 impl ZipArchive {
     pub fn new(filename: &str) -> Self {
         ZipArchive {
             filename: filename.to_string(),
+            store: Self::create_store(filename),
         }
+    }
+
+    fn create_store(filename: &str) -> ListStore {
+        println!("create_store ZipArchive {}", filename);
+        let store = empty_store();
+        match list_zip(filename, &store) {
+            Ok(()) => println!("OK"),
+            Err(e) => println!("ERROR {:?}", e),
+        };
+        store
     }
 }
 
@@ -32,14 +44,8 @@ impl Backend for ZipArchive {
         "ZipArchive"
     }
 
-    fn create_store(&self) -> Option<ListStore> {
-        println!("create_store ZipArchive {}", self.filename);
-        let store = empty_store();
-        match list_zip(&self.filename, &store) {
-            Ok(()) => println!("OK"),
-            Err(e) => println!("ERROR {:?}", e),
-        };
-        Some(store)
+    fn store(&self) -> ListStore {
+        self.store.clone()
     }
 
     fn favorite(&self, _model: ListStore, _iter: TreeIter, _direction: Direction) -> bool {

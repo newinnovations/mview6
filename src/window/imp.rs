@@ -1,3 +1,4 @@
+mod backend;
 mod cursor;
 mod keyboard;
 

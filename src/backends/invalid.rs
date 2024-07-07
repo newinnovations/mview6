@@ -3,7 +3,7 @@ use gtk::{ListStore, TreeIter};
 
 use crate::{draw::draw, filelistview::Direction};
 
-use super::Backend;
+use super::{empty_store, Backend};
 
 pub struct Invalid {}
 
@@ -18,9 +18,8 @@ impl Backend for Invalid {
         "Invalid"
     }
 
-    fn create_store(&self) -> Option<ListStore> {
-        println!("create_store Invalid");
-        None
+    fn store(&self) -> ListStore {
+        empty_store()
     }
 
     fn favorite(&self, _model: ListStore, _iter: TreeIter, _direction: Direction) -> bool {

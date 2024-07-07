@@ -29,7 +29,7 @@ pub enum Columns {
 
 pub trait Backend {
     fn class_name(&self) -> &str;
-    fn create_store(&self) -> Option<ListStore>;
+    fn store(&self) -> ListStore;
     fn favorite(&self, model: ListStore, iter: TreeIter, direction: Direction) -> bool;
     fn enter(&self, model: ListStore, iter: TreeIter) -> Box<dyn Backend>;
     fn leave(&self) -> (Box<dyn Backend>, String);
@@ -43,17 +43,6 @@ impl std::fmt::Debug for dyn Backend {
 }
 
 impl dyn Backend {
-    // pub fn xnew(filename: &str) -> (Box<dyn Backend>, ListStore) {
-    //     if filename.ends_with(".zip") {
-    //         let backend = ZipArchive::new(filename);
-    //         let store = backend.create_store().unwrap(); //FIXME
-    //         (Box::new(backend), store)
-    //     } else {
-    //         let backend = FileSystem::new(filename);
-    //         let store = backend.create_store().unwrap(); //FIXME
-    //         (Box::new(backend), store)
-    //     }
-    // }
     pub fn new(filename: &str) -> Box<dyn Backend> {
         if filename.ends_with(".zip") {
             Box::new(ZipArchive::new(filename))

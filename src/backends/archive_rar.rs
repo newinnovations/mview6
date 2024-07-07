@@ -13,13 +13,25 @@ use super::{filesystem::FileSystem, Backend, Columns, TreeModelMviewExt};
 
 pub struct RarArchive {
     filename: String,
+    store: ListStore,
 }
 
 impl RarArchive {
     pub fn new(filename: &str) -> Self {
         RarArchive {
             filename: filename.to_string(),
+            store: Self::create_store(filename),
         }
+    }
+
+    fn create_store(filename: &str) -> ListStore {
+        println!("create_store RarArchive {}", &filename);
+        let store = empty_store();
+        match list_rar(filename, &store) {
+            Ok(()) => println!("OK"),
+            Err(e) => println!("ERROR {:?}", e),
+        };
+        store
     }
 }
 
@@ -28,14 +40,8 @@ impl Backend for RarArchive {
         "RarArchive"
     }
 
-    fn create_store(&self) -> Option<ListStore> {
-        println!("create_store RarArchive {}", &self.filename);
-        let store = empty_store();
-        match list_rar(&self.filename, &store) {
-            Ok(()) => println!("OK"),
-            Err(e) => println!("ERROR {:?}", e),
-        };
-        Some(store)
+    fn store(&self) -> ListStore {
+        self.store.clone()
     }
 
     fn favorite(&self, _model: ListStore, _iter: TreeIter, _direction: Direction) -> bool {

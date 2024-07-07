@@ -16,12 +16,14 @@ use super::{empty_store, Backend, Columns};
 
 pub struct FileSystem {
     directory: String,
+    store: ListStore,
 }
 
 impl FileSystem {
     pub fn new(directory: &str) -> Self {
         FileSystem {
             directory: directory.to_string(),
+            store: Self::create_store(directory),
         }
     }
 
@@ -63,6 +65,17 @@ impl FileSystem {
         }
         Ok(())
     }
+
+    fn create_store(directory: &str) -> ListStore {
+        let store = empty_store();
+        match Self::read_directory(&store, directory) {
+            Ok(()) => (),
+            Err(e) => {
+                println!("read_dir failed {:?}", e);
+            }
+        }
+        store
+    }
 }
 
 impl Backend for FileSystem {
@@ -70,16 +83,8 @@ impl Backend for FileSystem {
         "FileSystem"
     }
 
-    fn create_store(&self) -> Option<ListStore> {
-        let store = empty_store();
-        match Self::read_directory(&store, &self.directory) {
-            Ok(()) => Some(store),
-            Err(e) => {
-                println!("read_dir failed {:?}", e);
-                // None
-                Some(store)
-            }
-        }
+    fn store(&self) -> ListStore {
+        self.store.clone()
     }
 
     fn enter(&self, model: ListStore, iter: TreeIter) -> Box<dyn Backend> {
