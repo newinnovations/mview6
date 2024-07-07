@@ -3,13 +3,16 @@ mod keyboard;
 
 use crate::{
     backends::{Backend, Columns},
-    filelistview::{FileListView, FileListViewExt},
+    filelistview::FileListView,
 };
 use eog::{ScrollView, ScrollViewExt};
 use gdk_pixbuf::PixbufLoader;
 use glib::{clone, once_cell::unsync::OnceCell};
 use gtk::{glib, prelude::*, subclass::prelude::*, ScrolledWindow, SortColumn, SortType};
-use std::cell::{Cell, RefCell};
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+};
 
 #[derive(Debug)]
 struct MViewWidgets {
@@ -25,7 +28,7 @@ pub struct MViewWindowImp {
     widgets: OnceCell<MViewWidgets>,
     full_screen: Cell<bool>,
     skip_loading: Cell<bool>,
-    // current_file: RefCell<String>,
+    sort_column: Rc<Cell<Option<(SortColumn, SortType)>>>,
 }
 
 #[glib::object_subclass]
@@ -40,6 +43,10 @@ impl ObjectImpl for MViewWindowImp {
         self.parent_constructed();
         self.full_screen.set(false);
         self.skip_loading.set(false);
+        self.sort_column.set(Some((
+            SortColumn::Index(Columns::Cat as u32),
+            SortType::Ascending,
+        )));
 
         let window = self.obj();
 
@@ -62,11 +69,8 @@ impl ObjectImpl for MViewWindowImp {
         files_widget.set_policy(gtk::PolicyType::Never, gtk::PolicyType::Automatic);
         hbox.add(&files_widget);
 
-        let backend = <dyn Backend>::new("/home/martin/Pictures");
         let file_list_view = FileListView::new();
-        file_list_view.set_model(backend.create_store().as_ref());
         file_list_view.set_vexpand(true);
-        file_list_view.set_sort_column(SortColumn::Index(Columns::Cat as u32), SortType::Ascending);
         files_widget.add(&file_list_view);
 
         let eog = ScrollView::new();
@@ -90,7 +94,7 @@ impl ObjectImpl for MViewWindowImp {
             imp.on_row_activated(path, column);
         }));
 
-        let backend = RefCell::new(backend);
+        let backend = RefCell::new(<dyn Backend>::invalid());
         self.widgets
             .set(MViewWidgets {
                 hbox,
@@ -102,6 +106,8 @@ impl ObjectImpl for MViewWindowImp {
             .expect("Failed to initialize MView window");
 
         window.show_all();
+
+        self.set_backend(<dyn Backend>::new("/home/martin/Pictures"), None);
 
         // self.widgets.get().unwrap().eog.set_offset(0, 0);
 

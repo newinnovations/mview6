@@ -4,7 +4,7 @@ use glib::{Cast, IsA};
 use gtk::{
     glib,
     prelude::{TreeModelExt, TreeSortableExtManual, TreeViewExt},
-    ListStore, SortColumn, SortType, TreeIter, TreePath, TreeView, TreeViewColumn,
+    ListStore, TreeIter, TreePath, TreeView, TreeViewColumn,
 };
 
 use crate::{backends::TreeModelMviewExt, category::Category};
@@ -45,9 +45,8 @@ pub trait FileListViewExt: IsA<FileListView> + IsA<TreeView> + 'static {
     fn goto_first(&self);
     fn goto(&self, filename: &str) -> bool;
     fn iter(&self) -> Option<(ListStore, TreeIter)>;
-    // fn current_filename(&self) -> Option<String>;
     fn navigate(&self, direction: Direction, filter: Filter, count: i32) -> bool;
-    fn set_sort_column(&self, sort_column_id: SortColumn, order: SortType);
+    // fn set_sort_column(&self, sort_column_id: SortColumn, order: SortType);
     fn set_unsorted(&self);
 }
 
@@ -128,10 +127,10 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
         }
     }
 
-    fn set_sort_column(&self, sort_column_id: SortColumn, order: SortType) {
-        let model = self.model().unwrap().downcast::<ListStore>().unwrap();
-        model.set_sort_column_id(sort_column_id, order);
-    }
+    // fn set_sort_column(&self, sort_column_id: SortColumn, order: SortType) {
+    //     let model = self.model().unwrap().downcast::<ListStore>().unwrap();
+    //     model.set_sort_column_id(sort_column_id, order);
+    // }
 
     fn set_unsorted(&self) {
         let model = self.model().unwrap().downcast::<ListStore>().unwrap();

@@ -7,6 +7,7 @@ use gtk::{
     prelude::{TreeModelExt, TreeSortableExtManual},
     ListStore, TreeIter, TreeModel,
 };
+use invalid::Invalid;
 
 use crate::{category::Category, filelistview::Direction};
 
@@ -61,6 +62,10 @@ impl dyn Backend {
         } else {
             Box::new(FileSystem::new(filename))
         }
+    }
+
+    pub fn invalid() -> Box<dyn Backend> {
+        Box::new(Invalid::new())
     }
 }
 
