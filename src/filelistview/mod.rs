@@ -39,6 +39,7 @@ pub enum Filter {
     None = 0,
     Image,
     Favorite,
+    Container,
 }
 
 pub trait FileListViewExt: IsA<FileListView> + IsA<TreeView> + 'static {
@@ -108,6 +109,9 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
                     Filter::None => false,
                     Filter::Image => cat != Category::Image.id() && cat != Category::Favorite.id(),
                     Filter::Favorite => cat != Category::Favorite.id(),
+                    Filter::Container => {
+                        cat != Category::Direcory.id() && cat != Category::Archive.id()
+                    }
                 };
 
                 if skip {

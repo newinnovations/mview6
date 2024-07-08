@@ -2,7 +2,10 @@ use std::path::Path;
 
 use super::MViewWindowImp;
 
-use crate::{backends::Backend, filelistview::FileListViewExt};
+use crate::{
+    backends::Backend,
+    filelistview::{Direction, FileListViewExt, Filter},
+};
 use eog::ScrollViewExt;
 use gio::File;
 use gtk::{prelude::*, TreePath, TreeViewColumn};
@@ -24,6 +27,7 @@ impl MViewWindowImp {
     pub fn dir_enter(&self) {
         let w = self.widgets.get().unwrap();
         if let Some((model, iter)) = w.file_list_view.iter() {
+            self.hop_parent_sort.set(Some(self.last_sort.get()));
             let backend = w.backend.borrow();
             let new_backend = backend.enter(model, iter);
             drop(backend);
@@ -32,6 +36,7 @@ impl MViewWindowImp {
     }
 
     pub fn dir_leave(&self) {
+        self.hop_parent_sort.set(None);
         let w = self.widgets.get().unwrap();
         let backend = w.backend.borrow();
         let (new_backend, current_dir) = backend.leave();
@@ -55,5 +60,25 @@ impl MViewWindowImp {
         println!("directory = {directory}");
         let new_backend = <dyn Backend>::new(directory);
         self.set_backend(new_backend, Some(filename));
+    }
+
+    pub fn hop(&self, direction: Direction) {
+        // dbg!("hop", &direction);
+        if let Some(hop_parent_sort) = self.hop_parent_sort.get() {
+            // remember current sort (last_stort), restore parent sort (hop_parent_sort)
+            let last_sort = self.last_sort.get();
+            self.last_sort.set(hop_parent_sort);
+            self.current_sort.set(None);
+            self.dir_leave();
+            // navigate in parent
+            let w = self.widgets.get().unwrap();
+            w.file_list_view.navigate(direction, Filter::Container, 1);
+            // enter dir with remembered sort (last_sort)
+            self.last_sort.set(last_sort);
+            self.current_sort.set(None);
+            self.dir_enter();
+            // dir_enter overwrites hop_parent_sort (with last_sort), so restore
+            self.hop_parent_sort.set(Some(hop_parent_sort));
+        }
     }
 }

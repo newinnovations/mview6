@@ -24,12 +24,29 @@ struct MViewWidgets {
     eog: ScrollView,
 }
 
+#[derive(Clone, Copy, Debug)]
+struct Sort {
+    column: SortColumn,
+    order: SortType,
+}
+
+impl Default for Sort {
+    fn default() -> Self {
+        Self {
+            column: SortColumn::Index(Columns::Cat as u32),
+            order: SortType::Ascending,
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct MViewWindowImp {
     widgets: OnceCell<MViewWidgets>,
     full_screen: Cell<bool>,
     skip_loading: Cell<bool>,
-    sort_column: Rc<Cell<Option<(SortColumn, SortType)>>>,
+    current_sort: Rc<Cell<Option<Sort>>>,
+    last_sort: Rc<Cell<Sort>>, // current_sort or sort before unsorted (through favorite op)
+    hop_parent_sort: Rc<Cell<Option<Sort>>>, // sort of the hop parent, or none if not in hop
 }
 
 #[glib::object_subclass]
@@ -44,10 +61,7 @@ impl ObjectImpl for MViewWindowImp {
         self.parent_constructed();
         self.full_screen.set(false);
         self.skip_loading.set(false);
-        self.sort_column.set(Some((
-            SortColumn::Index(Columns::Cat as u32),
-            SortType::Ascending,
-        )));
+        self.current_sort.set(Some(Sort::default()));
 
         let window = self.obj();
 
@@ -95,11 +109,10 @@ impl ObjectImpl for MViewWindowImp {
             imp.on_row_activated(path, column);
         }));
 
-        let backend = RefCell::new(<dyn Backend>::invalid());
         self.widgets
             .set(MViewWidgets {
                 hbox,
-                backend,
+                backend: RefCell::new(<dyn Backend>::invalid()),
                 file_list_view,
                 files_widget,
                 eog,

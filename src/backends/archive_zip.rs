@@ -109,13 +109,6 @@ fn list_zip(filename: &str, store: &ListStore) -> ZipResult<()> {
             }
         };
 
-        // {
-        //     let comment = file.comment();
-        //     if !comment.is_empty() {
-        //         println!("Entry {i} comment: {comment}");
-        //     }
-        // }
-
         let filename = outpath.display().to_string();
         let cat = Category::determine(&filename, file.is_dir());
         let file_size = file.size();

@@ -14,6 +14,22 @@ impl MViewWindowImp {
             gdk::keys::constants::q => {
                 self.obj().close();
             }
+            // gdk::keys::constants::d => {
+            //     let last_sort = self.last_sort.get();
+            //     let cur_sort = &self.current_sort.get();
+            //     let hop_parent_sort = &self.hop_parent_sort.get();
+            //     dbg!(last_sort, cur_sort, hop_parent_sort);
+            // }
+            gdk::keys::constants::w
+            | gdk::keys::constants::KP_7
+            | gdk::keys::constants::KP_Home => {
+                self.hop(Direction::Up);
+            }
+            gdk::keys::constants::e
+            | gdk::keys::constants::KP_9
+            | gdk::keys::constants::KP_Page_Up => {
+                self.hop(Direction::Down);
+            }
             gdk::keys::constants::space | gdk::keys::constants::KP_Divide => {
                 if w.files_widget.is_visible() {
                     w.files_widget.set_visible(false);
