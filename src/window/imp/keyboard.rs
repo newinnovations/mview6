@@ -1,6 +1,6 @@
 use super::MViewWindowImp;
 
-use eog::ScrollViewExt;
+use eog::{ImageExt, ScrollViewExt};
 use gdk::EventKey;
 use gtk::{prelude::*, subclass::prelude::*};
 
@@ -51,6 +51,18 @@ impl MViewWindowImp {
                     self.obj().set_border_width(0);
                     self.obj().fullscreen();
                     self.full_screen.set(true);
+                }
+            }
+            gdk::keys::constants::r => {
+                if let Some(image) = w.eog.image() {
+                    image.rotate(270);
+                    w.eog.apply_zoom(w.eog.zoom_mode());
+                }
+            }
+            gdk::keys::constants::R => {
+                if let Some(image) = w.eog.image() {
+                    image.rotate(90);
+                    w.eog.apply_zoom(w.eog.zoom_mode());
                 }
             }
             gdk::keys::constants::Return => {
