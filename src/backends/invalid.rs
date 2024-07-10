@@ -18,6 +18,10 @@ impl Backend for Invalid {
         "Invalid"
     }
 
+    fn path(&self) -> &str {
+        ""
+    }
+
     fn store(&self) -> ListStore {
         empty_store()
     }

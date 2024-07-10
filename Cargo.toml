@@ -51,6 +51,12 @@ package = "libhandy"
 git = "https://gitlab.gnome.org/World/Rust/libhandy-rs"
 rev = "0a0f18734e5054dee3c1667f7f04bb6e93214721"
 
+[profile.dev.package.image-webp]
+opt-level = 3
+
+[profile.dev.package.zune-core]
+opt-level = 3
+
 [profile.dev.package.zune-jpeg]
 opt-level = 3
 

@@ -40,6 +40,10 @@ impl Backend for RarArchive {
         "RarArchive"
     }
 
+    fn path(&self) -> &str {
+        &self.filename
+    }
+
     fn store(&self) -> ListStore {
         self.store.clone()
     }

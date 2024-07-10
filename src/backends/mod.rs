@@ -29,6 +29,7 @@ pub enum Columns {
 
 pub trait Backend {
     fn class_name(&self) -> &str;
+    fn path(&self) -> &str;
     fn store(&self) -> ListStore;
     fn favorite(&self, model: ListStore, iter: TreeIter, direction: Direction) -> bool;
     fn enter(&self, model: ListStore, iter: TreeIter) -> Box<dyn Backend>;

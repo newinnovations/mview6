@@ -1,5 +1,8 @@
+use std::path::Path;
+
+use glib::subclass::types::ObjectSubclassExt;
 use gtk::{
-    prelude::{TreeSortableExt, TreeSortableExtManual, TreeViewExt},
+    prelude::{GtkWindowExt, TreeSortableExt, TreeSortableExtManual, TreeViewExt},
     SortColumn, SortType,
 };
 
@@ -53,6 +56,14 @@ impl MViewWindowImp {
                 }
             }
         });
+
+        let path = Path::new(new_backend.path());
+        let filename = path
+            .file_name()
+            .unwrap_or_default()
+            .to_str()
+            .unwrap_or_default();
+        self.obj().set_title(&format!("MView6 - {filename}"));
 
         w.backend.replace(new_backend);
         w.file_list_view.set_model(Some(&new_store));

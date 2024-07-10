@@ -44,6 +44,10 @@ impl Backend for ZipArchive {
         "ZipArchive"
     }
 
+    fn path(&self) -> &str {
+        &self.filename
+    }
+
     fn store(&self) -> ListStore {
         self.store.clone()
     }

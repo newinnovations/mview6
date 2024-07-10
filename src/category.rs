@@ -31,6 +31,7 @@ impl Category {
             | filename_lower.ends_with(".jpeg")
             | filename_lower.ends_with(".gif")
             | filename_lower.ends_with(".svg")
+            | filename_lower.ends_with(".webp")
             | filename_lower.ends_with(".png");
 
         if supported {

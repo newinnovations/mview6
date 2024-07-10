@@ -12,7 +12,10 @@ pub struct Loader {}
 
 impl Loader {
     pub fn image_from_file(filename: &str) -> Image {
-        match Self::image_from_file_gtk(filename) {
+        if let Ok(im) = Self::image_from_file_gtk(filename) {
+            return im;
+        }
+        match Self::image_from_file_image_rs(filename) {
             Ok(im) => im,
             Err(e) => draw(&format!("Error: {:?}", e)).unwrap(),
         }
@@ -65,7 +68,7 @@ impl Loader {
         Ok(image)
     }
 
-    pub fn _image_from_file_image_rs(filename: &str) -> MviewResult<Image> {
+    pub fn image_from_file_image_rs(filename: &str) -> MviewResult<Image> {
         println!("image2");
 
         let x = Reader::open(filename)?;

@@ -83,6 +83,10 @@ impl Backend for FileSystem {
         "FileSystem"
     }
 
+    fn path(&self) -> &str {
+        &self.directory
+    }
+
     fn store(&self) -> ListStore {
         self.store.clone()
     }
