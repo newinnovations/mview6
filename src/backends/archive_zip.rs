@@ -118,6 +118,14 @@ fn list_zip(filename: &str, store: &ListStore) -> ZipResult<()> {
         let file_size = file.size();
         let index = i as u32;
 
+        if file_size == 0 {
+            continue;
+        }
+
+        if cat.id() == Category::Unsupported.id() {
+            continue;
+        }
+
         let m = file.last_modified().unwrap_or_default();
         let modified = match Local.with_ymd_and_hms(
             m.year() as i32,

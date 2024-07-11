@@ -7,6 +7,7 @@ use gtk::{
     prelude::{TreeModelExt, TreeSortableExtManual},
     ListStore, TreeIter, TreeModel,
 };
+use home::Home;
 use invalid::Invalid;
 
 use crate::{category::Category, filelistview::Direction};
@@ -14,6 +15,7 @@ use crate::{category::Category, filelistview::Direction};
 mod archive_rar;
 mod archive_zip;
 mod filesystem;
+mod home;
 mod invalid;
 
 #[derive(Debug)]
@@ -25,6 +27,7 @@ pub enum Columns {
     Size,
     Modified,
     Index,
+    Folder,
 }
 
 pub trait Backend {
@@ -54,6 +57,10 @@ impl dyn Backend {
         }
     }
 
+    pub fn home() -> Box<dyn Backend> {
+        Box::new(Home::new())
+    }
+
     pub fn invalid() -> Box<dyn Backend> {
         Box::new(Invalid::new())
     }
@@ -62,6 +69,11 @@ impl dyn Backend {
 pub trait TreeModelMviewExt: IsA<TreeModel> + 'static {
     fn filename(&self, iter: &TreeIter) -> String {
         self.value(iter, Columns::Name as i32)
+            .get::<String>()
+            .unwrap_or_default()
+    }
+    fn folder(&self, iter: &TreeIter) -> String {
+        self.value(iter, Columns::Folder as i32)
             .get::<String>()
             .unwrap_or_default()
     }
@@ -80,13 +92,14 @@ pub trait TreeModelMviewExt: IsA<TreeModel> + 'static {
 impl<O: IsA<TreeModel>> TreeModelMviewExt for O {}
 
 pub fn empty_store() -> ListStore {
-    let col_types: [glib::Type; 6] = [
+    let col_types: [glib::Type; 7] = [
         glib::Type::U32,
         glib::Type::STRING,
         glib::Type::STRING,
         glib::Type::U64,
         glib::Type::U64,
         glib::Type::U32,
+        glib::Type::STRING,
     ];
     let store = ListStore::new(&col_types);
     store.set_sort_func(

@@ -4,7 +4,10 @@ use eog::{ImageExt, ScrollViewExt};
 use gdk::EventKey;
 use gtk::{prelude::*, subclass::prelude::*};
 
-use crate::filelistview::{Direction, FileListViewExt, Filter};
+use crate::{
+    backends::Backend,
+    filelistview::{Direction, FileListViewExt, Filter},
+};
 
 impl MViewWindowImp {
     pub(super) fn on_key_press(&self, e: &EventKey) {
@@ -14,12 +17,9 @@ impl MViewWindowImp {
             gdk::keys::constants::q => {
                 self.obj().close();
             }
-            // gdk::keys::constants::d => {
-            //     let last_sort = self.last_sort.get();
-            //     let cur_sort = &self.current_sort.get();
-            //     let hop_parent_sort = &self.hop_parent_sort.get();
-            //     dbg!(last_sort, cur_sort, hop_parent_sort);
-            // }
+            gdk::keys::constants::d => {
+                self.set_backend(<dyn Backend>::home(), None);
+            }
             gdk::keys::constants::w
             | gdk::keys::constants::KP_7
             | gdk::keys::constants::KP_Home => {

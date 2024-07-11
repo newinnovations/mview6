@@ -109,6 +109,12 @@ fn list_rar(filename: &str, store: &ListStore) -> UnrarResult<()> {
         let cat = Category::determine(filename, false); //file.is_dir());
         let file_size = entry.unpacked_size;
         let modified = unix_from_msdos(entry.file_time);
+        if file_size == 0 {
+            continue;
+        }
+        if cat.id() == Category::Unsupported.id() {
+            continue;
+        }
         store.insert_with_values(
             None,
             &[
