@@ -13,9 +13,11 @@ use gtk::{prelude::*, TreePath, TreeViewColumn};
 impl MViewWindowImp {
     pub(super) fn on_cursor_changed(&self) {
         let w = self.widgets.get().unwrap();
-        if let Some((model, iter)) = w.file_list_view.iter() {
-            let image = w.backend.borrow().image(model, iter);
-            w.eog.set_image(&image);
+        if !self.skip_loading.get() {
+            if let Some((model, iter)) = w.file_list_view.iter() {
+                let image = w.backend.borrow().image(model, iter);
+                w.eog.set_image(&image);
+            }
         }
     }
 
