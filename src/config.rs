@@ -2,18 +2,16 @@ use std::{fs, io, sync::OnceLock};
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct HomeDir {
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+pub struct Bookmark {
     pub name: String,
     pub folder: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct Config {
-    pub home: Vec<HomeDir>,
+    pub bookmarks: Vec<Bookmark>,
 }
-
-// static mut my_config : Option<Config> = None;
 
 fn read_config() -> io::Result<Config> {
     let file = fs::File::open("/home/martin/.mview6.json")?;
@@ -24,5 +22,5 @@ fn read_config() -> io::Result<Config> {
 
 pub fn config<'a>() -> &'a Config {
     static CONFIG: OnceLock<Config> = OnceLock::new();
-    CONFIG.get_or_init(|| read_config().expect("Failed to read config file"))
+    CONFIG.get_or_init(|| read_config().unwrap_or_default())
 }

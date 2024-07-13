@@ -1,5 +1,8 @@
+use std::env;
+
 use archive_rar::RarArchive;
 use archive_zip::ZipArchive;
+use bookmarks::Bookmarks;
 use eog::Image;
 use filesystem::FileSystem;
 use glib::IsA;
@@ -7,15 +10,14 @@ use gtk::{
     prelude::{TreeModelExt, TreeSortableExtManual},
     ListStore, TreeIter, TreeModel,
 };
-use home::Home;
 use invalid::Invalid;
 
 use crate::{category::Category, filelistview::Direction};
 
 mod archive_rar;
 mod archive_zip;
+mod bookmarks;
 mod filesystem;
-mod home;
 mod invalid;
 
 #[derive(Debug)]
@@ -57,12 +59,19 @@ impl dyn Backend {
         }
     }
 
-    pub fn home() -> Box<dyn Backend> {
-        Box::new(Home::new())
+    pub fn bookmarks() -> Box<dyn Backend> {
+        Box::new(Bookmarks::new())
     }
 
     pub fn invalid() -> Box<dyn Backend> {
         Box::new(Invalid::new())
+    }
+
+    pub fn current_dir() -> Box<dyn Backend> {
+        match env::current_dir() {
+            Ok(cwd) => Box::new(FileSystem::new(cwd.as_os_str().to_str().unwrap_or("/"))),
+            Err(_) => Self::invalid(),
+        }
     }
 }
 

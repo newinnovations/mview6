@@ -16,10 +16,6 @@ impl MViewWindow {
         glib::Object::builder().property("application", app).build()
     }
 
-    // pub fn load(&self, file: &File) {
-    //     self.imp().load(file);
-    // }
-
     pub fn navigate_to(&self, file: &File) {
         self.imp().navigate_to(file);
     }

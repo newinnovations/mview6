@@ -56,6 +56,23 @@ impl ObjectSubclass for MViewWindowImp {
     type ParentType = gtk::ApplicationWindow;
 }
 
+impl MViewWindowImp {
+    pub fn show_files_widget(&self, show: bool) {
+        let w = self.widgets.get().unwrap();
+        if w.files_widget.is_visible() != show {
+            w.files_widget.set_visible(show);
+            if show {
+                w.hbox.set_spacing(8);
+                self.obj().set_border_width(10);
+            } else {
+                w.hbox.set_spacing(0);
+                self.obj().set_border_width(0);
+            }
+
+        }
+    }
+}
+
 impl ObjectImpl for MViewWindowImp {
     fn constructed(&self) {
         self.parent_constructed();
@@ -93,7 +110,7 @@ impl ObjectImpl for MViewWindowImp {
             println!("**eog::ScrollView disposed**");
         });
         eog.set_scroll_wheel_zoom(true);
-        eog.set_zoom_mode(eog::ZoomMode::Max);
+        eog.set_zoom_mode(eog::ZoomMode::Fill);
         hbox.add(&eog);
 
         window.connect_key_press_event(clone!(@weak self as imp => @default-panic, move |_, e| {
@@ -121,7 +138,7 @@ impl ObjectImpl for MViewWindowImp {
 
         window.show_all();
 
-        self.set_backend(<dyn Backend>::new("/home/martin/Pictures"), None);
+        self.set_backend(<dyn Backend>::current_dir(), None);
 
         // self.widgets.get().unwrap().eog.set_offset(0, 0);
 

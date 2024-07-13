@@ -18,7 +18,8 @@ impl MViewWindowImp {
                 self.obj().close();
             }
             gdk::keys::constants::d => {
-                self.set_backend(<dyn Backend>::home(), None);
+                self.show_files_widget(true);
+                self.set_backend(<dyn Backend>::bookmarks(), None);
             }
             gdk::keys::constants::w
             | gdk::keys::constants::KP_7
@@ -31,24 +32,14 @@ impl MViewWindowImp {
                 self.hop(Direction::Down);
             }
             gdk::keys::constants::space | gdk::keys::constants::KP_Divide => {
-                if w.files_widget.is_visible() {
-                    w.files_widget.set_visible(false);
-                    w.hbox.set_spacing(0);
-                    self.obj().set_border_width(0);
-                } else {
-                    w.files_widget.set_visible(true);
-                    w.hbox.set_spacing(8);
-                    self.obj().set_border_width(10);
-                }
+                self.show_files_widget(!w.files_widget.is_visible());
             }
             gdk::keys::constants::f | gdk::keys::constants::KP_Multiply => {
                 if self.full_screen.get() {
                     self.obj().unfullscreen();
                     self.full_screen.set(false);
                 } else {
-                    w.files_widget.set_visible(false);
-                    w.hbox.set_spacing(0);
-                    self.obj().set_border_width(0);
+                    self.show_files_widget(false);
                     self.obj().fullscreen();
                     self.full_screen.set(true);
                 }

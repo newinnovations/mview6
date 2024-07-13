@@ -8,20 +8,20 @@ use std::{fs, io, time::UNIX_EPOCH};
 
 use super::{empty_store, Backend, Columns};
 
-pub struct Home {
+pub struct Bookmarks {
     store: ListStore,
 }
 
-impl Home {
+impl Bookmarks {
     pub fn new() -> Self {
-        Home {
+        Bookmarks {
             store: Self::create_store(),
         }
     }
 
     fn read_directory(store: &ListStore) -> io::Result<()> {
         let config = config();
-        for entry in &config.home {
+        for entry in &config.bookmarks {
             let metadata = match fs::metadata(&entry.folder) {
                 Ok(m) => m,
                 Err(e) => {
@@ -60,13 +60,13 @@ impl Home {
     }
 }
 
-impl Backend for Home {
+impl Backend for Bookmarks {
     fn class_name(&self) -> &str {
-        "Home"
+        "Bookmarks"
     }
 
     fn path(&self) -> &str {
-        "/home"
+        "/bookmarks"
     }
 
     fn store(&self) -> ListStore {
@@ -78,7 +78,7 @@ impl Backend for Home {
     }
 
     fn leave(&self) -> (Box<dyn Backend>, String) {
-        (Box::new(Home::new()), "/".to_string())
+        (Box::new(Bookmarks::new()), "/".to_string())
     }
 
     fn image(&self, model: ListStore, iter: TreeIter) -> Image {

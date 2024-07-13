@@ -141,7 +141,6 @@ fn list_zip(filename: &str, store: &ListStore) -> ZipResult<()> {
                 0_u64
             }
         };
-        dbg!(modified);
 
         store.insert_with_values(
             None,
