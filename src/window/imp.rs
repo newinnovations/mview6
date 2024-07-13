@@ -68,7 +68,6 @@ impl MViewWindowImp {
                 w.hbox.set_spacing(0);
                 self.obj().set_border_width(0);
             }
-
         }
     }
 }

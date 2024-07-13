@@ -1,4 +1,4 @@
-use std::{fs, io, sync::OnceLock};
+use std::{env, fs, io, sync::OnceLock};
 
 use serde::{Deserialize, Serialize};
 
@@ -14,7 +14,8 @@ pub struct Config {
 }
 
 fn read_config() -> io::Result<Config> {
-    let file = fs::File::open("/home/martin/.mview6.json")?;
+    let homedir = env::var("HOME").unwrap_or_default();
+    let file = fs::File::open(format!("{homedir}/.config/mview/mview6.json"))?;
     let config: Config = serde_json::from_reader(file)?;
     println!("deserialized = {:?}", config);
     Ok(config)
