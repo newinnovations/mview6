@@ -1,7 +1,7 @@
 use eog::Image;
 use gtk::{ListStore, TreeIter};
 
-use crate::{draw::draw, filelistview::Direction};
+use crate::draw::draw;
 
 use super::{empty_store, Backend};
 
@@ -19,15 +19,11 @@ impl Backend for Invalid {
     }
 
     fn path(&self) -> &str {
-        ""
+        "/invalid"
     }
 
     fn store(&self) -> ListStore {
         empty_store()
-    }
-
-    fn favorite(&self, _model: ListStore, _iter: TreeIter, _direction: Direction) -> bool {
-        false
     }
 
     fn enter(&self, _model: ListStore, _iter: TreeIter) -> Box<dyn Backend> {

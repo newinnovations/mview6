@@ -11,6 +11,7 @@ use gtk::{
     ListStore, TreeIter, TreeModel,
 };
 use invalid::Invalid;
+use thumbnail::Thumbnail;
 
 use crate::{category::Category, filelistview::Direction};
 
@@ -19,6 +20,7 @@ mod archive_zip;
 mod bookmarks;
 mod filesystem;
 mod invalid;
+mod thumbnail;
 
 #[derive(Debug)]
 #[repr(u32)]
@@ -36,10 +38,13 @@ pub trait Backend {
     fn class_name(&self) -> &str;
     fn path(&self) -> &str;
     fn store(&self) -> ListStore;
-    fn favorite(&self, model: ListStore, iter: TreeIter, direction: Direction) -> bool;
+    fn favorite(&self, _model: ListStore, _iter: TreeIter, _direction: Direction) -> bool {
+        false
+    }
     fn enter(&self, model: ListStore, iter: TreeIter) -> Box<dyn Backend>;
     fn leave(&self) -> (Box<dyn Backend>, String);
     fn image(&self, model: ListStore, iter: TreeIter) -> Image;
+    fn set_parent(&self, _parent: Box<dyn Backend>) {}
 }
 
 impl std::fmt::Debug for dyn Backend {
@@ -61,6 +66,10 @@ impl dyn Backend {
 
     pub fn bookmarks() -> Box<dyn Backend> {
         Box::new(Bookmarks::new())
+    }
+
+    pub fn thumbnail() -> Box<dyn Backend> {
+        Box::new(Thumbnail::new())
     }
 
     pub fn invalid() -> Box<dyn Backend> {

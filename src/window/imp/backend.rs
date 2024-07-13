@@ -65,7 +65,8 @@ impl MViewWindowImp {
             .unwrap_or_default();
         self.obj().set_title(&format!("MView6 - {filename}"));
 
-        w.backend.replace(new_backend);
+        let parent_backend = w.backend.replace(new_backend);
+        w.backend.borrow().set_parent(parent_backend);
         w.file_list_view.set_model(Some(&new_store));
         self.skip_loading.set(false);
         match goto {

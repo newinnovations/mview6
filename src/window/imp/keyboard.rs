@@ -21,6 +21,9 @@ impl MViewWindowImp {
                 self.show_files_widget(true);
                 self.set_backend(<dyn Backend>::bookmarks(), None);
             }
+            gdk::keys::constants::t => {
+                self.set_backend(<dyn Backend>::thumbnail(), None);
+            }
             gdk::keys::constants::w
             | gdk::keys::constants::KP_7
             | gdk::keys::constants::KP_Home => {

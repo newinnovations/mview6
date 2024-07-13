@@ -1,7 +1,4 @@
-use crate::{
-    backends::TreeModelMviewExt, category::Category, config::config, draw::draw,
-    filelistview::Direction,
-};
+use crate::{backends::TreeModelMviewExt, category::Category, config::config, draw::draw};
 use eog::Image;
 use gtk::{prelude::GtkListStoreExtManual, ListStore, TreeIter};
 use std::{fs, io, time::UNIX_EPOCH};
@@ -83,9 +80,5 @@ impl Backend for Bookmarks {
 
     fn image(&self, model: ListStore, iter: TreeIter) -> Image {
         draw(&model.folder(&iter)).unwrap()
-    }
-
-    fn favorite(&self, _model: ListStore, _iter: TreeIter, _direction: Direction) -> bool {
-        false
     }
 }

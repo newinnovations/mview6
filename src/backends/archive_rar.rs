@@ -5,9 +5,7 @@ use eog::Image;
 use gtk::{prelude::GtkListStoreExtManual, ListStore, TreeIter};
 use unrar::{error::UnrarError, Archive, UnrarResult};
 
-use crate::{
-    backends::empty_store, category::Category, draw::draw, filelistview::Direction, loader::Loader,
-};
+use crate::{backends::empty_store, category::Category, draw::draw, loader::Loader};
 
 use super::{filesystem::FileSystem, Backend, Columns, TreeModelMviewExt};
 
@@ -46,10 +44,6 @@ impl Backend for RarArchive {
 
     fn store(&self) -> ListStore {
         self.store.clone()
-    }
-
-    fn favorite(&self, _model: ListStore, _iter: TreeIter, _direction: Direction) -> bool {
-        false
     }
 
     fn enter(&self, _model: ListStore, _iter: TreeIter) -> Box<dyn Backend> {
