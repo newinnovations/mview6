@@ -1,7 +1,8 @@
 use crate::{
-    backends::TreeModelMviewExt, category::Category, filelistview::Direction, loader::Loader,
+    backends::TreeModelMviewExt, category::Category, error::MviewResult, filelistview::Direction, loader::Loader
 };
 use eog::Image;
+use gdk_pixbuf::Pixbuf;
 use gtk::{prelude::GtkListStoreExtManual, ListStore, TreeIter};
 use regex::Regex;
 use std::{
@@ -171,4 +172,10 @@ impl Backend for FileSystem {
             }
         }
     }
+
+    fn thumb(&self, model: &ListStore, iter: &TreeIter) -> MviewResult<Pixbuf> {
+        let filename = format!("{}/{}", self.directory, model.filename(iter));
+        Loader::pixbuf_from_file(&filename)
+    }
+
 }

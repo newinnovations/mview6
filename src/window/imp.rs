@@ -7,6 +7,7 @@ use crate::{
     filelistview::FileListView,
 };
 use eog::{ScrollView, ScrollViewExt};
+use gdk::{Display, Rectangle};
 use gdk_pixbuf::PixbufLoader;
 use glib::{clone, once_cell::unsync::OnceCell};
 use gtk::{glib, prelude::*, subclass::prelude::*, ScrolledWindow, SortColumn, SortType};
@@ -137,6 +138,9 @@ impl ObjectImpl for MViewWindowImp {
 
         window.show_all();
 
+        let display_size = window.display_size();
+        dbg!(display_size);
+
         self.set_backend(<dyn Backend>::current_dir(), None);
 
         // self.widgets.get().unwrap().eog.set_offset(0, 0);
@@ -150,3 +154,20 @@ impl ContainerImpl for MViewWindowImp {}
 impl BinImpl for MViewWindowImp {}
 impl WindowImpl for MViewWindowImp {}
 impl ApplicationWindowImpl for MViewWindowImp {}
+
+pub trait MViewWidgetExt: IsA<gtk::Widget> {
+    fn display_size(&self) -> gdk::Rectangle;
+}
+
+impl<O: IsA<gtk::Widget>> MViewWidgetExt for O {
+    fn display_size(&self) -> gdk::Rectangle {
+        if let Some(display) = Display::default() {
+            if let Some(window) = self.window() {
+                if let Some(monitor) = display.monitor_at_window(&window) {
+                    return monitor.workarea();
+                }
+            }
+        }
+        Rectangle::new(0, 0, 800, 600)
+    }
+}

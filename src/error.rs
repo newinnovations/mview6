@@ -1,7 +1,39 @@
 use std::fmt;
 
+pub struct AppError {
+    msg: String,
+}
+
+impl fmt::Display for AppError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "MView6: {}", self.msg)
+    }
+}
+
+impl fmt::Debug for AppError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{{ file: {}, line: {}, msg: {} }}",
+            file!(),
+            line!(),
+            self.msg
+        )
+    }
+}
+
+impl AppError {
+    pub fn new(msg: &str) -> Self {
+        AppError {
+            msg: msg.to_string(),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum MviewError {
+    App(AppError),
+
     Image(image::ImageError),
 
     Cairo(cairo::Error),
@@ -38,6 +70,7 @@ impl From<glib::Error> for MviewError {
 impl fmt::Display for MviewError {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
+            MviewError::App(err) => err.fmt(fmt),
             MviewError::Io(err) => err.fmt(fmt),
             MviewError::Cairo(err) => err.fmt(fmt),
             MviewError::Image(err) => err.fmt(fmt),

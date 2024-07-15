@@ -5,6 +5,7 @@ use archive_zip::ZipArchive;
 use bookmarks::Bookmarks;
 use eog::Image;
 use filesystem::FileSystem;
+use gdk_pixbuf::Pixbuf;
 use glib::IsA;
 use gtk::{
     prelude::{TreeModelExt, TreeSortableExtManual},
@@ -13,7 +14,11 @@ use gtk::{
 use invalid::Invalid;
 use thumbnail::Thumbnail;
 
-use crate::{category::Category, filelistview::Direction};
+use crate::{
+    category::Category,
+    error::{AppError, MviewError, MviewResult},
+    filelistview::Direction,
+};
 
 mod archive_rar;
 mod archive_zip;
@@ -44,6 +49,9 @@ pub trait Backend {
     fn enter(&self, model: ListStore, iter: TreeIter) -> Box<dyn Backend>;
     fn leave(&self) -> (Box<dyn Backend>, String);
     fn image(&self, model: ListStore, iter: TreeIter) -> Image;
+    fn thumb(&self, _model: &ListStore, _iter: &TreeIter) -> MviewResult<Pixbuf> {
+        Err(MviewError::App(AppError::new("thumbnail not available")))
+    }
     fn set_parent(&self, _parent: Box<dyn Backend>) {}
 }
 
@@ -84,7 +92,14 @@ impl dyn Backend {
     }
 }
 
-pub trait TreeModelMviewExt: IsA<TreeModel> + 'static {
+pub trait TreeModelMviewExt: IsA<TreeModel> {
+    fn filename(&self, iter: &TreeIter) -> String;
+    fn folder(&self, iter: &TreeIter) -> String;
+    fn category(&self, iter: &TreeIter) -> u32;
+    fn index(&self, iter: &TreeIter) -> u32;
+}
+
+impl<O: IsA<TreeModel>> TreeModelMviewExt for O {
     fn filename(&self, iter: &TreeIter) -> String {
         self.value(iter, Columns::Name as i32)
             .get::<String>()
@@ -106,8 +121,6 @@ pub trait TreeModelMviewExt: IsA<TreeModel> + 'static {
             .unwrap_or(0)
     }
 }
-
-impl<O: IsA<TreeModel>> TreeModelMviewExt for O {}
 
 pub fn empty_store() -> ListStore {
     let col_types: [glib::Type; 7] = [

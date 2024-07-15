@@ -1,4 +1,8 @@
-use crate::{category::Category, draw::draw, error::MviewResult};
+use crate::{
+    category::Category,
+    draw::draw,
+    error::{AppError, MviewError, MviewResult},
+};
 use eog::Image;
 use gdk_pixbuf::Pixbuf;
 use gio::{prelude::FileExt, Cancellable, File, MemoryInputStream};
@@ -70,20 +74,30 @@ impl Loader {
     }
 
     pub fn image_from_memory_image_rs(buf: &Vec<u8>) -> MviewResult<Image> {
-        let reader = Reader::new(Cursor::new(buf));
-        let reader = reader.with_guessed_format()?;
-        let im = reader.decode()?;
-        Self::image_rs_to_eog_image(im)
+        let pixbuf = Self::pixbuf_from_memory(buf)?;
+        Ok(Image::new_pixbuf(&pixbuf))
     }
 
     pub fn image_from_file_image_rs(filename: &str) -> MviewResult<Image> {
-        let reader = Reader::open(filename)?;
-        let reader = reader.with_guessed_format()?;
-        let im = reader.decode()?;
-        Self::image_rs_to_eog_image(im)
+        let pixbuf = Self::pixbuf_from_file(filename)?;
+        Ok(Image::new_pixbuf(&pixbuf))
     }
 
-    pub fn image_rs_to_eog_image(im: DynamicImage) -> MviewResult<Image> {
+    pub fn pixbuf_from_memory(buf: &Vec<u8>) -> MviewResult<Pixbuf> {
+        let reader = Reader::new(Cursor::new(buf));
+        let reader = reader.with_guessed_format()?;
+        let dynamic_image = reader.decode()?;
+        Self::image_rs_to_pixbuf(dynamic_image)
+    }
+
+    pub fn pixbuf_from_file(filename: &str) -> MviewResult<Pixbuf> {
+        let reader = Reader::open(filename)?;
+        let reader = reader.with_guessed_format()?;
+        let dynamic_image = reader.decode()?;
+        Self::image_rs_to_pixbuf(dynamic_image)
+    }
+
+    pub fn image_rs_to_pixbuf(im: DynamicImage) -> MviewResult<Pixbuf> {
         let (width, height) = im.dimensions();
         let colorspace;
         let has_alpha;
@@ -103,7 +117,10 @@ impl Loader {
                 rowstride = 4 * width;
             }
             _ => {
-                return Ok(draw(&format!("Unsupported color space {:?}", im.color())).unwrap());
+                return Err(MviewError::App(AppError::new(&format!(
+                    "Unsupported color space {:?}",
+                    im.color()
+                ))));
             }
         }
         println!(
@@ -119,6 +136,6 @@ impl Loader {
             height as i32,
             rowstride as i32,
         );
-        Ok(Image::new_pixbuf(&pixbuf))
+        Ok(pixbuf)
     }
 }

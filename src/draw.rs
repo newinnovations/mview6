@@ -9,7 +9,7 @@ pub fn draw(text: &str) -> MviewResult<Image> {
 
     // context.set_source_rgb(1.0, 0.2, 0.4);
     context.set_source_rgb(0.0, 0.0, 0.0);
-    context.paint().expect("paint");
+    context.paint()?;
 
     context.move_to(300.0, 300.0);
     context.set_source_rgb(0.0, 0.0, 0.0);

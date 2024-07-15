@@ -18,11 +18,16 @@ impl MViewWindowImp {
     pub fn set_backend(&self, new_backend: Box<dyn Backend>, goto: Option<&str>) {
         self.skip_loading.set(true);
 
+        let w = self.widgets.get().unwrap();
+        let parent_backend = w.backend.replace(new_backend);
+
+        let new_backend = w.backend.borrow();
+        new_backend.set_parent(parent_backend);
+
         let new_store = new_backend.store();
         let current_sort = self.current_sort.clone();
         let last_sort = self.last_sort.clone();
 
-        let w = self.widgets.get().unwrap();
         let sort = match current_sort.get() {
             Some(sort) => sort,
             None => {
@@ -65,8 +70,6 @@ impl MViewWindowImp {
             .unwrap_or_default();
         self.obj().set_title(&format!("MView6 - {filename}"));
 
-        let parent_backend = w.backend.replace(new_backend);
-        w.backend.borrow().set_parent(parent_backend);
         w.file_list_view.set_model(Some(&new_store));
         self.skip_loading.set(false);
         match goto {
