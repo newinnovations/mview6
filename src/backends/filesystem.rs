@@ -1,9 +1,13 @@
 use crate::{
-    backends::TreeModelMviewExt, category::Category, error::MviewResult, filelistview::Direction, loader::Loader
+    backends::TreeModelMviewExt,
+    category::Category,
+    filelistview::Direction,
+    loader::Loader,
+    window::{MViewWidgets, TSource},
 };
 use eog::Image;
-use gdk_pixbuf::Pixbuf;
 use gtk::{prelude::GtkListStoreExtManual, ListStore, TreeIter};
+use image::DynamicImage;
 use regex::Regex;
 use std::{
     ffi::OsStr,
@@ -77,6 +81,30 @@ impl FileSystem {
         }
         store
     }
+
+    pub fn get_thumbnail(src: &TFileSource) -> Option<DynamicImage> {
+        let thumb_filename = format!("{}/.mview/{}.mthumb", src.directory, src.filename);
+        if Path::new(&thumb_filename).exists() {
+            if let Ok(im) = Loader::dynimg_from_file(&thumb_filename) {
+                Some(im)
+            } else {
+                None
+            }
+        } else {
+            let filename = format!("{}/{}", src.directory, src.filename);
+            if let Ok(im) = Loader::dynimg_from_file(&filename) {
+                let im = im.resize(175, 175, image::imageops::FilterType::Lanczos3);
+                let thumb_dir = format!("{}/.mview", src.directory);
+                if !Path::new(&thumb_dir).exists() {
+                    let _ = fs::create_dir(thumb_dir);
+                }
+                let _ = im.save_with_format(thumb_filename, image::ImageFormat::Jpeg);
+                Some(im)
+            } else {
+                None
+            }
+        }
+    }
 }
 
 impl Backend for FileSystem {
@@ -116,8 +144,8 @@ impl Backend for FileSystem {
         }
     }
 
-    fn image(&self, model: ListStore, iter: TreeIter) -> Image {
-        let filename = format!("{}/{}", self.directory, model.filename(&iter));
+    fn image(&self, _w: &MViewWidgets, model: &ListStore, iter: &TreeIter) -> Image {
+        let filename = format!("{}/{}", self.directory, model.filename(iter));
         Loader::image_from_file(&filename)
     }
 
@@ -173,9 +201,22 @@ impl Backend for FileSystem {
         }
     }
 
-    fn thumb(&self, model: &ListStore, iter: &TreeIter) -> MviewResult<Pixbuf> {
-        let filename = format!("{}/{}", self.directory, model.filename(iter));
-        Loader::pixbuf_from_file(&filename)
+    fn thumb(&self, model: &ListStore, iter: &TreeIter) -> TSource {
+        TSource::FileSource(TFileSource::new(&self.directory, &model.filename(iter)))
     }
+}
 
+#[derive(Debug, Clone)]
+pub struct TFileSource {
+    directory: String,
+    filename: String,
+}
+
+impl TFileSource {
+    pub fn new(directory: &str, filename: &str) -> Self {
+        TFileSource {
+            directory: directory.to_string(),
+            filename: filename.to_string(),
+        }
+    }
 }

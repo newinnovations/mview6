@@ -5,7 +5,9 @@ use eog::Image;
 use gtk::{prelude::GtkListStoreExtManual, ListStore, TreeIter};
 use unrar::{error::UnrarError, Archive, UnrarResult};
 
-use crate::{backends::empty_store, category::Category, draw::draw, loader::Loader};
+use crate::{
+    backends::empty_store, category::Category, draw::draw, loader::Loader, window::MViewWidgets,
+};
 
 use super::{filesystem::FileSystem, Backend, Columns, TreeModelMviewExt};
 
@@ -65,8 +67,8 @@ impl Backend for RarArchive {
         (Box::new(FileSystem::new(directory)), filename.to_string())
     }
 
-    fn image(&self, model: ListStore, iter: TreeIter) -> Image {
-        let sel = model.filename(&iter);
+    fn image(&self, _w: &MViewWidgets, model: &ListStore, iter: &TreeIter) -> Image {
+        let sel = model.filename(iter);
         match extract_rar(&self.filename, &sel) {
             Ok(bytes) => Loader::image_from_memory(bytes),
             Err(error) => draw(&format!("Error {}", error)).unwrap(),

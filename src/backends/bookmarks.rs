@@ -1,4 +1,7 @@
-use crate::{backends::TreeModelMviewExt, category::Category, config::config, draw::draw};
+use crate::{
+    backends::TreeModelMviewExt, category::Category, config::config, draw::draw,
+    window::MViewWidgets,
+};
 use eog::Image;
 use gtk::{prelude::GtkListStoreExtManual, ListStore, TreeIter};
 use std::{fs, io, time::UNIX_EPOCH};
@@ -78,7 +81,7 @@ impl Backend for Bookmarks {
         (Box::new(Bookmarks::new()), "/".to_string())
     }
 
-    fn image(&self, model: ListStore, iter: TreeIter) -> Image {
-        draw(&model.folder(&iter)).unwrap()
+    fn image(&self, _w: &MViewWidgets, model: &ListStore, iter: &TreeIter) -> Image {
+        draw(&model.folder(iter)).unwrap()
     }
 }

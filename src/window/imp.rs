@@ -3,10 +3,12 @@ mod cursor;
 mod keyboard;
 
 use crate::{
-    backends::{Backend, Columns},
+    backends::{filesystem::FileSystem, Backend, Columns},
     filelistview::FileListView,
+    loader::Loader,
+    window::{Message, TCommand, TResult},
 };
-use eog::{ScrollView, ScrollViewExt};
+use eog::{ImageExt, ScrollView, ScrollViewExt};
 use gdk::{Display, Rectangle};
 use gdk_pixbuf::PixbufLoader;
 use glib::{clone, once_cell::unsync::OnceCell};
@@ -14,16 +16,10 @@ use gtk::{glib, prelude::*, subclass::prelude::*, ScrolledWindow, SortColumn, So
 use std::{
     cell::{Cell, RefCell},
     rc::Rc,
+    thread,
 };
 
-#[derive(Debug)]
-struct MViewWidgets {
-    hbox: gtk::Box,
-    files_widget: ScrolledWindow,
-    file_list_view: FileListView,
-    backend: RefCell<Box<dyn Backend>>,
-    eog: ScrollView,
-}
+use super::{MViewWidgets, TSource};
 
 #[derive(Clone, Copy, Debug)]
 struct Sort {
@@ -126,6 +122,9 @@ impl ObjectImpl for MViewWindowImp {
             imp.on_row_activated(path, column);
         }));
 
+        #[allow(deprecated)]
+        let (sender, receiver) = glib::MainContext::channel::<Message>(glib::Priority::DEFAULT);
+
         self.widgets
             .set(MViewWidgets {
                 hbox,
@@ -133,8 +132,66 @@ impl ObjectImpl for MViewWindowImp {
                 file_list_view,
                 files_widget,
                 eog,
+                sender,
             })
             .expect("Failed to initialize MView window");
+
+        let w = self.widgets.get().unwrap();
+        let eog = w.eog.clone();
+        let sender = w.sender.clone();
+        let mut current_task = 0;
+        let mut command = TCommand::default();
+        receiver.attach(None, move |msg| {
+            match msg {
+                Message::UpdateLabel(text) => {
+                    println!("Command {:?}", command);
+                    println!("Test {current_task}");
+                    println!("Text {text}");
+                    // let image = draw(&text).unwrap();
+                    // eog.set_image(&image);
+                }
+                Message::Image(im) => {
+                    println!("Command {:?}", command);
+                    println!("Image {current_task}");
+                    if let Ok(pb) = Loader::image_rs_to_pixbuf(im) {
+                        if let Some(i) = eog.image() {
+                            println!("im id = {}", i.id());
+                            if let Some(p) = i.pixbuf() {
+                                pb.copy_area(
+                                    0,
+                                    0,
+                                    pb.width(),
+                                    pb.height(),
+                                    &p,
+                                    p.width() / 2,
+                                    p.height() / 2,
+                                );
+                                i.modified();
+                            }
+                        }
+                    }
+                }
+                Message::Command(cmd) => {
+                    command = cmd;
+                    current_task = 0;
+                    start_thumbnail_task(&sender, &eog, &command, &mut current_task);
+                    start_thumbnail_task(&sender, &eog, &command, &mut current_task);
+                }
+                Message::Result(res) => {
+                    if handle_thumbnail_result(&eog, res) {
+                        start_thumbnail_task(&sender, &eog, &command, &mut current_task);
+                    }
+                } // Message::Test(tst) => {
+                  //     println!("Command {:?}", command);
+                  //     println!("Test {tst}");
+                  //     current_task = tst;
+                  // }
+            }
+
+            // Returning false here would close the receiver
+            // and have senders fail
+            glib::ControlFlow::Continue
+        });
 
         window.show_all();
 
@@ -170,4 +227,77 @@ impl<O: IsA<gtk::Widget>> MViewWidgetExt for O {
         }
         Rectangle::new(0, 0, 800, 600)
     }
+}
+
+fn start_thumbnail_task(
+    sender: &glib::Sender<Message>,
+    eog: &ScrollView,
+    command: &TCommand,
+    current_task: &mut usize,
+) {
+    if let Some(image) = eog.image() {
+        let id = image.id();
+        if command.id == id {
+            println!("Command id is ok: {id}");
+            let sender_clone = sender.clone();
+            if let Some(task) = command.tasks.get(*current_task) {
+                *current_task += 1;
+                let task = task.clone();
+                thread::spawn(move || {
+                    // thread::sleep(time::Duration::from_secs(2));
+                    let image = match &task.source {
+                        TSource::FileSource(src) => FileSystem::get_thumbnail(src),
+                        TSource::None => None,
+                    };
+
+                    let image = match image {
+                        Some(im) => Some(im.resize(
+                            task.size,
+                            task.size,
+                            image::imageops::FilterType::Lanczos3,
+                        )),
+                        None => None,
+                    };
+
+                    let _ = sender_clone.send(Message::Result(TResult::new(id, task, image)));
+                });
+            }
+        } else {
+            println!("Command id mismatch {} != {id}", command.id);
+        }
+    }
+}
+
+fn handle_thumbnail_result(eog: &ScrollView, res: TResult) -> bool {
+    if let Some(image) = eog.image() {
+        let id = image.id();
+        if res.id == id {
+            println!("Result id is ok: {id}");
+            if let Some(thumb) = res.image {
+                println!("-- got thumb image");
+                if let Ok(thumb_pb) = Loader::image_rs_to_pixbuf(thumb) {
+                    if let Some(image_pb) = image.pixbuf() {
+                        let size = res.task.size as i32;
+                        let (x, y) = res.task.position;
+                        thumb_pb.copy_area(
+                            0,
+                            0,
+                            thumb_pb.width(),
+                            thumb_pb.height(),
+                            &image_pb,
+                            x + (size - thumb_pb.width()) / 2,
+                            y + (size - thumb_pb.height()) / 2,
+                        );
+                        image.modified();
+                    }
+                }
+            } else {
+                println!("-- no thumb image");
+            }
+            return true;
+        } else {
+            println!("Command id mismatch {} != {id}", res.id);
+        }
+    }
+    false
 }

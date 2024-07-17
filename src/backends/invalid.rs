@@ -1,7 +1,7 @@
 use eog::Image;
 use gtk::{ListStore, TreeIter};
 
-use crate::draw::draw;
+use crate::{draw::draw, window::MViewWidgets};
 
 use super::{empty_store, Backend};
 
@@ -34,7 +34,7 @@ impl Backend for Invalid {
         (Box::new(Invalid::new()), "/".to_string())
     }
 
-    fn image(&self, _model: ListStore, _iter: TreeIter) -> Image {
+    fn image(&self, _w: &MViewWidgets, _model: &ListStore, _iter: &TreeIter) -> Image {
         draw("invalid").unwrap()
     }
 }

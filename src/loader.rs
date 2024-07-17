@@ -97,6 +97,12 @@ impl Loader {
         Self::image_rs_to_pixbuf(dynamic_image)
     }
 
+    pub fn dynimg_from_file(filename: &str) -> MviewResult<DynamicImage> {
+        let reader = Reader::open(filename)?;
+        let reader = reader.with_guessed_format()?;
+        Ok(reader.decode()?)
+    }
+
     pub fn image_rs_to_pixbuf(im: DynamicImage) -> MviewResult<Pixbuf> {
         let (width, height) = im.dimensions();
         let colorspace;

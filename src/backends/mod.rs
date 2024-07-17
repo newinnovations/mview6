@@ -5,7 +5,6 @@ use archive_zip::ZipArchive;
 use bookmarks::Bookmarks;
 use eog::Image;
 use filesystem::FileSystem;
-use gdk_pixbuf::Pixbuf;
 use glib::IsA;
 use gtk::{
     prelude::{TreeModelExt, TreeSortableExtManual},
@@ -16,14 +15,14 @@ use thumbnail::Thumbnail;
 
 use crate::{
     category::Category,
-    error::{AppError, MviewError, MviewResult},
     filelistview::Direction,
+    window::{MViewWidgets, TSource},
 };
 
 mod archive_rar;
 mod archive_zip;
 mod bookmarks;
-mod filesystem;
+pub mod filesystem;
 mod invalid;
 mod thumbnail;
 
@@ -48,9 +47,12 @@ pub trait Backend {
     }
     fn enter(&self, model: ListStore, iter: TreeIter) -> Box<dyn Backend>;
     fn leave(&self) -> (Box<dyn Backend>, String);
-    fn image(&self, model: ListStore, iter: TreeIter) -> Image;
-    fn thumb(&self, _model: &ListStore, _iter: &TreeIter) -> MviewResult<Pixbuf> {
-        Err(MviewError::App(AppError::new("thumbnail not available")))
+    fn image(&self, w: &MViewWidgets, model: &ListStore, iter: &TreeIter) -> Image;
+    // fn thumb(&self, _model: &ListStore, _iter: &TreeIter) -> MviewResult<Pixbuf> {
+    //     Err(MviewError::App(AppError::new("thumbnail not available")))
+    // }
+    fn thumb(&self, _model: &ListStore, _iter: &TreeIter) -> TSource {
+        TSource::None
     }
     fn set_parent(&self, _parent: Box<dyn Backend>) {}
 }

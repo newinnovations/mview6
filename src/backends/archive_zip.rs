@@ -9,7 +9,9 @@ use eog::Image;
 use gtk::{prelude::GtkListStoreExtManual, ListStore, TreeIter};
 use zip::result::ZipResult;
 
-use crate::{backends::empty_store, category::Category, draw::draw, loader::Loader};
+use crate::{
+    backends::empty_store, category::Category, draw::draw, loader::Loader, window::MViewWidgets,
+};
 
 use super::{filesystem::FileSystem, Backend, Columns, TreeModelMviewExt};
 
@@ -69,8 +71,8 @@ impl Backend for ZipArchive {
         (Box::new(FileSystem::new(directory)), filename.to_string())
     }
 
-    fn image(&self, model: ListStore, iter: TreeIter) -> Image {
-        match extract_zip(&self.filename, model.index(&iter).try_into().unwrap()) {
+    fn image(&self, _w: &MViewWidgets, model: &ListStore, iter: &TreeIter) -> Image {
+        match extract_zip(&self.filename, model.index(iter).try_into().unwrap()) {
             Ok(bytes) => Loader::image_from_memory(bytes),
             Err(error) => draw(&format!("Error {}", error)).unwrap(),
         }

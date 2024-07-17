@@ -15,7 +15,7 @@ impl MViewWindowImp {
         let w = self.widgets.get().unwrap();
         if !self.skip_loading.get() {
             if let Some((model, iter)) = w.file_list_view.iter() {
-                let image = w.backend.borrow().image(model, iter);
+                let image = w.backend.borrow().image(w, &model, &iter);
                 w.eog.set_image(&image);
             }
         }
