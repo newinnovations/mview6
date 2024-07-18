@@ -4,10 +4,13 @@ use glib::{Cast, IsA};
 use gtk::{
     glib,
     prelude::{TreeModelExt, TreeSortableExtManual, TreeViewExt},
-    ListStore, TreeIter, TreePath, TreeView, TreeViewColumn,
+    ListStore, TreeIter, TreeView, TreeViewColumn,
 };
 
-use crate::{backends::TreeModelMviewExt, category::Category};
+use crate::{
+    backends::{Selection, TreeModelMviewExt},
+    category::Category,
+};
 
 glib::wrapper! {
 pub struct FileListView(ObjectSubclass<imp::FileListViewImp>)
@@ -43,8 +46,7 @@ pub enum Filter {
 }
 
 pub trait FileListViewExt: IsA<FileListView> + IsA<TreeView> + 'static {
-    fn goto_first(&self);
-    fn goto(&self, filename: &str) -> bool;
+    fn goto(&self, selection: &Selection) -> bool;
     fn iter(&self) -> Option<(ListStore, TreeIter)>;
     fn navigate(&self, direction: Direction, filter: Filter, count: i32) -> bool;
     // fn set_sort_column(&self, sort_column_id: SortColumn, order: SortType);
@@ -52,11 +54,6 @@ pub trait FileListViewExt: IsA<FileListView> + IsA<TreeView> + 'static {
 }
 
 impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
-    fn goto_first(&self) {
-        let tp = TreePath::from_indicesv(&[0]);
-        self.set_cursor(&tp, None::<&TreeViewColumn>, false);
-    }
-
     fn iter(&self) -> Option<(ListStore, TreeIter)> {
         let (tp, _) = self.cursor();
         let model = self.model().unwrap().downcast::<ListStore>().unwrap();
@@ -67,12 +64,17 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
         }
     }
 
-    fn goto(&self, filename: &str) -> bool {
-        println!("Goto {filename}");
+    fn goto(&self, selection: &Selection) -> bool {
+        println!("Goto {:?}", selection);
         let model = self.model().unwrap().downcast::<ListStore>().unwrap();
         if let Some(iter) = model.iter_first() {
             loop {
-                if filename == model.filename(&iter) {
+                let found = match selection {
+                    Selection::Name(filename) => *filename == model.filename(&iter),
+                    Selection::Index(index) => *index == model.index(&iter),
+                    Selection::None => true,
+                };
+                if found {
                     let tp = model.path(&iter).unwrap_or_default();
                     self.set_cursor(&tp, None::<&TreeViewColumn>, false);
                     return true;

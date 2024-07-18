@@ -6,7 +6,7 @@ use std::{
 
 use super::{
     archive_rar::TRarSource, archive_zip::TZipSource, empty_store, filesystem::TFileSource,
-    Backend, Columns, TreeModelMviewExt,
+    Backend, Columns, Selection, TreeModelMviewExt,
 };
 use crate::{
     backends::{archive_rar::RarArchive, archive_zip::ZipArchive, filesystem::FileSystem},
@@ -228,9 +228,8 @@ impl Backend for Thumbnail {
         Box::new(Thumbnail::new())
     }
 
-    fn leave(&self) -> (Box<dyn Backend>, Option<String>) {
-        // (Box::new(Thumbnail::new()), "/".to_string())
-        (self.parent.borrow().backend().dynbox(), None)
+    fn leave(&self) -> (Box<dyn Backend>, Selection) {
+        (self.parent.borrow().backend().dynbox(), Selection::None)
     }
 
     fn image(&self, w: &MViewWidgets, model: &ListStore, iter: &TreeIter) -> Image {
@@ -264,7 +263,7 @@ impl Backend for Thumbnail {
         true
     }
 
-    fn click(&self, x: f64, y: f64) -> Option<(Box<dyn Backend>, Option<String>)> {
+    fn click(&self, x: f64, y: f64) -> Option<(Box<dyn Backend>, Selection)> {
         let (offset_x, offset_y) = self.offset();
 
         dbg!(x, y, offset_x, offset_y);
@@ -289,12 +288,15 @@ impl Backend for Thumbnail {
             match source {
                 TSource::FileSource(src) => Some((
                     self.parent.borrow().backend().dynbox(),
-                    Some(src.filename()),
+                    Selection::Name(src.filename()),
                 )),
-                TSource::ZipSource(_) => None,
+                TSource::ZipSource(src) => Some((
+                    self.parent.borrow().backend().dynbox(),
+                    Selection::Index(src.index()),
+                )),
                 TSource::RarSource(src) => Some((
                     self.parent.borrow().backend().dynbox(),
-                    Some(src.selection()),
+                    Selection::Name(src.selection()),
                 )),
                 TSource::None => None,
             }

@@ -7,7 +7,7 @@ use gtk::{
 };
 
 use crate::{
-    backends::{Backend, Columns},
+    backends::{Backend, Columns, Selection},
     filelistview::FileListViewExt,
     window::imp::Sort,
 };
@@ -15,7 +15,7 @@ use crate::{
 use super::MViewWindowImp;
 
 impl MViewWindowImp {
-    pub fn set_backend(&self, new_backend: Box<dyn Backend>, goto: Option<&str>) {
+    pub fn set_backend(&self, new_backend: Box<dyn Backend>, goto: Selection) {
         self.skip_loading.set(true);
 
         let w = self.widgets.get().unwrap();
@@ -72,13 +72,6 @@ impl MViewWindowImp {
 
         w.file_list_view.set_model(Some(&new_store));
         self.skip_loading.set(false);
-        match goto {
-            Some(name) => {
-                w.file_list_view.goto(name);
-            }
-            None => {
-                w.file_list_view.goto_first();
-            }
-        }
+        w.file_list_view.goto(&goto);
     }
 }

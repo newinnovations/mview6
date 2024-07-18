@@ -14,7 +14,7 @@ use std::{
     time::UNIX_EPOCH,
 };
 
-use super::{empty_store, thumbnail::TSource, Backend, Backends, Columns};
+use super::{empty_store, thumbnail::TSource, Backend, Backends, Columns, Selection};
 
 #[derive(Clone)]
 pub struct FileSystem {
@@ -122,7 +122,7 @@ impl Backend for FileSystem {
         <dyn Backend>::new(&format!("{}/{}", self.directory, model.filename(&iter)))
     }
 
-    fn leave(&self) -> (Box<dyn Backend>, Option<String>) {
+    fn leave(&self) -> (Box<dyn Backend>, Selection) {
         let directory_c = self.directory.clone();
         let directory_p = Path::new(&directory_c);
         let parent = directory_p.parent();
@@ -136,9 +136,9 @@ impl Backend for FileSystem {
         match parent {
             Some(parent) => (
                 Box::new(FileSystem::new(parent.to_str().unwrap_or("/"))),
-                Some(current),
+                Selection::Name(current),
             ),
-            _ => (Box::new(FileSystem::new("/")), Some(current)),
+            _ => (Box::new(FileSystem::new("/")), Selection::Name(current)),
         }
     }
 

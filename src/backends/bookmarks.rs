@@ -6,7 +6,7 @@ use eog::Image;
 use gtk::{prelude::GtkListStoreExtManual, ListStore, TreeIter};
 use std::{cell::RefCell, fs, io, time::UNIX_EPOCH};
 
-use super::{empty_store, Backend, Columns};
+use super::{empty_store, Backend, Columns, Selection};
 
 pub struct Bookmarks {
     store: ListStore,
@@ -85,8 +85,8 @@ impl Backend for Bookmarks {
         <dyn Backend>::new(&model.folder(&iter))
     }
 
-    fn leave(&self) -> (Box<dyn Backend>, Option<String>) {
-        (self.parent.borrow().backend().dynbox(), None)
+    fn leave(&self) -> (Box<dyn Backend>, Selection) {
+        (self.parent.borrow().backend().dynbox(), Selection::None)
     }
 
     fn image(&self, _w: &MViewWidgets, model: &ListStore, iter: &TreeIter) -> Image {

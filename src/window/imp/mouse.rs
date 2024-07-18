@@ -18,7 +18,7 @@ impl MViewWindowImp {
 
         if let Some((new_backend, goto)) = backend.click(x, y) {
             drop(backend);
-            self.set_backend(new_backend, goto.as_deref());
+            self.set_backend(new_backend, goto);
         }
     }
 }

@@ -34,6 +34,13 @@ pub enum Columns {
     Folder,
 }
 
+#[derive(Debug)]
+pub enum Selection {
+    Name(String),
+    Index(u32),
+    None,
+}
+
 pub trait Backend {
     fn class_name(&self) -> &str;
     fn path(&self) -> &str;
@@ -42,7 +49,7 @@ pub trait Backend {
         false
     }
     fn enter(&self, model: ListStore, iter: TreeIter) -> Box<dyn Backend>;
-    fn leave(&self) -> (Box<dyn Backend>, Option<String>);
+    fn leave(&self) -> (Box<dyn Backend>, Selection);
     fn image(&self, w: &MViewWidgets, model: &ListStore, iter: &TreeIter) -> Image;
     fn thumb(&self, _model: &ListStore, _iter: &TreeIter) -> TSource {
         TSource::None
@@ -54,7 +61,7 @@ pub trait Backend {
     fn is_thumbnail(&self) -> bool {
         false
     }
-    fn click(&self, _x: f64, _y: f64) -> Option<(Box<dyn Backend>, Option<String>)> {
+    fn click(&self, _x: f64, _y: f64) -> Option<(Box<dyn Backend>, Selection)> {
         None
     }
 }

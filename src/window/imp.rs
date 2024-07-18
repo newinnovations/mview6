@@ -6,7 +6,7 @@ mod mouse;
 use crate::{
     backends::{
         thumbnail::{handle_thumbnail_result, start_thumbnail_task, Message, TCommand},
-        Backend, Columns,
+        Backend, Columns, Selection,
     },
     filelistview::FileListView,
 };
@@ -174,7 +174,7 @@ impl ObjectImpl for MViewWindowImp {
         let display_size = window.display_size();
         dbg!(display_size);
 
-        self.set_backend(<dyn Backend>::current_dir(), None);
+        self.set_backend(<dyn Backend>::current_dir(), Selection::None);
 
         // self.widgets.get().unwrap().eog.set_offset(0, 0);
 

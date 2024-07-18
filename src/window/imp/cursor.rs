@@ -3,7 +3,7 @@ use std::path::Path;
 use super::MViewWindowImp;
 
 use crate::{
-    backends::Backend,
+    backends::{Backend, Selection},
     filelistview::{Direction, FileListViewExt, Filter},
 };
 use eog::ScrollViewExt;
@@ -38,7 +38,7 @@ impl MViewWindowImp {
             let backend = w.backend.borrow();
             let new_backend = backend.enter(model, iter);
             drop(backend);
-            self.set_backend(new_backend, None);
+            self.set_backend(new_backend, Selection::None);
         }
     }
 
@@ -46,9 +46,9 @@ impl MViewWindowImp {
         self.hop_parent_sort.set(None);
         let w = self.widgets.get().unwrap();
         let backend = w.backend.borrow();
-        let (new_backend, current_dir) = backend.leave();
+        let (new_backend, selection) = backend.leave();
         drop(backend);
-        self.set_backend(new_backend, current_dir.as_deref());
+        self.set_backend(new_backend, selection);
     }
 
     pub fn navigate_to(&self, file: &File) {
@@ -66,7 +66,7 @@ impl MViewWindowImp {
         println!("filename = {filename}");
         println!("directory = {directory}");
         let new_backend = <dyn Backend>::new(directory);
-        self.set_backend(new_backend, Some(filename));
+        self.set_backend(new_backend, Selection::Name(filename.to_string()));
     }
 
     pub fn hop(&self, direction: Direction) {

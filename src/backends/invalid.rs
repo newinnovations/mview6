@@ -3,7 +3,7 @@ use gtk::{ListStore, TreeIter};
 
 use crate::{draw::draw, window::MViewWidgets};
 
-use super::{empty_store, Backend};
+use super::{empty_store, Backend, Selection};
 
 pub struct Invalid {}
 
@@ -36,8 +36,8 @@ impl Backend for Invalid {
         Box::new(Invalid::new())
     }
 
-    fn leave(&self) -> (Box<dyn Backend>, Option<String>) {
-        (Box::new(Invalid::new()), None)
+    fn leave(&self) -> (Box<dyn Backend>, Selection) {
+        (Box::new(Invalid::new()), Selection::None)
     }
 
     fn image(&self, _w: &MViewWidgets, _model: &ListStore, _iter: &TreeIter) -> Image {

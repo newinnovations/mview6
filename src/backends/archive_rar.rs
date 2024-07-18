@@ -12,7 +12,8 @@ use crate::{
 };
 
 use super::{
-    filesystem::FileSystem, thumbnail::TSource, Backend, Backends, Columns, TreeModelMviewExt,
+    filesystem::FileSystem, thumbnail::TSource, Backend, Backends, Columns, Selection,
+    TreeModelMviewExt,
 };
 
 #[derive(Clone)]
@@ -103,10 +104,10 @@ impl Backend for RarArchive {
         Box::new(RarArchive::new(&self.filename))
     }
 
-    fn leave(&self) -> (Box<dyn Backend>, Option<String>) {
+    fn leave(&self) -> (Box<dyn Backend>, Selection) {
         (
             Box::new(FileSystem::new(&self.directory)),
-            Some(self.archive.clone()),
+            Selection::Name(self.archive.clone()),
         )
     }
 

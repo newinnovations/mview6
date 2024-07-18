@@ -5,7 +5,7 @@ use gdk::EventKey;
 use gtk::{prelude::*, subclass::prelude::*};
 
 use crate::{
-    backends::Backend,
+    backends::{Backend, Selection},
     filelistview::{Direction, FileListViewExt, Filter},
 };
 
@@ -19,10 +19,12 @@ impl MViewWindowImp {
             }
             gdk::keys::constants::d => {
                 self.show_files_widget(true);
-                self.set_backend(<dyn Backend>::bookmarks(), None);
+                self.set_backend(<dyn Backend>::bookmarks(), Selection::None);
             }
             gdk::keys::constants::t => {
-                self.set_backend(<dyn Backend>::thumbnail(), None);
+                if !w.backend.borrow().is_thumbnail() {
+                    self.set_backend(<dyn Backend>::thumbnail(), Selection::None);
+                }
             }
             gdk::keys::constants::i => {
                 w.eog.set_rectangle(100, 100, 100, 100);
