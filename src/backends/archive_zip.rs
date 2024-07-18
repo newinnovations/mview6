@@ -7,23 +7,42 @@ use std::{
 use chrono::{Local, TimeZone};
 use eog::Image;
 use gtk::{prelude::GtkListStoreExtManual, ListStore, TreeIter};
+use image::DynamicImage;
 use zip::result::ZipResult;
 
 use crate::{
     backends::empty_store, category::Category, draw::draw, loader::Loader, window::MViewWidgets,
 };
 
-use super::{filesystem::FileSystem, Backend, Columns, TreeModelMviewExt};
+use super::{
+    filesystem::FileSystem, thumbnail::TSource, Backend, Backends, Columns, TreeModelMviewExt,
+};
 
+#[derive(Clone)]
 pub struct ZipArchive {
     filename: String,
+    directory: String,
+    archive: String,
     store: ListStore,
 }
 
 impl ZipArchive {
     pub fn new(filename: &str) -> Self {
+        let path = Path::new(filename);
+        let directory = path
+            .parent()
+            .unwrap_or_else(|| Path::new("/"))
+            .to_str()
+            .unwrap_or("/");
+        let archive = path
+            .file_name()
+            .unwrap_or_default()
+            .to_str()
+            .unwrap_or_default();
         ZipArchive {
             filename: filename.to_string(),
+            directory: directory.to_string(),
+            archive: archive.to_string(),
             store: Self::create_store(filename),
         }
     }
@@ -36,6 +55,36 @@ impl ZipArchive {
             Err(e) => println!("ERROR {:?}", e),
         };
         store
+    }
+
+    pub fn get_thumbnail(src: &TZipSource) -> Option<DynamicImage> {
+        let thumb_filename = format!(
+            "{}/.mview/{}-{}.mthumb",
+            src.directory, src.archive, src.index
+        );
+        if Path::new(&thumb_filename).exists() {
+            if let Ok(im) = Loader::dynimg_from_file(&thumb_filename) {
+                Some(im)
+            } else {
+                None
+            }
+        } else {
+            let img = match extract_zip(&src.filename, src.index as usize) {
+                Ok(bytes) => Loader::dynimg_from_memory(&bytes),
+                Err(_error) => return None,
+            };
+            if let Ok(im) = img {
+                let im = im.resize(175, 175, image::imageops::FilterType::Lanczos3);
+                let thumb_dir = format!("{}/.mview", src.directory);
+                if !Path::new(&thumb_dir).exists() {
+                    let _ = fs::create_dir(thumb_dir);
+                }
+                let _ = im.save_with_format(thumb_filename, image::ImageFormat::Jpeg);
+                Some(im)
+            } else {
+                None
+            }
+        }
     }
 }
 
@@ -57,20 +106,9 @@ impl Backend for ZipArchive {
     }
 
     fn leave(&self) -> (Box<dyn Backend>, Option<String>) {
-        let path = Path::new(&self.filename);
-        let directory = path
-            .parent()
-            .unwrap_or_else(|| Path::new("/"))
-            .to_str()
-            .unwrap_or("/");
-        let filename = path
-            .file_name()
-            .unwrap_or_default()
-            .to_str()
-            .unwrap_or_default();
         (
-            Box::new(FileSystem::new(directory)),
-            Some(filename.to_string()),
+            Box::new(FileSystem::new(&self.directory)),
+            Some(self.archive.clone()),
         )
     }
 
@@ -79,6 +117,14 @@ impl Backend for ZipArchive {
             Ok(bytes) => Loader::image_from_memory(bytes),
             Err(error) => draw(&format!("Error {}", error)).unwrap(),
         }
+    }
+
+    fn thumb(&self, model: &ListStore, iter: &TreeIter) -> TSource {
+        TSource::ZipSource(TZipSource::new(self, model.index(iter)))
+    }
+
+    fn backend(&self) -> Backends {
+        Backends::Zip(self.clone())
     }
 }
 
@@ -154,4 +200,31 @@ fn list_zip(filename: &str, store: &ListStore) -> ZipResult<()> {
         );
     }
     Ok(())
+}
+
+#[derive(Debug, Clone)]
+pub struct TZipSource {
+    filename: String,
+    directory: String,
+    archive: String,
+    index: u32,
+}
+
+impl TZipSource {
+    pub fn new(backend: &ZipArchive, index: u32) -> Self {
+        TZipSource {
+            filename: backend.filename.clone(),
+            directory: backend.directory.clone(),
+            archive: backend.archive.clone(),
+            index,
+        }
+    }
+
+    pub fn filename(&self) -> String {
+        self.filename.clone()
+    }
+
+    pub fn index(&self) -> u32 {
+        self.index
+    }
 }

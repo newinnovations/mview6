@@ -109,8 +109,8 @@ impl Backends {
     fn dynbox(&self) -> Box<dyn Backend> {
         match self {
             Backends::File(f) => Box::new(f.clone()),
-            // Backends::Zip(f) => Box::new(f.clone()),
-            // Backends::Rar(f) => Box::new(f.clone()),
+            Backends::Zip(f) => Box::new(f.clone()),
+            Backends::Rar(f) => Box::new(f.clone()),
             // Backends::Invalid(f) => Box::new(f.clone()),
             // Backends::Thumb(f) => Box::new(f.clone()),
             // Backends::Bookmark(f) => Box::new(f.clone()),

@@ -4,9 +4,15 @@ use std::{
     time::{self, SystemTime},
 };
 
-use super::{empty_store, filesystem::TFileSource, Backend, Columns, TreeModelMviewExt};
+use super::{
+    archive_rar::TRarSource, archive_zip::TZipSource, empty_store, filesystem::TFileSource,
+    Backend, Columns, TreeModelMviewExt,
+};
 use crate::{
-    backends::filesystem::FileSystem, category::Category, loader::Loader, window::MViewWidgets,
+    backends::{archive_rar::RarArchive, archive_zip::ZipArchive, filesystem::FileSystem},
+    category::Category,
+    loader::Loader,
+    window::MViewWidgets,
 };
 use eog::{Image, ImageExt, ScrollView, ScrollViewExt};
 use gdk_pixbuf::Pixbuf;
@@ -272,12 +278,6 @@ impl Backend for Thumbnail {
             return None;
         }
 
-        // if( x1 >= countX ) x1 = countX - 1;
-        // if( y1 >= countY ) y1 = countY - 1;
-        // if( x1 < 0 ) x1 = 0;
-        // if( y1 < 0 ) y1 = 0;
-
-        // int pos = y1 * countX + x1;
         let pos = y * self.capacity_x() + x;
         dbg!(pos);
 
@@ -290,6 +290,11 @@ impl Backend for Thumbnail {
                 TSource::FileSource(src) => Some((
                     self.parent.borrow().backend().dynbox(),
                     Some(src.filename()),
+                )),
+                TSource::ZipSource(_) => None,
+                TSource::RarSource(src) => Some((
+                    self.parent.borrow().backend().dynbox(),
+                    Some(src.selection()),
                 )),
                 TSource::None => None,
             }
@@ -322,6 +327,8 @@ pub fn start_thumbnail_task(
                     thread::sleep(time::Duration::from_millis(1));
                     let image = match &task.source {
                         TSource::FileSource(src) => FileSystem::get_thumbnail(src),
+                        TSource::ZipSource(src) => ZipArchive::get_thumbnail(src),
+                        TSource::RarSource(src) => RarArchive::get_thumbnail(src),
                         TSource::None => None,
                     };
 
@@ -393,6 +400,8 @@ pub fn handle_thumbnail_result(eog: &ScrollView, command: &mut TCommand, result:
 #[derive(Debug, Clone)]
 pub enum TSource {
     FileSource(TFileSource),
+    ZipSource(TZipSource),
+    RarSource(TRarSource),
     None,
 }
 
