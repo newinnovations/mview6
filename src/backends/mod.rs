@@ -11,20 +11,16 @@ use gtk::{
     ListStore, TreeIter, TreeModel,
 };
 use invalid::Invalid;
-use thumbnail::Thumbnail;
+use thumbnail::{TSource, Thumbnail};
 
-use crate::{
-    category::Category,
-    filelistview::Direction,
-    window::{MViewWidgets, TSource},
-};
+use crate::{category::Category, filelistview::Direction, window::MViewWidgets};
 
 mod archive_rar;
 mod archive_zip;
 mod bookmarks;
 pub mod filesystem;
 mod invalid;
-mod thumbnail;
+pub mod thumbnail;
 
 #[derive(Debug)]
 #[repr(u32)]
@@ -46,15 +42,21 @@ pub trait Backend {
         false
     }
     fn enter(&self, model: ListStore, iter: TreeIter) -> Box<dyn Backend>;
-    fn leave(&self) -> (Box<dyn Backend>, String);
+    fn leave(&self) -> (Box<dyn Backend>, Option<String>);
     fn image(&self, w: &MViewWidgets, model: &ListStore, iter: &TreeIter) -> Image;
-    // fn thumb(&self, _model: &ListStore, _iter: &TreeIter) -> MviewResult<Pixbuf> {
-    //     Err(MviewError::App(AppError::new("thumbnail not available")))
-    // }
     fn thumb(&self, _model: &ListStore, _iter: &TreeIter) -> TSource {
         TSource::None
     }
     fn set_parent(&self, _parent: Box<dyn Backend>) {}
+    fn backend(&self) -> Backends {
+        Backends::Invalid(Invalid::new())
+    }
+    fn is_thumbnail(&self) -> bool {
+        false
+    }
+    fn click(&self, _x: f64, _y: f64) -> Option<(Box<dyn Backend>, Option<String>)> {
+        None
+    }
 }
 
 impl std::fmt::Debug for dyn Backend {
@@ -90,6 +92,29 @@ impl dyn Backend {
         match env::current_dir() {
             Ok(cwd) => Box::new(FileSystem::new(cwd.as_os_str().to_str().unwrap_or("/"))),
             Err(_) => Self::invalid(),
+        }
+    }
+}
+
+pub enum Backends {
+    File(FileSystem),
+    Zip(ZipArchive),
+    Rar(RarArchive),
+    Invalid(Invalid),
+    Thumb(Thumbnail),
+    Bookmark(Bookmarks),
+}
+
+impl Backends {
+    fn dynbox(&self) -> Box<dyn Backend> {
+        match self {
+            Backends::File(f) => Box::new(f.clone()),
+            // Backends::Zip(f) => Box::new(f.clone()),
+            // Backends::Rar(f) => Box::new(f.clone()),
+            // Backends::Invalid(f) => Box::new(f.clone()),
+            // Backends::Thumb(f) => Box::new(f.clone()),
+            // Backends::Bookmark(f) => Box::new(f.clone()),
+            _ => Box::new(Invalid::new()),
         }
     }
 }

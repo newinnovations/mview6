@@ -1,9 +1,6 @@
 use crate::{
-    backends::TreeModelMviewExt,
-    category::Category,
-    filelistview::Direction,
-    loader::Loader,
-    window::{MViewWidgets, TSource},
+    backends::TreeModelMviewExt, category::Category, filelistview::Direction, loader::Loader,
+    window::MViewWidgets,
 };
 use eog::Image;
 use gtk::{prelude::GtkListStoreExtManual, ListStore, TreeIter};
@@ -17,8 +14,9 @@ use std::{
     time::UNIX_EPOCH,
 };
 
-use super::{empty_store, Backend, Columns};
+use super::{empty_store, thumbnail::TSource, Backend, Backends, Columns};
 
+#[derive(Clone)]
 pub struct FileSystem {
     directory: String,
     store: ListStore,
@@ -124,7 +122,7 @@ impl Backend for FileSystem {
         <dyn Backend>::new(&format!("{}/{}", self.directory, model.filename(&iter)))
     }
 
-    fn leave(&self) -> (Box<dyn Backend>, String) {
+    fn leave(&self) -> (Box<dyn Backend>, Option<String>) {
         let directory_c = self.directory.clone();
         let directory_p = Path::new(&directory_c);
         let parent = directory_p.parent();
@@ -138,9 +136,9 @@ impl Backend for FileSystem {
         match parent {
             Some(parent) => (
                 Box::new(FileSystem::new(parent.to_str().unwrap_or("/"))),
-                current,
+                Some(current),
             ),
-            _ => (Box::new(FileSystem::new("/")), current),
+            _ => (Box::new(FileSystem::new("/")), Some(current)),
         }
     }
 
@@ -204,6 +202,10 @@ impl Backend for FileSystem {
     fn thumb(&self, model: &ListStore, iter: &TreeIter) -> TSource {
         TSource::FileSource(TFileSource::new(&self.directory, &model.filename(iter)))
     }
+
+    fn backend(&self) -> Backends {
+        Backends::File(self.clone())
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -218,5 +220,9 @@ impl TFileSource {
             directory: directory.to_string(),
             filename: filename.to_string(),
         }
+    }
+
+    pub fn filename(&self) -> String {
+        self.filename.clone()
     }
 }

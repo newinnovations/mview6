@@ -16,7 +16,12 @@ impl MViewWindowImp {
         if !self.skip_loading.get() {
             if let Some((model, iter)) = w.file_list_view.iter() {
                 let image = w.backend.borrow().image(w, &model, &iter);
-                w.eog.set_image(&image);
+                if w.backend.borrow().is_thumbnail() {
+                    w.eog.set_image_pre(&image);
+                    // w.eog.set_image_post();
+                } else {
+                    w.eog.set_image(&image);
+                }
             }
         }
     }
@@ -43,7 +48,7 @@ impl MViewWindowImp {
         let backend = w.backend.borrow();
         let (new_backend, current_dir) = backend.leave();
         drop(backend);
-        self.set_backend(new_backend, Some(&current_dir));
+        self.set_backend(new_backend, current_dir.as_deref());
     }
 
     pub fn navigate_to(&self, file: &File) {

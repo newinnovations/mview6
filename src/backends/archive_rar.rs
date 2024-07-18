@@ -52,7 +52,7 @@ impl Backend for RarArchive {
         Box::new(RarArchive::new(&self.filename))
     }
 
-    fn leave(&self) -> (Box<dyn Backend>, String) {
+    fn leave(&self) -> (Box<dyn Backend>, Option<String>) {
         let path = Path::new(&self.filename);
         let directory = path
             .parent()
@@ -64,7 +64,10 @@ impl Backend for RarArchive {
             .unwrap_or_default()
             .to_str()
             .unwrap_or_default();
-        (Box::new(FileSystem::new(directory)), filename.to_string())
+        (
+            Box::new(FileSystem::new(directory)),
+            Some(filename.to_string()),
+        )
     }
 
     fn image(&self, _w: &MViewWidgets, model: &ListStore, iter: &TreeIter) -> Image {

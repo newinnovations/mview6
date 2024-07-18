@@ -4,18 +4,26 @@ use crate::{
 };
 use eog::Image;
 use gtk::{prelude::GtkListStoreExtManual, ListStore, TreeIter};
-use std::{fs, io, time::UNIX_EPOCH};
+use std::{cell::RefCell, fs, io, time::UNIX_EPOCH};
 
 use super::{empty_store, Backend, Columns};
 
 pub struct Bookmarks {
     store: ListStore,
+    parent: RefCell<Box<dyn Backend>>,
+}
+
+impl Default for Bookmarks {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Bookmarks {
     pub fn new() -> Self {
         Bookmarks {
             store: Self::create_store(),
+            parent: RefCell::new(<dyn Backend>::invalid()),
         }
     }
 
@@ -77,11 +85,15 @@ impl Backend for Bookmarks {
         <dyn Backend>::new(&model.folder(&iter))
     }
 
-    fn leave(&self) -> (Box<dyn Backend>, String) {
-        (Box::new(Bookmarks::new()), "/".to_string())
+    fn leave(&self) -> (Box<dyn Backend>, Option<String>) {
+        (self.parent.borrow().backend().dynbox(), None)
     }
 
     fn image(&self, _w: &MViewWidgets, model: &ListStore, iter: &TreeIter) -> Image {
         draw(&model.folder(iter)).unwrap()
+    }
+
+    fn set_parent(&self, parent: Box<dyn Backend>) {
+        self.parent.replace(parent);
     }
 }

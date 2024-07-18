@@ -24,6 +24,9 @@ impl MViewWindowImp {
             gdk::keys::constants::t => {
                 self.set_backend(<dyn Backend>::thumbnail(), None);
             }
+            gdk::keys::constants::i => {
+                w.eog.set_rectangle(100, 100, 100, 100);
+            }
             gdk::keys::constants::w
             | gdk::keys::constants::KP_7
             | gdk::keys::constants::KP_Home => {

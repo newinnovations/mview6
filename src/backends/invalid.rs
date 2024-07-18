@@ -13,6 +13,12 @@ impl Invalid {
     }
 }
 
+impl Default for Invalid {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Backend for Invalid {
     fn class_name(&self) -> &str {
         "Invalid"
@@ -30,8 +36,8 @@ impl Backend for Invalid {
         Box::new(Invalid::new())
     }
 
-    fn leave(&self) -> (Box<dyn Backend>, String) {
-        (Box::new(Invalid::new()), "/".to_string())
+    fn leave(&self) -> (Box<dyn Backend>, Option<String>) {
+        (Box::new(Invalid::new()), None)
     }
 
     fn image(&self, _w: &MViewWidgets, _model: &ListStore, _iter: &TreeIter) -> Image {

@@ -1,16 +1,20 @@
-use std::cell::RefCell;
-
-use super::{empty_store, Backend, Columns, TreeModelMviewExt};
-use crate::{
-    category::Category,
-    window::{MViewWidgets, Message, TCommand, TSource, TTask},
+use std::{
+    cell::RefCell,
+    thread,
+    time::{self, SystemTime},
 };
-use eog::{Image, ImageExt};
+
+use super::{empty_store, filesystem::TFileSource, Backend, Columns, TreeModelMviewExt};
+use crate::{
+    backends::filesystem::FileSystem, category::Category, loader::Loader, window::MViewWidgets,
+};
+use eog::{Image, ImageExt, ScrollView, ScrollViewExt};
 use gdk_pixbuf::Pixbuf;
 use gtk::{
     prelude::{GtkListStoreExtManual, TreeModelExt},
     ListStore, TreeIter,
 };
+use image::DynamicImage;
 
 #[derive(Debug)]
 pub struct Thumbnail {
@@ -22,27 +26,33 @@ pub struct Thumbnail {
     parent: RefCell<Box<dyn Backend>>,
 }
 
+impl Default for Thumbnail {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Thumbnail {
     pub fn new() -> Self {
         Thumbnail {
             size: 175,
-            sheet_x: 1920,
-            sheet_y: 1080,
+            sheet_x: 3840, // 1920,
+            sheet_y: 2160, // 1080,
             separator_x: 4,
             separator_y: 4,
             parent: RefCell::new(<dyn Backend>::invalid()),
         }
     }
 
-    pub fn capacity_col(&self) -> i32 {
+    pub fn capacity_x(&self) -> i32 {
         (self.sheet_x + self.separator_x) / (self.size + self.separator_x)
     }
-    pub fn capacity_row(&self) -> i32 {
+    pub fn capacity_y(&self) -> i32 {
         (self.sheet_y + self.separator_y) / (self.size + self.separator_y)
     }
 
     pub fn capacity(&self) -> i32 {
-        self.capacity_col() * self.capacity_row()
+        self.capacity_x() * self.capacity_y()
     }
 
     // pub fn sheet(&self) -> MviewResult<Image> {
@@ -118,35 +128,43 @@ impl Thumbnail {
     //     Ok(image)
     // }
 
+    pub fn offset(&self) -> (i32, i32) {
+        (
+            (self.sheet_x - self.capacity_x() * (self.size + self.separator_x) + self.separator_x)
+                / 2,
+            (self.sheet_y - self.capacity_y() * (self.size + self.separator_y) + self.separator_y)
+                / 2,
+        )
+    }
+
     pub fn sheet(&self, page: i32) -> Vec<TTask> {
         let backend = self.parent.borrow();
         let store = backend.store();
+        let (offset_x, offset_y) = self.offset();
+
         // let caption = "sheet 1 of 100";
-        let offset_x = (self.sheet_x - self.capacity_col() * (self.size + self.separator_x)
-            + self.separator_x)
-            / 2;
-        let offset_y = (self.sheet_y - self.capacity_row() * (self.size + self.separator_y)
-            + self.separator_y)
-            / 2;
 
         let mut res = Vec::<TTask>::new();
 
         let mut done = false;
+        let mut tid = 0;
         if let Some(iter) = store.iter_nth_child(None, page * self.capacity()) {
-            for row in 0..self.capacity_row() {
+            for row in 0..self.capacity_y() {
                 if done {
                     break;
                 }
-                for col in 0..self.capacity_col() {
+                for col in 0..self.capacity_x() {
                     let source = backend.thumb(&store, &iter);
                     if !matches!(source, TSource::None) {
                         let task = TTask::new(
+                            tid,
                             self.size as u32,
                             offset_x + col * (self.size + self.separator_x),
                             offset_y + row * (self.size + self.separator_y),
                             source,
                         );
                         res.push(task);
+                        tid += 1;
                     }
                     if !store.iter_next(&iter) {
                         done = true;
@@ -183,7 +201,7 @@ impl Backend for Thumbnail {
         let cat = Category::Image;
 
         for page in 0..pages {
-            let name = format!("Thumbnail page {}", page + 1);
+            let name = format!("Thumbnail page {:7}", page + 1);
             store.insert_with_values(
                 None,
                 &[
@@ -204,8 +222,9 @@ impl Backend for Thumbnail {
         Box::new(Thumbnail::new())
     }
 
-    fn leave(&self) -> (Box<dyn Backend>, String) {
-        (Box::new(Thumbnail::new()), "/".to_string())
+    fn leave(&self) -> (Box<dyn Backend>, Option<String>) {
+        // (Box::new(Thumbnail::new()), "/".to_string())
+        (self.parent.borrow().backend().dynbox(), None)
     }
 
     fn image(&self, w: &MViewWidgets, model: &ListStore, iter: &TreeIter) -> Image {
@@ -221,6 +240,7 @@ impl Backend for Thumbnail {
         pixbuf.fill(0x202020ff);
 
         let image = Image::new_pixbuf(&pixbuf);
+        image.set_zoom_mode(eog::ZoomMode::None);
         let id = image.id();
         let page = model.index(iter);
         let command = TCommand::new(id, self.sheet(page as i32));
@@ -233,4 +253,224 @@ impl Backend for Thumbnail {
     fn set_parent(&self, parent: Box<dyn Backend>) {
         self.parent.replace(parent);
     }
+
+    fn is_thumbnail(&self) -> bool {
+        true
+    }
+
+    fn click(&self, x: f64, y: f64) -> Option<(Box<dyn Backend>, Option<String>)> {
+        let (offset_x, offset_y) = self.offset();
+
+        dbg!(x, y, offset_x, offset_y);
+
+        let x = (x as i32 - offset_x) / (self.size + self.separator_x);
+        let y = (y as i32 - offset_y) / (self.size + self.separator_y);
+
+        dbg!(x, y);
+
+        if x < 0 || y < 0 || x >= self.capacity_x() || y >= self.capacity_y() {
+            return None;
+        }
+
+        // if( x1 >= countX ) x1 = countX - 1;
+        // if( y1 >= countY ) y1 = countY - 1;
+        // if( x1 < 0 ) x1 = 0;
+        // if( y1 < 0 ) y1 = 0;
+
+        // int pos = y1 * countX + x1;
+        let pos = y * self.capacity_x() + x;
+        dbg!(pos);
+
+        let backend = self.parent.borrow();
+        let store = backend.store();
+        if let Some(iter) = store.iter_nth_child(None, pos) {
+            let source = backend.thumb(&store, &iter);
+            // dbg!(source);
+            match source {
+                TSource::FileSource(src) => Some((
+                    self.parent.borrow().backend().dynbox(),
+                    Some(src.filename()),
+                )),
+                TSource::None => None,
+            }
+        } else {
+            None
+        }
+    }
+}
+
+pub fn start_thumbnail_task(
+    sender: &glib::Sender<Message>,
+    eog: &ScrollView,
+    command: &TCommand,
+    current_task: &mut usize,
+) {
+    let elapsed = command.elapsed();
+    // println!("ThumbnailTask: {:7.3}", elapsed);
+    if let Some(image) = eog.image() {
+        let id = image.id();
+        if command.id == id {
+            // println!("-- command id is ok: {id}");
+            let sender_clone = sender.clone();
+            if let Some(task) = command.tasks.get(*current_task) {
+                *current_task += 1;
+                let task = task.clone();
+                let tid = task.tid;
+                thread::spawn(move || {
+                    println!("{tid:3}: start {:7.3}", elapsed);
+                    // thread::sleep(time::Duration::from_secs(2));
+                    thread::sleep(time::Duration::from_millis(1));
+                    let image = match &task.source {
+                        TSource::FileSource(src) => FileSystem::get_thumbnail(src),
+                        TSource::None => None,
+                    };
+
+                    let image = match image {
+                        Some(im) => Some(im.resize(
+                            task.size,
+                            task.size,
+                            image::imageops::FilterType::Lanczos3,
+                        )),
+                        None => None,
+                    };
+
+                    let _ = sender_clone.send(Message::Result(TResult::new(id, task, image)));
+                });
+            }
+        } else {
+            // println!("-- command id mismatch {} != {id}", command.id);
+        }
+    }
+}
+
+pub fn handle_thumbnail_result(eog: &ScrollView, command: &mut TCommand, result: TResult) -> bool {
+    if command.id != result.id {
+        return false;
+    }
+    let tid = result.task.tid;
+    let elapsed = command.elapsed();
+    command.todo -= 1;
+    println!("{tid:3}: ready {:7.3} todo={}", elapsed, command.todo);
+    if let Some(image) = eog.image() {
+        let id = image.id();
+        if result.id == id {
+            println!("{tid:3}: -- result id is ok: {id}");
+            if let Some(thumb) = result.image {
+                println!("{tid:3}:    -- got thumb image");
+                if let Ok(thumb_pb) = Loader::image_rs_to_pixbuf(thumb) {
+                    if let Some(image_pb) = image.pixbuf() {
+                        let size = result.task.size as i32;
+                        let (x, y) = result.task.position;
+                        thumb_pb.copy_area(
+                            0,
+                            0,
+                            thumb_pb.width(),
+                            thumb_pb.height(),
+                            &image_pb,
+                            x + (size - thumb_pb.width()) / 2,
+                            y + (size - thumb_pb.height()) / 2,
+                        );
+                        if (command.todo == 0) || ((elapsed - command.last_update) > 0.3) {
+                            if command.last_update == 0.0 {
+                                eog.set_image_post();
+                            }
+                            image.modified();
+                            command.last_update = elapsed;
+                        }
+                    }
+                }
+            } else {
+                println!("{tid:3}:    -- no thumb image");
+            }
+            return true;
+        } else {
+            println!("{tid:3}: -- command id mismatch {} != {id}", result.id);
+        }
+    }
+    false
+}
+
+#[derive(Debug, Clone)]
+pub enum TSource {
+    FileSource(TFileSource),
+    None,
+}
+
+#[derive(Debug, Clone)]
+pub struct TCommand {
+    id: i32,
+    start: SystemTime,
+    tasks: Vec<TTask>,
+    todo: usize,
+    last_update: f64,
+}
+
+impl Default for TCommand {
+    fn default() -> Self {
+        Self {
+            id: Default::default(),
+            start: SystemTime::now(),
+            tasks: Default::default(),
+            todo: 0,
+            last_update: 0.0,
+        }
+    }
+}
+
+impl TCommand {
+    pub fn new(id: i32, tasks: Vec<TTask>) -> Self {
+        let todo = tasks.len();
+        TCommand {
+            id,
+            start: SystemTime::now(),
+            tasks,
+            todo,
+            last_update: 0.0,
+        }
+    }
+
+    pub fn elapsed(&self) -> f64 {
+        if let Ok(elapsed) = self.start.elapsed() {
+            elapsed.as_secs() as f64 + elapsed.subsec_nanos() as f64 * 1e-9
+        } else {
+            0.0
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct TTask {
+    tid: i32,
+    size: u32,
+    position: (i32, i32),
+    source: TSource,
+}
+
+impl TTask {
+    pub fn new(tid: i32, size: u32, x: i32, y: i32, source: TSource) -> Self {
+        TTask {
+            tid,
+            size,
+            position: (x, y),
+            source,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct TResult {
+    id: i32,
+    task: TTask,
+    image: Option<DynamicImage>,
+}
+
+impl TResult {
+    pub fn new(id: i32, task: TTask, image: Option<DynamicImage>) -> Self {
+        TResult { id, task, image }
+    }
+}
+
+pub enum Message {
+    Command(TCommand),
+    Result(TResult),
 }

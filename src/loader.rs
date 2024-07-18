@@ -129,10 +129,10 @@ impl Loader {
                 ))));
             }
         }
-        println!(
-            "Image.rs {:?} {width}x{height} alpha={has_alpha}",
-            im.color()
-        );
+        // println!(
+        //     "Image.rs {:?} {width}x{height} alpha={has_alpha}",
+        //     im.color()
+        // );
         let pixbuf = Pixbuf::from_bytes(
             &Bytes::from(im.as_bytes()),
             colorspace,
