@@ -118,8 +118,12 @@ impl Backend for FileSystem {
         self.store.clone()
     }
 
-    fn enter(&self, model: ListStore, iter: TreeIter) -> Box<dyn Backend> {
-        <dyn Backend>::new(&format!("{}/{}", self.directory, model.filename(&iter)))
+    fn enter(&self, model: &ListStore, iter: &TreeIter) -> Option<Box<dyn Backend>> {
+        Some(<dyn Backend>::new(&format!(
+            "{}/{}",
+            self.directory,
+            model.filename(iter)
+        )))
     }
 
     fn leave(&self) -> (Box<dyn Backend>, Selection) {
@@ -147,8 +151,8 @@ impl Backend for FileSystem {
         Loader::image_from_file(&filename)
     }
 
-    fn favorite(&self, model: ListStore, iter: TreeIter, direction: Direction) -> bool {
-        let cat = model.category(&iter);
+    fn favorite(&self, model: &ListStore, iter: &TreeIter, direction: Direction) -> bool {
+        let cat = model.category(iter);
         if cat != Category::Image.id()
             && cat != Category::Favorite.id()
             && cat != Category::Trash.id()
@@ -156,7 +160,7 @@ impl Backend for FileSystem {
             return false;
         }
 
-        let filename = model.filename(&iter);
+        let filename = model.filename(iter);
         let re = Regex::new(r"\.([^\.]+)$").unwrap();
         let (new_filename, new_cat) = if matches!(direction, Direction::Up) {
             if filename.contains(".hi.") {
@@ -183,7 +187,7 @@ impl Backend for FileSystem {
         ) {
             Ok(()) => {
                 model.set(
-                    &iter,
+                    iter,
                     &[
                         (Columns::Cat as u32, &new_cat.id()),
                         (Columns::Icon as u32, &new_cat.icon()),

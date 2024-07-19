@@ -159,6 +159,7 @@ impl ObjectImpl for MViewWindowImp {
                     current_task = 0;
                     start_thumbnail_task(&sender, &eog, &command, &mut current_task);
                     start_thumbnail_task(&sender, &eog, &command, &mut current_task);
+                    start_thumbnail_task(&sender, &eog, &command, &mut current_task);
                 }
                 Message::Result(res) => {
                     if handle_thumbnail_result(&eog, &mut command, res) {

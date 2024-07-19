@@ -5,7 +5,7 @@ use gdk::EventKey;
 use gtk::{prelude::*, subclass::prelude::*};
 
 use crate::{
-    backends::{Backend, Selection},
+    backends::{thumbnail::Thumbnail, Backend, Selection},
     filelistview::{Direction, FileListViewExt, Filter},
 };
 
@@ -23,7 +23,19 @@ impl MViewWindowImp {
             }
             gdk::keys::constants::t => {
                 if !w.backend.borrow().is_thumbnail() {
-                    self.set_backend(<dyn Backend>::thumbnail(), Selection::None);
+                    let pos = if let Some((model, iter)) = w.file_list_view.iter() {
+                        if let Some(path) = model.path(&iter) {
+                            *path.indices().first().unwrap_or(&0)
+                        } else {
+                            0
+                        }
+                    } else {
+                        0
+                    };
+                    let thumbnail = Thumbnail::new(pos);
+                    let startpage = thumbnail.startpage();
+                    let new_backend = <dyn Backend>::thumbnail(thumbnail);
+                    self.set_backend(new_backend, startpage);
                 }
             }
             gdk::keys::constants::i => {
@@ -51,6 +63,10 @@ impl MViewWindowImp {
                     self.obj().fullscreen();
                     self.full_screen.set(true);
                 }
+            }
+            gdk::keys::constants::Escape => {
+                self.obj().unfullscreen();
+                self.full_screen.set(false);
             }
             gdk::keys::constants::r => {
                 if let Some(image) = w.eog.image() {
@@ -87,7 +103,7 @@ impl MViewWindowImp {
             gdk::keys::constants::minus | gdk::keys::constants::KP_Subtract => {
                 w.file_list_view.set_unsorted();
                 if let Some((model, iter)) = w.file_list_view.iter() {
-                    if w.backend.borrow().favorite(model, iter, Direction::Down) {
+                    if w.backend.borrow().favorite(&model, &iter, Direction::Down) {
                         w.file_list_view.navigate(Direction::Down, Filter::Image, 1);
                     }
                 }
@@ -95,7 +111,7 @@ impl MViewWindowImp {
             gdk::keys::constants::equal | gdk::keys::constants::KP_Add => {
                 w.file_list_view.set_unsorted();
                 if let Some((model, iter)) = w.file_list_view.iter() {
-                    if w.backend.borrow().favorite(model, iter, Direction::Up) {
+                    if w.backend.borrow().favorite(&model, &iter, Direction::Up) {
                         w.file_list_view.navigate(Direction::Down, Filter::Image, 1);
                     }
                 }

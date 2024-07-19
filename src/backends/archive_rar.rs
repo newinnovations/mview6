@@ -100,10 +100,6 @@ impl Backend for RarArchive {
         self.store.clone()
     }
 
-    fn enter(&self, _model: ListStore, _iter: TreeIter) -> Box<dyn Backend> {
-        Box::new(RarArchive::new(&self.filename))
-    }
-
     fn leave(&self) -> (Box<dyn Backend>, Selection) {
         (
             Box::new(FileSystem::new(&self.directory)),

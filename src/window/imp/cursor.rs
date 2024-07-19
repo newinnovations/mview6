@@ -36,9 +36,11 @@ impl MViewWindowImp {
         if let Some((model, iter)) = w.file_list_view.iter() {
             self.hop_parent_sort.set(Some(self.last_sort.get()));
             let backend = w.backend.borrow();
-            let new_backend = backend.enter(model, iter);
+            let new_backend = backend.enter(&model, &iter);
             drop(backend);
-            self.set_backend(new_backend, Selection::None);
+            if let Some(new_backend) = new_backend {
+                self.set_backend(new_backend, Selection::None);
+            }
         }
     }
 

@@ -30,16 +30,17 @@ pub struct Thumbnail {
     separator_x: i32,
     separator_y: i32,
     parent: RefCell<Box<dyn Backend>>,
+    parent_pos: i32,
 }
 
 impl Default for Thumbnail {
     fn default() -> Self {
-        Self::new()
+        Self::new(0)
     }
 }
 
 impl Thumbnail {
-    pub fn new() -> Self {
+    pub fn new(pos: i32) -> Self {
         Thumbnail {
             size: 175,
             sheet_x: 3840, // 1920,
@@ -47,6 +48,7 @@ impl Thumbnail {
             separator_x: 4,
             separator_y: 4,
             parent: RefCell::new(<dyn Backend>::invalid()),
+            parent_pos: pos,
         }
     }
 
@@ -59,6 +61,10 @@ impl Thumbnail {
 
     pub fn capacity(&self) -> i32 {
         self.capacity_x() * self.capacity_y()
+    }
+
+    pub fn startpage(&self) -> Selection {
+        Selection::Index(self.parent_pos as u32 / self.capacity() as u32)
     }
 
     // pub fn sheet(&self) -> MviewResult<Image> {
@@ -224,10 +230,6 @@ impl Backend for Thumbnail {
         store
     }
 
-    fn enter(&self, _model: ListStore, _iter: TreeIter) -> Box<dyn Backend> {
-        Box::new(Thumbnail::new())
-    }
-
     fn leave(&self) -> (Box<dyn Backend>, Selection) {
         (self.parent.borrow().backend().dynbox(), Selection::None)
     }
@@ -263,7 +265,13 @@ impl Backend for Thumbnail {
         true
     }
 
-    fn click(&self, x: f64, y: f64) -> Option<(Box<dyn Backend>, Selection)> {
+    fn click(
+        &self,
+        model: &ListStore,
+        iter: &TreeIter,
+        x: f64,
+        y: f64,
+    ) -> Option<(Box<dyn Backend>, Selection)> {
         let (offset_x, offset_y) = self.offset();
 
         dbg!(x, y, offset_x, offset_y);
@@ -277,7 +285,8 @@ impl Backend for Thumbnail {
             return None;
         }
 
-        let pos = y * self.capacity_x() + x;
+        let page = model.index(iter) as i32;
+        let pos = page * self.capacity() + y * self.capacity_x() + x;
         dbg!(pos);
 
         let backend = self.parent.borrow();

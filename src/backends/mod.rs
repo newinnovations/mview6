@@ -41,27 +41,36 @@ pub enum Selection {
     None,
 }
 
+#[allow(unused_variables)]
 pub trait Backend {
     fn class_name(&self) -> &str;
     fn path(&self) -> &str;
     fn store(&self) -> ListStore;
-    fn favorite(&self, _model: ListStore, _iter: TreeIter, _direction: Direction) -> bool {
+    fn favorite(&self, model: &ListStore, iter: &TreeIter, _direction: Direction) -> bool {
         false
     }
-    fn enter(&self, model: ListStore, iter: TreeIter) -> Box<dyn Backend>;
+    fn enter(&self, model: &ListStore, iter: &TreeIter) -> Option<Box<dyn Backend>> {
+        None
+    }
     fn leave(&self) -> (Box<dyn Backend>, Selection);
     fn image(&self, w: &MViewWidgets, model: &ListStore, iter: &TreeIter) -> Image;
-    fn thumb(&self, _model: &ListStore, _iter: &TreeIter) -> TSource {
+    fn thumb(&self, model: &ListStore, iter: &TreeIter) -> TSource {
         TSource::None
     }
-    fn set_parent(&self, _parent: Box<dyn Backend>) {}
+    fn set_parent(&self, parent: Box<dyn Backend>) {}
     fn backend(&self) -> Backends {
         Backends::Invalid(Invalid::new())
     }
     fn is_thumbnail(&self) -> bool {
         false
     }
-    fn click(&self, _x: f64, _y: f64) -> Option<(Box<dyn Backend>, Selection)> {
+    fn click(
+        &self,
+        model: &ListStore,
+        iter: &TreeIter,
+        x: f64,
+        y: f64,
+    ) -> Option<(Box<dyn Backend>, Selection)> {
         None
     }
 }
@@ -87,8 +96,8 @@ impl dyn Backend {
         Box::new(Bookmarks::new())
     }
 
-    pub fn thumbnail() -> Box<dyn Backend> {
-        Box::new(Thumbnail::new())
+    pub fn thumbnail(thumbnail: Thumbnail) -> Box<dyn Backend> {
+        Box::new(thumbnail)
     }
 
     pub fn invalid() -> Box<dyn Backend> {

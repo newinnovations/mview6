@@ -32,10 +32,6 @@ impl Backend for Invalid {
         empty_store()
     }
 
-    fn enter(&self, _model: ListStore, _iter: TreeIter) -> Box<dyn Backend> {
-        Box::new(Invalid::new())
-    }
-
     fn leave(&self) -> (Box<dyn Backend>, Selection) {
         (Box::new(Invalid::new()), Selection::None)
     }

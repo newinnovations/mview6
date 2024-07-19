@@ -81,8 +81,8 @@ impl Backend for Bookmarks {
         self.store.clone()
     }
 
-    fn enter(&self, model: ListStore, iter: TreeIter) -> Box<dyn Backend> {
-        <dyn Backend>::new(&model.folder(&iter))
+    fn enter(&self, model: &ListStore, iter: &TreeIter) -> Option<Box<dyn Backend>> {
+        Some(<dyn Backend>::new(&model.folder(iter)))
     }
 
     fn leave(&self) -> (Box<dyn Backend>, Selection) {
