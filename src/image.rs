@@ -121,20 +121,33 @@ impl ImageLoader {
         Ok(reader.decode()?)
     }
 
-    pub fn image_rs_to_pixbuf(im: DynamicImage) -> MviewResult<Pixbuf> {
-        let (width, height) = im.dimensions();
+    pub fn image_rs_to_pixbuf(image: DynamicImage) -> MviewResult<Pixbuf> {
+        let (width, height) = image.dimensions();
         let colorspace;
         let has_alpha;
         let bits_per_sample;
         let rowstride;
-        match im {
-            image::DynamicImage::ImageRgb8(_) => {
+
+        let image = match image.color() {
+            image::ColorType::L8 => DynamicImage::from(image.to_rgb8()),
+            image::ColorType::La8 => DynamicImage::from(image.to_rgba8()),
+            image::ColorType::L16 => DynamicImage::from(image.to_rgb8()),
+            image::ColorType::La16 => DynamicImage::from(image.to_rgba8()),
+            image::ColorType::Rgb16 => DynamicImage::from(image.to_rgb8()),
+            image::ColorType::Rgba16 => DynamicImage::from(image.to_rgba8()),
+            image::ColorType::Rgb32F => DynamicImage::from(image.to_rgb8()),
+            image::ColorType::Rgba32F => DynamicImage::from(image.to_rgba8()),
+            _ => image,
+        };
+
+        match image.color() {
+            image::ColorType::Rgb8 => {
                 colorspace = gdk_pixbuf::Colorspace::Rgb;
                 has_alpha = false;
                 bits_per_sample = 8;
                 rowstride = 3 * width;
             }
-            image::DynamicImage::ImageRgba8(_) => {
+            image::ColorType::Rgba8 => {
                 colorspace = gdk_pixbuf::Colorspace::Rgb;
                 has_alpha = true;
                 bits_per_sample = 8;
@@ -143,7 +156,7 @@ impl ImageLoader {
             _ => {
                 return Err(MviewError::App(AppError::new(&format!(
                     "Unsupported color space {:?}",
-                    im.color()
+                    image.color()
                 ))));
             }
         }
@@ -152,7 +165,7 @@ impl ImageLoader {
         //     im.color()
         // );
         let pixbuf = Pixbuf::from_bytes(
-            &Bytes::from(im.as_bytes()),
+            &Bytes::from(image.as_bytes()),
             colorspace,
             has_alpha,
             bits_per_sample,
@@ -177,11 +190,23 @@ impl ImageSaver {
         }
         let thumbnail_path = format!("{thumbnail_dir}/{filename}");
 
+        let image = match image.color() {
+            image::ColorType::L16 => &DynamicImage::from(image.to_luma8()),
+            image::ColorType::La16 => &DynamicImage::from(image.to_luma_alpha8()),
+            image::ColorType::Rgb16 => &DynamicImage::from(image.to_rgb8()),
+            image::ColorType::Rgba16 => &DynamicImage::from(image.to_rgba8()),
+            image::ColorType::Rgb32F => &DynamicImage::from(image.to_rgb8()),
+            image::ColorType::Rgba32F => &DynamicImage::from(image.to_rgba8()),
+            _ => image,
+        };
+
         let format = match image.color() {
+            image::ColorType::L8 => image::ImageFormat::Jpeg,
+            image::ColorType::La8 => image::ImageFormat::WebP,
             image::ColorType::Rgb8 => image::ImageFormat::Jpeg,
             image::ColorType::Rgba8 => image::ImageFormat::WebP,
             _ => {
-                println!("Unsupported image colortype when writing thumbnail");
+                println!("Unsupported image colortype when writing thumbnail {:?}", image.color());
                 return;
             }
         };

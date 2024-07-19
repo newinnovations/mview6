@@ -388,20 +388,25 @@ pub fn handle_thumbnail_result(eog: &ScrollView, command: &mut TCommand, result:
             // println!("{tid:3}: -- result id is ok: {id}");
             if let Some(thumb) = result.image {
                 // println!("{tid:3}:    -- got thumb image");
-                if let Ok(thumb_pb) = ImageLoader::image_rs_to_pixbuf(thumb) {
-                    if let Some(image_pb) = image.pixbuf() {
-                        let size = result.task.size as i32;
-                        let (x, y) = result.task.position;
-                        thumb_pb.copy_area(
-                            0,
-                            0,
-                            thumb_pb.width(),
-                            thumb_pb.height(),
-                            &image_pb,
-                            x + (size - thumb_pb.width()) / 2,
-                            y + (size - thumb_pb.height()) / 2,
-                        );
-                    }
+                match ImageLoader::image_rs_to_pixbuf(thumb) {
+                    Ok(thumb_pb) => {
+                        if let Some(image_pb) = image.pixbuf() {
+                            let size = result.task.size as i32;
+                            let (x, y) = result.task.position;
+                            thumb_pb.copy_area(
+                                0,
+                                0,
+                                thumb_pb.width(),
+                                thumb_pb.height(),
+                                &image_pb,
+                                x + (size - thumb_pb.width()) / 2,
+                                y + (size - thumb_pb.height()) / 2,
+                            );
+                        }
+                    },
+                    Err(error) => {
+                        println!("Thumbnail: failed to convert to pixbuf {:?}", error);
+                    },
                 }
             } else {
                 // println!("{tid:3}:    -- no thumb image");
