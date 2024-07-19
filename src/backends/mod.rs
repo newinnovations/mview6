@@ -58,9 +58,7 @@ pub trait Backend {
         TSource::None
     }
     fn set_parent(&self, parent: Box<dyn Backend>) {}
-    fn backend(&self) -> Backends {
-        Backends::Invalid(Invalid::new())
-    }
+    fn backend(&self) -> Backends;
     fn is_thumbnail(&self) -> bool {
         false
     }
@@ -117,8 +115,6 @@ pub enum Backends {
     Zip(ZipArchive),
     Rar(RarArchive),
     Invalid(Invalid),
-    Thumb(Thumbnail),
-    Bookmark(Bookmarks),
 }
 
 impl Backends {
@@ -127,10 +123,7 @@ impl Backends {
             Backends::File(f) => Box::new(f.clone()),
             Backends::Zip(f) => Box::new(f.clone()),
             Backends::Rar(f) => Box::new(f.clone()),
-            // Backends::Invalid(f) => Box::new(f.clone()),
-            // Backends::Thumb(f) => Box::new(f.clone()),
-            // Backends::Bookmark(f) => Box::new(f.clone()),
-            _ => Box::new(Invalid::new()),
+            Backends::Invalid(f) => Box::new(f.clone()),
         }
     }
 }

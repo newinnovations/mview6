@@ -5,7 +5,7 @@ mod config;
 mod draw;
 mod error;
 mod filelistview;
-mod loader;
+mod image;
 mod window;
 
 use gdk::Screen;

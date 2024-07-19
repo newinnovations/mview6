@@ -10,27 +10,44 @@ use glib::{Bytes, ObjectExt};
 use image::{io::Reader, DynamicImage, GenericImageView};
 use std::{fs, io::Cursor, path::Path};
 
-pub struct Loader {}
+pub struct ImageLoader {}
 
-impl Loader {
+impl ImageLoader {
     pub fn image_from_file(filename: &str) -> Image {
-        if let Ok(im) = Self::image_from_file_gtk(filename) {
-            return im;
-        }
-        match Self::image_from_file_image_rs(filename) {
-            Ok(im) => im,
-            Err(e) => draw(&format!("Error: {:?}", e)).unwrap(),
-        }
+        let image = if let Ok(im) = Self::image_from_file_gtk(filename) {
+            im
+        } else {
+            match Self::image_from_file_image_rs(filename) {
+                Ok(im) => im,
+                Err(e) => draw(&format!("Error: {:?}", e)).unwrap(),
+            }
+        };
+
+        // let image = match Self::image_from_file_image_rs(filename) {
+        //     Ok(im) => im,
+        //     Err(e) => draw(&format!("Error: {:?}", e)).unwrap(),
+        // };
+
+        let filename_c = filename.to_string();
+        image.add_weak_ref_notify(move || {
+            println!("**image [{filename_c}] disposed**");
+        });
+        image
     }
 
     pub fn image_from_memory(buf: Vec<u8>) -> Image {
-        if let Ok(im) = Self::image_from_memory_gtk(&buf) {
-            return im;
-        }
-        match Self::image_from_memory_image_rs(&buf) {
-            Ok(im) => im,
-            Err(e) => draw(&format!("Error: {:?}", e)).unwrap(),
-        }
+        let image = if let Ok(im) = Self::image_from_memory_gtk(&buf) {
+            im
+        } else {
+            match Self::image_from_memory_image_rs(&buf) {
+                Ok(im) => im,
+                Err(e) => draw(&format!("Error: {:?}", e)).unwrap(),
+            }
+        };
+        image.add_weak_ref_notify(move || {
+            println!("**image (from memory) disposed**");
+        });
+        image
     }
 
     pub fn image_from_file_gtk(filename: &str) -> MviewResult<Image> {
@@ -57,11 +74,6 @@ impl Loader {
         let file = File::for_parse_name(filename);
         let stream = file.read(Cancellable::NONE)?;
         let image = Image::new_stream(&stream)?;
-
-        let filename_c = filename.to_string();
-        image.add_weak_ref_notify(move || {
-            println!("**image [{filename_c}] disposed**");
-        });
 
         Ok(image)
     }
@@ -149,5 +161,33 @@ impl Loader {
             rowstride as i32,
         );
         Ok(pixbuf)
+    }
+}
+
+pub struct ImageSaver {}
+
+impl ImageSaver {
+    pub fn save_thumbnail(base_directory: &str, filename: &str, image: &DynamicImage) {
+        let thumbnail_dir = format!("{}/.mview", base_directory);
+        if !Path::new(&thumbnail_dir).exists() {
+            if let Err(error) = fs::create_dir(&thumbnail_dir) {
+                println!("Failed to create thumbnail directory: {:?}", error);
+                return;
+            }
+        }
+        let thumbnail_path = format!("{thumbnail_dir}/{filename}");
+
+        let format = match image.color() {
+            image::ColorType::Rgb8 => image::ImageFormat::Jpeg,
+            image::ColorType::Rgba8 => image::ImageFormat::WebP,
+            _ => {
+                println!("Unsupported image colortype when writing thumbnail");
+                return;
+            }
+        };
+
+        if let Err(error) = image.save_with_format(thumbnail_path, format) {
+            println!("Failed to write thumbnail: {:?}", error);
+        }
     }
 }

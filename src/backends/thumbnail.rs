@@ -6,12 +6,13 @@ use std::{
 
 use super::{
     archive_rar::TRarSource, archive_zip::TZipSource, empty_store, filesystem::TFileSource,
-    Backend, Columns, Selection, TreeModelMviewExt,
+    Backend, Backends, Columns, Selection, TreeModelMviewExt,
 };
 use crate::{
     backends::{archive_rar::RarArchive, archive_zip::ZipArchive, filesystem::FileSystem},
     category::Category,
-    loader::Loader,
+    error::MviewResult,
+    image::ImageLoader,
     window::MViewWidgets,
 };
 use eog::{Image, ImageExt, ScrollView, ScrollViewExt};
@@ -265,6 +266,10 @@ impl Backend for Thumbnail {
         true
     }
 
+    fn backend(&self) -> Backends {
+        self.parent.borrow().backend()
+    }
+
     fn click(
         &self,
         model: &ListStore,
@@ -274,12 +279,12 @@ impl Backend for Thumbnail {
     ) -> Option<(Box<dyn Backend>, Selection)> {
         let (offset_x, offset_y) = self.offset();
 
-        dbg!(x, y, offset_x, offset_y);
+        // dbg!(x, y, offset_x, offset_y);
 
         let x = (x as i32 - offset_x) / (self.size + self.separator_x);
         let y = (y as i32 - offset_y) / (self.size + self.separator_y);
 
-        dbg!(x, y);
+        // dbg!(x, y);
 
         if x < 0 || y < 0 || x >= self.capacity_x() || y >= self.capacity_y() {
             return None;
@@ -287,13 +292,12 @@ impl Backend for Thumbnail {
 
         let page = model.index(iter) as i32;
         let pos = page * self.capacity() + y * self.capacity_x() + x;
-        dbg!(pos);
+        // dbg!(pos);
 
         let backend = self.parent.borrow();
         let store = backend.store();
         if let Some(iter) = store.iter_nth_child(None, pos) {
             let source = backend.thumb(&store, &iter);
-            // dbg!(source);
             match source {
                 TSource::FileSource(src) => Some((
                     self.parent.borrow().backend().dynbox(),
@@ -315,13 +319,23 @@ impl Backend for Thumbnail {
     }
 }
 
+fn thumb_result(res: MviewResult<DynamicImage>) -> Option<DynamicImage> {
+    match res {
+        Ok(image) => Some(image),
+        Err(error) => {
+            println!("Thumbnail failed: {:?}", error);
+            None
+        }
+    }
+}
+
 pub fn start_thumbnail_task(
     sender: &glib::Sender<Message>,
     eog: &ScrollView,
     command: &TCommand,
     current_task: &mut usize,
 ) {
-    let elapsed = command.elapsed();
+    // let elapsed = command.elapsed();
     // println!("ThumbnailTask: {:7.3}", elapsed);
     if let Some(image) = eog.image() {
         let id = image.id();
@@ -331,18 +345,17 @@ pub fn start_thumbnail_task(
             if let Some(task) = command.tasks.get(*current_task) {
                 *current_task += 1;
                 let task = task.clone();
-                let tid = task.tid;
+                // let tid = task.tid;
                 thread::spawn(move || {
-                    println!("{tid:3}: start {:7.3}", elapsed);
+                    // println!("{tid:3}: start {:7.3}", elapsed);
                     // thread::sleep(time::Duration::from_secs(2));
                     thread::sleep(time::Duration::from_millis(1));
                     let image = match &task.source {
-                        TSource::FileSource(src) => FileSystem::get_thumbnail(src),
-                        TSource::ZipSource(src) => ZipArchive::get_thumbnail(src),
-                        TSource::RarSource(src) => RarArchive::get_thumbnail(src),
+                        TSource::FileSource(src) => thumb_result(FileSystem::get_thumbnail(src)),
+                        TSource::ZipSource(src) => thumb_result(ZipArchive::get_thumbnail(src)),
+                        TSource::RarSource(src) => thumb_result(RarArchive::get_thumbnail(src)),
                         TSource::None => None,
                     };
-
                     let image = match image {
                         Some(im) => Some(im.resize(
                             task.size,
@@ -365,17 +378,17 @@ pub fn handle_thumbnail_result(eog: &ScrollView, command: &mut TCommand, result:
     if command.id != result.id {
         return false;
     }
-    let tid = result.task.tid;
+    // let tid = result.task.tid;
     let elapsed = command.elapsed();
     command.todo -= 1;
-    println!("{tid:3}: ready {:7.3} todo={}", elapsed, command.todo);
+    // println!("{tid:3}: ready {:7.3} todo={}", elapsed, command.todo);
     if let Some(image) = eog.image() {
         let id = image.id();
         if result.id == id {
-            println!("{tid:3}: -- result id is ok: {id}");
+            // println!("{tid:3}: -- result id is ok: {id}");
             if let Some(thumb) = result.image {
-                println!("{tid:3}:    -- got thumb image");
-                if let Ok(thumb_pb) = Loader::image_rs_to_pixbuf(thumb) {
+                // println!("{tid:3}:    -- got thumb image");
+                if let Ok(thumb_pb) = ImageLoader::image_rs_to_pixbuf(thumb) {
                     if let Some(image_pb) = image.pixbuf() {
                         let size = result.task.size as i32;
                         let (x, y) = result.task.position;
@@ -388,21 +401,21 @@ pub fn handle_thumbnail_result(eog: &ScrollView, command: &mut TCommand, result:
                             x + (size - thumb_pb.width()) / 2,
                             y + (size - thumb_pb.height()) / 2,
                         );
-                        if (command.todo == 0) || ((elapsed - command.last_update) > 0.3) {
-                            if command.last_update == 0.0 {
-                                eog.set_image_post();
-                            }
-                            image.modified();
-                            command.last_update = elapsed;
-                        }
                     }
                 }
             } else {
-                println!("{tid:3}:    -- no thumb image");
+                // println!("{tid:3}:    -- no thumb image");
             }
-            return true;
+            if command.todo == 0 || (elapsed - command.last_update) > 0.3 {
+                if command.last_update == 0.0 {
+                    eog.set_image_post();
+                }
+                image.modified();
+                command.last_update = elapsed;
+            }
+            return command.todo != 0;
         } else {
-            println!("{tid:3}: -- command id mismatch {} != {id}", result.id);
+            // println!("{tid:3}: -- command id mismatch {} != {id}", result.id);
         }
     }
     false
@@ -456,8 +469,13 @@ impl TCommand {
             0.0
         }
     }
+
+    pub fn needs_work(&self) -> bool {
+        self.todo != 0
+    }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct TTask {
     tid: i32,

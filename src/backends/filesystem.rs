@@ -1,5 +1,9 @@
 use crate::{
-    backends::TreeModelMviewExt, category::Category, filelistview::Direction, loader::Loader,
+    backends::TreeModelMviewExt,
+    category::Category,
+    error::MviewResult,
+    filelistview::Direction,
+    image::{ImageLoader, ImageSaver},
     window::MViewWidgets,
 };
 use eog::Image;
@@ -80,27 +84,17 @@ impl FileSystem {
         store
     }
 
-    pub fn get_thumbnail(src: &TFileSource) -> Option<DynamicImage> {
-        let thumb_filename = format!("{}/.mview/{}.mthumb", src.directory, src.filename);
-        if Path::new(&thumb_filename).exists() {
-            if let Ok(im) = Loader::dynimg_from_file(&thumb_filename) {
-                Some(im)
-            } else {
-                None
-            }
+    pub fn get_thumbnail(src: &TFileSource) -> MviewResult<DynamicImage> {
+        let thumb_filename = src.filename.replace(".lo.", ".").replace(".hi.", ".") + ".mthumb";
+        let thumb_path = format!("{}/.mview/{}", src.directory, thumb_filename);
+        if Path::new(&thumb_path).exists() {
+            ImageLoader::dynimg_from_file(&thumb_path)
         } else {
-            let filename = format!("{}/{}", src.directory, src.filename);
-            if let Ok(im) = Loader::dynimg_from_file(&filename) {
-                let im = im.resize(175, 175, image::imageops::FilterType::Lanczos3);
-                let thumb_dir = format!("{}/.mview", src.directory);
-                if !Path::new(&thumb_dir).exists() {
-                    let _ = fs::create_dir(thumb_dir);
-                }
-                let _ = im.save_with_format(thumb_filename, image::ImageFormat::Jpeg);
-                Some(im)
-            } else {
-                None
-            }
+            let path = format!("{}/{}", src.directory, src.filename);
+            let image = ImageLoader::dynimg_from_file(&path)?;
+            let image = image.resize(175, 175, image::imageops::FilterType::Lanczos3);
+            ImageSaver::save_thumbnail(&src.directory, &thumb_filename, &image);
+            Ok(image)
         }
     }
 }
@@ -148,7 +142,7 @@ impl Backend for FileSystem {
 
     fn image(&self, _w: &MViewWidgets, model: &ListStore, iter: &TreeIter) -> Image {
         let filename = format!("{}/{}", self.directory, model.filename(iter));
-        Loader::image_from_file(&filename)
+        ImageLoader::image_from_file(&filename)
     }
 
     fn favorite(&self, model: &ListStore, iter: &TreeIter, direction: Direction) -> bool {

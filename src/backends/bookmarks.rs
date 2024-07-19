@@ -6,7 +6,7 @@ use eog::Image;
 use gtk::{prelude::GtkListStoreExtManual, ListStore, TreeIter};
 use std::{cell::RefCell, fs, io, time::UNIX_EPOCH};
 
-use super::{empty_store, Backend, Columns, Selection};
+use super::{empty_store, Backend, Backends, Columns, Selection};
 
 pub struct Bookmarks {
     store: ListStore,
@@ -95,5 +95,9 @@ impl Backend for Bookmarks {
 
     fn set_parent(&self, parent: Box<dyn Backend>) {
         self.parent.replace(parent);
+    }
+
+    fn backend(&self) -> Backends {
+        self.parent.borrow().backend()
     }
 }

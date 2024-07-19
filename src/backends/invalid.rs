@@ -3,8 +3,9 @@ use gtk::{ListStore, TreeIter};
 
 use crate::{draw::draw, window::MViewWidgets};
 
-use super::{empty_store, Backend, Selection};
+use super::{empty_store, Backend, Backends, Selection};
 
+#[derive(Clone)]
 pub struct Invalid {}
 
 impl Invalid {
@@ -38,5 +39,9 @@ impl Backend for Invalid {
 
     fn image(&self, _w: &MViewWidgets, _model: &ListStore, _iter: &TreeIter) -> Image {
         draw("invalid").unwrap()
+    }
+
+    fn backend(&self) -> Backends {
+        Backends::Invalid(self.clone())
     }
 }

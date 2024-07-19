@@ -1,4 +1,4 @@
-use std::{fs, path::Path};
+use std::path::Path;
 
 use chrono::{Local, TimeZone};
 use eog::Image;
@@ -8,7 +8,12 @@ use sha2::{Digest, Sha256};
 use unrar::{error::UnrarError, Archive, UnrarResult};
 
 use crate::{
-    backends::empty_store, category::Category, draw::draw, loader::Loader, window::MViewWidgets,
+    backends::empty_store,
+    category::Category,
+    draw::draw,
+    error::MviewResult,
+    image::{ImageLoader, ImageSaver},
+    window::MViewWidgets,
 };
 
 use super::{
@@ -55,34 +60,22 @@ impl RarArchive {
         store
     }
 
-    pub fn get_thumbnail(src: &TRarSource) -> Option<DynamicImage> {
+    pub fn get_thumbnail(src: &TRarSource) -> MviewResult<DynamicImage> {
         let mut hasher = Sha256::new();
         hasher.update(src.archive.as_bytes());
         hasher.update(src.selection.as_bytes());
         let sha256sum = format!("{:x}", hasher.finalize());
-        let thumb_filename = format!("{}/.mview/{sha256sum}.mthumb", src.directory);
-        if Path::new(&thumb_filename).exists() {
-            if let Ok(im) = Loader::dynimg_from_file(&thumb_filename) {
-                Some(im)
-            } else {
-                None
-            }
+        let thumb_filename = format!("{sha256sum}.mthumb");
+        let thumb_path = format!("{}/.mview/{}", src.directory, thumb_filename);
+
+        if Path::new(&thumb_path).exists() {
+            ImageLoader::dynimg_from_file(&thumb_path)
         } else {
-            let img = match extract_rar(&src.filename, &src.selection) {
-                Ok(bytes) => Loader::dynimg_from_memory(&bytes),
-                Err(_error) => return None,
-            };
-            if let Ok(im) = img {
-                let im = im.resize(175, 175, image::imageops::FilterType::Lanczos3);
-                let thumb_dir = format!("{}/.mview", src.directory);
-                if !Path::new(&thumb_dir).exists() {
-                    let _ = fs::create_dir(thumb_dir);
-                }
-                let _ = im.save_with_format(thumb_filename, image::ImageFormat::Jpeg);
-                Some(im)
-            } else {
-                None
-            }
+            let bytes = extract_rar(&src.filename, &src.selection)?;
+            let image = ImageLoader::dynimg_from_memory(&bytes)?;
+            let image = image.resize(175, 175, image::imageops::FilterType::Lanczos3);
+            ImageSaver::save_thumbnail(&src.directory, &thumb_filename, &image);
+            Ok(image)
         }
     }
 }
@@ -110,7 +103,7 @@ impl Backend for RarArchive {
     fn image(&self, _w: &MViewWidgets, model: &ListStore, iter: &TreeIter) -> Image {
         let sel = model.filename(iter);
         match extract_rar(&self.filename, &sel) {
-            Ok(bytes) => Loader::image_from_memory(bytes),
+            Ok(bytes) => ImageLoader::image_from_memory(bytes),
             Err(error) => draw(&format!("Error {}", error)).unwrap(),
         }
     }

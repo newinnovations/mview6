@@ -1,5 +1,8 @@
 use std::fmt;
 
+use unrar::error::UnrarError;
+use zip::result::ZipError;
+
 pub struct AppError {
     msg: String,
 }
@@ -40,12 +43,28 @@ pub enum MviewError {
 
     Io(std::io::Error),
 
+    Zip(ZipError),
+
+    Rar(UnrarError),
+
     Glib(glib::Error),
 }
 
 impl From<std::io::Error> for MviewError {
     fn from(err: std::io::Error) -> MviewError {
         MviewError::Io(err)
+    }
+}
+
+impl From<ZipError> for MviewError {
+    fn from(err: ZipError) -> MviewError {
+        MviewError::Zip(err)
+    }
+}
+
+impl From<UnrarError> for MviewError {
+    fn from(err: UnrarError) -> MviewError {
+        MviewError::Rar(err)
     }
 }
 
@@ -72,6 +91,8 @@ impl fmt::Display for MviewError {
         match self {
             MviewError::App(err) => err.fmt(fmt),
             MviewError::Io(err) => err.fmt(fmt),
+            MviewError::Zip(err) => err.fmt(fmt),
+            MviewError::Rar(err) => err.fmt(fmt),
             MviewError::Cairo(err) => err.fmt(fmt),
             MviewError::Image(err) => err.fmt(fmt),
             MviewError::Glib(err) => err.fmt(fmt),
