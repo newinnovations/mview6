@@ -2,7 +2,7 @@ use super::MViewWindowImp;
 
 use eog::{ImageExt, ScrollViewExt};
 use gdk::EventKey;
-use gtk::{prelude::*, subclass::prelude::*};
+use gtk::{prelude::*, subclass::prelude::*, SortColumn};
 
 use crate::{
     backends::{thumbnail::Thumbnail, Backend, Selection},
@@ -173,6 +173,30 @@ impl MViewWindowImp {
             gdk::keys::constants::End => {
                 w.file_list_view
                     .emit_move_cursor(gtk::MovementStep::BufferEnds, 1);
+            }
+            gdk::keys::constants::_1 => {
+                if let Some(current) = w.file_list_view.current() {
+                    current.set_sort_column(SortColumn::Index(0));
+                    w.file_list_view.goto(&Selection::None);
+                }
+            }
+            gdk::keys::constants::_2 => {
+                if let Some(current) = w.file_list_view.current() {
+                    current.set_sort_column(SortColumn::Index(2));
+                    w.file_list_view.goto(&Selection::None);
+                }
+            }
+            gdk::keys::constants::_3 => {
+                if let Some(current) = w.file_list_view.current() {
+                    current.set_sort_column(SortColumn::Index(3));
+                    w.file_list_view.goto(&Selection::None);
+                }
+            }
+            gdk::keys::constants::_4 => {
+                if let Some(current) = w.file_list_view.current() {
+                    current.set_sort_column(SortColumn::Index(4));
+                    w.file_list_view.goto(&Selection::None);
+                }
             }
             _ => (),
         }

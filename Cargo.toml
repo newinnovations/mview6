@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 chrono = "0.4.38"
+human_bytes = { version = "0.4.3", features = ["fast"], default-features = false }
 image = "0.25.1"
 rand = "0.8.5"
 regex = "1.10.4"

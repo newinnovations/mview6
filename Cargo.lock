@@ -14,6 +14,7 @@ dependencies = [
  "gio",
  "glib",
  "gtk",
+ "human_bytes",
  "image",
  "libhandy",
  "rand",
@@ -867,6 +868,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c49c37c09c17a53d937dfbb742eb3a961d65a994e6bcdcf37e7399d0cc8ab5e"
 dependencies = [
  "digest",
+]
+
+[[package]]
+name = "human_bytes"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "91f255a4535024abf7640cb288260811fc14794f62b063652ed349f9a6c2348e"
+dependencies = [
+ "ryu",
 ]
 
 [[package]]

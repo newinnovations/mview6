@@ -5,6 +5,7 @@ use glib::ObjectExt;
 use gtk::glib;
 use gtk::prelude::{TreeModelExt, TreeViewColumnExt, TreeViewExt};
 use gtk::subclass::prelude::*;
+use human_bytes::human_bytes;
 
 #[derive(Debug, Default)]
 pub struct FileListViewImp {
@@ -61,6 +62,19 @@ impl ObjectImpl for FileListViewImp {
         column.set_sizing(gtk::TreeViewColumnSizing::Fixed);
         column.set_fixed_width(90);
         column.set_sort_column_id(Columns::Size as i32);
+        column.set_cell_data_func(
+            &renderer,
+            Some(Box::new(|_col, renderer, model, iter| {
+                let size = model.value(iter, Columns::Size as i32);
+                let size = size.get::<u64>().unwrap_or(0);
+                let modified_text = if size > 0 {
+                    human_bytes(size as f64)
+                } else {
+                    String::default()
+                };
+                renderer.set_property("text", modified_text);
+            })),
+        );
         instance.append_column(&column);
 
         // Column for modified date
@@ -73,12 +87,16 @@ impl ObjectImpl for FileListViewImp {
         column.set_sort_column_id(Columns::Modified as i32);
         column.set_cell_data_func(
             &renderer,
-            Some(Box::new(|_col, ren, model, iter| {
+            Some(Box::new(|_col, renderer, model, iter| {
                 let modified = model.value(iter, Columns::Modified as i32);
                 let modified = modified.get::<u64>().unwrap_or(0);
-                let dt: DateTime<Local> = Local.timestamp_opt(modified as i64, 0).unwrap();
-                let modified_text = dt.format("%d-%m-%Y %H:%M:%S").to_string();
-                ren.set_property("text", modified_text);
+                let modified_text = if modified > 0 {
+                    let dt: DateTime<Local> = Local.timestamp_opt(modified as i64, 0).unwrap();
+                    dt.format("%d-%m-%Y %H:%M:%S").to_string()
+                } else {
+                    String::default()
+                };
+                renderer.set_property("text", modified_text);
             })),
         );
         instance.append_column(&column);

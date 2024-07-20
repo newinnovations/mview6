@@ -4,7 +4,7 @@ use glib::{Cast, IsA};
 use gtk::{
     glib,
     prelude::{GtkListStoreExtManual, TreeModelExt, TreeSortableExtManual, TreeViewExt},
-    ListStore, TreeIter, TreePath, TreeView, TreeViewColumn,
+    ListStore, SortColumn, SortType, TreeIter, TreePath, TreeView, TreeViewColumn,
 };
 
 use crate::{
@@ -86,6 +86,24 @@ impl Cursor {
                 (Columns::Name as u32, &new_filename),
             ],
         );
+    }
+
+    pub fn set_sort_column(&self, new_column: SortColumn) {
+        let current_sort = self.store.sort_column_id();
+        let new_direction = match current_sort {
+            Some((current_column, current_direction)) => {
+                if current_column.eq(&new_column) {
+                    match current_direction {
+                        SortType::Ascending => SortType::Descending,
+                        _ => SortType::Ascending,
+                    }
+                } else {
+                    SortType::Ascending
+                }
+            }
+            None => SortType::Ascending,
+        };
+        self.store.set_sort_column_id(new_column, new_direction);
     }
 
     fn navigate(&self, direction: Direction, filter: Filter, count: i32) -> Option<TreePath> {
