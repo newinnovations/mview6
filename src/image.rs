@@ -206,7 +206,10 @@ impl ImageSaver {
             image::ColorType::Rgb8 => image::ImageFormat::Jpeg,
             image::ColorType::Rgba8 => image::ImageFormat::WebP,
             _ => {
-                println!("Unsupported image colortype when writing thumbnail {:?}", image.color());
+                println!(
+                    "Unsupported image colortype when writing thumbnail {:?}",
+                    image.color()
+                );
                 return;
             }
         };

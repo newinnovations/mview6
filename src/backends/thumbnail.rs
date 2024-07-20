@@ -1,6 +1,6 @@
 use std::{
     cell::RefCell,
-    thread,
+    panic, thread,
     time::{self, SystemTime},
 };
 
@@ -350,11 +350,17 @@ pub fn start_thumbnail_task(
                     // println!("{tid:3}: start {:7.3}", elapsed);
                     // thread::sleep(time::Duration::from_secs(2));
                     thread::sleep(time::Duration::from_millis(1));
-                    let image = match &task.source {
+                    let image = match panic::catch_unwind(|| match &task.source {
                         TSource::FileSource(src) => thumb_result(FileSystem::get_thumbnail(src)),
                         TSource::ZipSource(src) => thumb_result(ZipArchive::get_thumbnail(src)),
                         TSource::RarSource(src) => thumb_result(RarArchive::get_thumbnail(src)),
                         TSource::None => None,
+                    }) {
+                        Ok(image) => image,
+                        Err(_) => {
+                            println!("*** Panic in image-rs/zune-jpeg ***");
+                            None
+                        }
                     };
                     let image = match image {
                         Some(im) => Some(im.resize(
@@ -403,10 +409,10 @@ pub fn handle_thumbnail_result(eog: &ScrollView, command: &mut TCommand, result:
                                 y + (size - thumb_pb.height()) / 2,
                             );
                         }
-                    },
+                    }
                     Err(error) => {
                         println!("Thumbnail: failed to convert to pixbuf {:?}", error);
-                    },
+                    }
                 }
             } else {
                 // println!("{tid:3}:    -- no thumb image");
