@@ -11,9 +11,13 @@ use gtk::{
     ListStore, TreeIter, TreeModel,
 };
 use invalid::Invalid;
-use thumbnail::{TSource, Thumbnail};
+use thumbnail::{TEntry, Thumbnail};
 
-use crate::{category::Category, filelistview::Direction, window::MViewWidgets};
+use crate::{
+    category::Category,
+    filelistview::{Cursor, Direction},
+    window::MViewWidgets,
+};
 
 mod archive_rar;
 mod archive_zip;
@@ -41,34 +45,39 @@ pub enum Selection {
     None,
 }
 
+impl From<TEntry> for Selection {
+    fn from(item: TEntry) -> Self {
+        match item {
+            TEntry::FileEntry(file) => Selection::Name(file.filename()),
+            TEntry::ZipEntry(zip) => Selection::Index(zip.index()),
+            TEntry::RarEntry(rar) => Selection::Name(rar.selection()),
+            TEntry::None => Selection::None,
+        }
+    }
+}
+
 #[allow(unused_variables)]
 pub trait Backend {
     fn class_name(&self) -> &str;
     fn path(&self) -> &str;
     fn store(&self) -> ListStore;
-    fn favorite(&self, model: &ListStore, iter: &TreeIter, _direction: Direction) -> bool {
+    fn favorite(&self, cursor: &Cursor, direction: Direction) -> bool {
         false
     }
-    fn enter(&self, model: &ListStore, iter: &TreeIter) -> Option<Box<dyn Backend>> {
+    fn enter(&self, cursor: &Cursor) -> Option<Box<dyn Backend>> {
         None
     }
     fn leave(&self) -> (Box<dyn Backend>, Selection);
-    fn image(&self, w: &MViewWidgets, model: &ListStore, iter: &TreeIter) -> Image;
-    fn thumb(&self, model: &ListStore, iter: &TreeIter) -> TSource {
-        TSource::None
+    fn image(&self, w: &MViewWidgets, cursor: &Cursor) -> Image;
+    fn entry(&self, model: &ListStore, iter: &TreeIter) -> TEntry {
+        TEntry::None
     }
     fn set_parent(&self, parent: Box<dyn Backend>) {}
     fn backend(&self) -> Backends;
     fn is_thumbnail(&self) -> bool {
         false
     }
-    fn click(
-        &self,
-        model: &ListStore,
-        iter: &TreeIter,
-        x: f64,
-        y: f64,
-    ) -> Option<(Box<dyn Backend>, Selection)> {
+    fn click(&self, current: &Cursor, x: f64, y: f64) -> Option<(Box<dyn Backend>, Selection)> {
         None
     }
 }
@@ -129,14 +138,14 @@ impl Backends {
 }
 
 pub trait TreeModelMviewExt: IsA<TreeModel> {
-    fn filename(&self, iter: &TreeIter) -> String;
+    fn name(&self, iter: &TreeIter) -> String;
     fn folder(&self, iter: &TreeIter) -> String;
     fn category(&self, iter: &TreeIter) -> u32;
     fn index(&self, iter: &TreeIter) -> u32;
 }
 
 impl<O: IsA<TreeModel>> TreeModelMviewExt for O {
-    fn filename(&self, iter: &TreeIter) -> String {
+    fn name(&self, iter: &TreeIter) -> String {
         self.value(iter, Columns::Name as i32)
             .get::<String>()
             .unwrap_or_default()
@@ -176,8 +185,8 @@ pub fn empty_store() -> ListStore {
             let cat2 = model.category(iter2);
             let result = cat1.cmp(&cat2);
             if result.is_eq() {
-                let filename1 = model.filename(iter1).to_lowercase();
-                let filename2 = model.filename(iter2).to_lowercase();
+                let filename1 = model.name(iter1).to_lowercase();
+                let filename2 = model.name(iter2).to_lowercase();
                 filename1.cmp(&filename2)
             } else {
                 result

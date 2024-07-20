@@ -2,7 +2,7 @@ use crate::{
     backends::TreeModelMviewExt,
     category::Category,
     error::MviewResult,
-    filelistview::Direction,
+    filelistview::{Cursor, Direction},
     image::{ImageLoader, ImageSaver},
     window::MViewWidgets,
 };
@@ -18,7 +18,7 @@ use std::{
     time::UNIX_EPOCH,
 };
 
-use super::{empty_store, thumbnail::TSource, Backend, Backends, Columns, Selection};
+use super::{empty_store, thumbnail::TEntry, Backend, Backends, Columns, Selection};
 
 #[derive(Clone)]
 pub struct FileSystem {
@@ -84,7 +84,7 @@ impl FileSystem {
         store
     }
 
-    pub fn get_thumbnail(src: &TFileSource) -> MviewResult<DynamicImage> {
+    pub fn get_thumbnail(src: &TFileEntry) -> MviewResult<DynamicImage> {
         let thumb_filename = src.filename.replace(".lo.", ".").replace(".hi.", ".") + ".mthumb";
         let thumb_path = format!("{}/.mview/{}", src.directory, thumb_filename);
         if Path::new(&thumb_path).exists() {
@@ -112,12 +112,17 @@ impl Backend for FileSystem {
         self.store.clone()
     }
 
-    fn enter(&self, model: &ListStore, iter: &TreeIter) -> Option<Box<dyn Backend>> {
-        Some(<dyn Backend>::new(&format!(
-            "{}/{}",
-            self.directory,
-            model.filename(iter)
-        )))
+    fn enter(&self, cursor: &Cursor) -> Option<Box<dyn Backend>> {
+        let category = cursor.category();
+        if category == Category::Direcory.id() || category == Category::Archive.id() {
+            Some(<dyn Backend>::new(&format!(
+                "{}/{}",
+                self.directory,
+                cursor.name()
+            )))
+        } else {
+            None
+        }
     }
 
     fn leave(&self) -> (Box<dyn Backend>, Selection) {
@@ -140,13 +145,13 @@ impl Backend for FileSystem {
         }
     }
 
-    fn image(&self, _w: &MViewWidgets, model: &ListStore, iter: &TreeIter) -> Image {
-        let filename = format!("{}/{}", self.directory, model.filename(iter));
+    fn image(&self, _w: &MViewWidgets, cursor: &Cursor) -> Image {
+        let filename = format!("{}/{}", self.directory, cursor.name());
         ImageLoader::image_from_file(&filename)
     }
 
-    fn favorite(&self, model: &ListStore, iter: &TreeIter, direction: Direction) -> bool {
-        let cat = model.category(iter);
+    fn favorite(&self, cursor: &Cursor, direction: Direction) -> bool {
+        let cat = cursor.category();
         if cat != Category::Image.id()
             && cat != Category::Favorite.id()
             && cat != Category::Trash.id()
@@ -154,9 +159,9 @@ impl Backend for FileSystem {
             return false;
         }
 
-        let filename = model.filename(iter);
+        let filename = cursor.name();
         let re = Regex::new(r"\.([^\.]+)$").unwrap();
-        let (new_filename, new_cat) = if matches!(direction, Direction::Up) {
+        let (new_filename, new_category) = if matches!(direction, Direction::Up) {
             if filename.contains(".hi.") {
                 return false;
             } else if filename.contains(".lo.") {
@@ -180,14 +185,7 @@ impl Backend for FileSystem {
             format!("{}/{}", self.directory, &new_filename),
         ) {
             Ok(()) => {
-                model.set(
-                    iter,
-                    &[
-                        (Columns::Cat as u32, &new_cat.id()),
-                        (Columns::Icon as u32, &new_cat.icon()),
-                        (Columns::Name as u32, &new_filename),
-                    ],
-                );
+                cursor.update(new_category, &new_filename);
                 true
             }
             Err(e) => {
@@ -197,8 +195,8 @@ impl Backend for FileSystem {
         }
     }
 
-    fn thumb(&self, model: &ListStore, iter: &TreeIter) -> TSource {
-        TSource::FileSource(TFileSource::new(&self.directory, &model.filename(iter)))
+    fn entry(&self, model: &ListStore, iter: &TreeIter) -> TEntry {
+        TEntry::FileEntry(TFileEntry::new(&self.directory, &model.name(iter)))
     }
 
     fn backend(&self) -> Backends {
@@ -207,14 +205,14 @@ impl Backend for FileSystem {
 }
 
 #[derive(Debug, Clone)]
-pub struct TFileSource {
+pub struct TFileEntry {
     directory: String,
     filename: String,
 }
 
-impl TFileSource {
+impl TFileEntry {
     pub fn new(directory: &str, filename: &str) -> Self {
-        TFileSource {
+        TFileEntry {
             directory: directory.to_string(),
             filename: filename.to_string(),
         }

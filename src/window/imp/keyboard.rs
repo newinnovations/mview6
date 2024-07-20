@@ -23,12 +23,8 @@ impl MViewWindowImp {
             }
             gdk::keys::constants::t => {
                 if !w.backend.borrow().is_thumbnail() {
-                    let pos = if let Some((model, iter)) = w.file_list_view.iter() {
-                        if let Some(path) = model.path(&iter) {
-                            *path.indices().first().unwrap_or(&0)
-                        } else {
-                            0
-                        }
+                    let pos = if let Some(cursor) = w.file_list_view.current() {
+                        cursor.position()
                     } else {
                         0
                     };
@@ -102,16 +98,16 @@ impl MViewWindowImp {
             }
             gdk::keys::constants::minus | gdk::keys::constants::KP_Subtract => {
                 w.file_list_view.set_unsorted();
-                if let Some((model, iter)) = w.file_list_view.iter() {
-                    if w.backend.borrow().favorite(&model, &iter, Direction::Down) {
+                if let Some(current) = w.file_list_view.current() {
+                    if w.backend.borrow().favorite(&current, Direction::Down) {
                         w.file_list_view.navigate(Direction::Down, Filter::Image, 1);
                     }
                 }
             }
             gdk::keys::constants::equal | gdk::keys::constants::KP_Add => {
                 w.file_list_view.set_unsorted();
-                if let Some((model, iter)) = w.file_list_view.iter() {
-                    if w.backend.borrow().favorite(&model, &iter, Direction::Up) {
+                if let Some(current) = w.file_list_view.current() {
+                    if w.backend.borrow().favorite(&current, Direction::Up) {
                         w.file_list_view.navigate(Direction::Down, Filter::Image, 1);
                     }
                 }

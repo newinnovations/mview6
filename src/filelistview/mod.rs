@@ -3,12 +3,12 @@ mod imp;
 use glib::{Cast, IsA};
 use gtk::{
     glib,
-    prelude::{TreeModelExt, TreeSortableExtManual, TreeViewExt},
-    ListStore, TreeIter, TreeView, TreeViewColumn,
+    prelude::{GtkListStoreExtManual, TreeModelExt, TreeSortableExtManual, TreeViewExt},
+    ListStore, TreeIter, TreePath, TreeView, TreeViewColumn,
 };
 
 use crate::{
-    backends::{Selection, TreeModelMviewExt},
+    backends::{Columns, Selection, TreeModelMviewExt},
     category::Category,
 };
 
@@ -45,22 +45,112 @@ pub enum Filter {
     Container,
 }
 
+pub struct Cursor {
+    store: ListStore,
+    iter: TreeIter,
+    position: i32,
+}
+
+impl Cursor {
+    /// Postion in the list (depends on the sorting order)
+    pub fn position(&self) -> i32 {
+        self.position
+    }
+
+    /// Value of the index field of the row
+    pub fn index(&self) -> u32 {
+        self.store.index(&self.iter)
+    }
+
+    /// Value of the name field of the row
+    pub fn name(&self) -> String {
+        self.store.name(&self.iter)
+    }
+
+    /// Value of the folder field of the row
+    pub fn folder(&self) -> String {
+        self.store.folder(&self.iter)
+    }
+
+    /// Value of the category field of the row
+    pub fn category(&self) -> u32 {
+        self.store.category(&self.iter)
+    }
+
+    pub fn update(&self, new_category: Category, new_filename: &str) {
+        self.store.set(
+            &self.iter,
+            &[
+                (Columns::Cat as u32, &new_category.id()),
+                (Columns::Icon as u32, &new_category.icon()),
+                (Columns::Name as u32, &new_filename),
+            ],
+        );
+    }
+
+    fn navigate(&self, direction: Direction, filter: Filter, count: i32) -> Option<TreePath> {
+        let mut cnt = count;
+        loop {
+            let last = self.iter;
+            let result = match direction {
+                Direction::Up => self.store.iter_previous(&self.iter),
+                Direction::Down => self.store.iter_next(&self.iter),
+            };
+            if !result {
+                if count != cnt {
+                    return self.store.path(&last);
+                }
+                return None;
+            }
+
+            let cat = self.store.category(&self.iter);
+
+            let skip = match filter {
+                Filter::None => false,
+                Filter::Image => cat != Category::Image.id() && cat != Category::Favorite.id(),
+                Filter::Favorite => cat != Category::Favorite.id(),
+                Filter::Container => {
+                    cat != Category::Direcory.id() && cat != Category::Archive.id()
+                }
+            };
+
+            if skip {
+                continue;
+            }
+
+            cnt -= 1;
+            if cnt == 0 {
+                break;
+            }
+        }
+        self.store.path(&self.iter)
+    }
+}
+
 pub trait FileListViewExt: IsA<FileListView> + IsA<TreeView> + 'static {
     fn goto(&self, selection: &Selection) -> bool;
-    fn iter(&self) -> Option<(ListStore, TreeIter)>;
-    fn navigate(&self, direction: Direction, filter: Filter, count: i32) -> bool;
+    fn current(&self) -> Option<Cursor>;
+    fn navigate(&self, direction: Direction, filter: Filter, count: i32);
     // fn set_sort_column(&self, sort_column_id: SortColumn, order: SortType);
     fn set_unsorted(&self);
 }
 
 impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
-    fn iter(&self) -> Option<(ListStore, TreeIter)> {
-        let (tp, _) = self.cursor();
-        let model = self.model().unwrap().downcast::<ListStore>().unwrap();
-        if let Some(path) = tp {
-            model.iter(&path).map(|iter| (model, iter))
+    fn current(&self) -> Option<Cursor> {
+        let (tree_path, _) = self.cursor();
+        let store = self.model().unwrap().downcast::<ListStore>().unwrap();
+        if let Some(path) = tree_path {
+            store.iter(&path).map(|iter| Cursor {
+                store,
+                iter,
+                position: *path.indices().first().unwrap_or(&0),
+            })
         } else {
-            model.iter_first().map(|iter| (model, iter))
+            store.iter_first().map(|iter| Cursor {
+                store,
+                iter,
+                position: 0,
+            })
         }
     }
 
@@ -70,7 +160,7 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
         if let Some(iter) = model.iter_first() {
             loop {
                 let found = match selection {
-                    Selection::Name(filename) => *filename == model.filename(&iter),
+                    Selection::Name(filename) => *filename == model.name(&iter),
                     Selection::Index(index) => *index == model.index(&iter),
                     Selection::None => true,
                 };
@@ -80,56 +170,19 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
                     return true;
                 }
                 if !model.iter_next(&iter) {
-                    break;
-                }
-            }
-        }
-        false
-    }
-
-    fn navigate(&self, direction: Direction, filter: Filter, count: i32) -> bool {
-        if let Some((model, iter)) = self.iter() {
-            let mut cnt = count;
-            loop {
-                let last = iter;
-                let result = if matches!(direction, Direction::Up) {
-                    model.iter_previous(&iter)
-                } else {
-                    model.iter_next(&iter)
-                };
-                if !result {
-                    if count != cnt {
-                        let tp = model.path(&last).unwrap_or_default();
-                        self.set_cursor(&tp, None::<&TreeViewColumn>, false);
-                    }
                     return false;
                 }
-
-                let cat = model.category(&iter);
-
-                let skip = match filter {
-                    Filter::None => false,
-                    Filter::Image => cat != Category::Image.id() && cat != Category::Favorite.id(),
-                    Filter::Favorite => cat != Category::Favorite.id(),
-                    Filter::Container => {
-                        cat != Category::Direcory.id() && cat != Category::Archive.id()
-                    }
-                };
-
-                if skip {
-                    continue;
-                }
-
-                cnt -= 1;
-                if cnt == 0 {
-                    break;
-                }
             }
-            let tp = model.path(&iter).unwrap_or_default();
-            self.set_cursor(&tp, None::<&TreeViewColumn>, false);
-            true
         } else {
             false
+        }
+    }
+
+    fn navigate(&self, direction: Direction, filter: Filter, count: i32) {
+        if let Some(current) = self.current() {
+            if let Some(tree_path) = current.navigate(direction, filter, count) {
+                self.set_cursor(&tree_path, None::<&TreeViewColumn>, false);
+            }
         }
     }
 

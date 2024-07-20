@@ -12,12 +12,13 @@ use crate::{
     category::Category,
     draw::draw,
     error::MviewResult,
+    filelistview::Cursor,
     image::{ImageLoader, ImageSaver},
     window::MViewWidgets,
 };
 
 use super::{
-    filesystem::FileSystem, thumbnail::TSource, Backend, Backends, Columns, Selection,
+    filesystem::FileSystem, thumbnail::TEntry, Backend, Backends, Columns, Selection,
     TreeModelMviewExt,
 };
 
@@ -60,7 +61,7 @@ impl RarArchive {
         store
     }
 
-    pub fn get_thumbnail(src: &TRarSource) -> MviewResult<DynamicImage> {
+    pub fn get_thumbnail(src: &TRarEntry) -> MviewResult<DynamicImage> {
         let mut hasher = Sha256::new();
         hasher.update(src.archive.as_bytes());
         hasher.update(src.selection.as_bytes());
@@ -100,16 +101,16 @@ impl Backend for RarArchive {
         )
     }
 
-    fn image(&self, _w: &MViewWidgets, model: &ListStore, iter: &TreeIter) -> Image {
-        let sel = model.filename(iter);
+    fn image(&self, _w: &MViewWidgets, cursor: &Cursor) -> Image {
+        let sel = cursor.name();
         match extract_rar(&self.filename, &sel) {
             Ok(bytes) => ImageLoader::image_from_memory(bytes),
             Err(error) => draw(&format!("Error {}", error)).unwrap(),
         }
     }
 
-    fn thumb(&self, model: &ListStore, iter: &TreeIter) -> TSource {
-        TSource::RarSource(TRarSource::new(self, &model.filename(iter)))
+    fn entry(&self, model: &ListStore, iter: &TreeIter) -> TEntry {
+        TEntry::RarEntry(TRarEntry::new(self, &model.name(iter)))
     }
 
     fn backend(&self) -> Backends {
@@ -186,16 +187,16 @@ pub fn unix_from_msdos(dostime: u32) -> u64 {
 }
 
 #[derive(Debug, Clone)]
-pub struct TRarSource {
+pub struct TRarEntry {
     filename: String,
     directory: String,
     archive: String,
     selection: String,
 }
 
-impl TRarSource {
+impl TRarEntry {
     pub fn new(backend: &RarArchive, selection: &str) -> Self {
-        TRarSource {
+        TRarEntry {
             filename: backend.filename.clone(),
             directory: backend.directory.clone(),
             archive: backend.archive.clone(),

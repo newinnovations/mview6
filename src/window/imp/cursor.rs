@@ -14,8 +14,8 @@ impl MViewWindowImp {
     pub(super) fn on_cursor_changed(&self) {
         let w = self.widgets.get().unwrap();
         if !self.skip_loading.get() {
-            if let Some((model, iter)) = w.file_list_view.iter() {
-                let image = w.backend.borrow().image(w, &model, &iter);
+            if let Some(current) = w.file_list_view.current() {
+                let image = w.backend.borrow().image(w, &current);
                 if w.backend.borrow().is_thumbnail() {
                     w.eog.set_image_pre(&image);
                     // w.eog.set_image_post();
@@ -33,10 +33,10 @@ impl MViewWindowImp {
 
     pub fn dir_enter(&self) {
         let w = self.widgets.get().unwrap();
-        if let Some((model, iter)) = w.file_list_view.iter() {
+        if let Some(current) = w.file_list_view.current() {
             self.hop_parent_sort.set(Some(self.last_sort.get()));
             let backend = w.backend.borrow();
-            let new_backend = backend.enter(&model, &iter);
+            let new_backend = backend.enter(&current);
             drop(backend);
             if let Some(new_backend) = new_backend {
                 self.set_backend(new_backend, Selection::None);

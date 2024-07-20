@@ -1,7 +1,7 @@
 use eog::Image;
-use gtk::{ListStore, TreeIter};
+use gtk::ListStore;
 
-use crate::{draw::draw, window::MViewWidgets};
+use crate::{draw::draw, filelistview::Cursor, window::MViewWidgets};
 
 use super::{empty_store, Backend, Backends, Selection};
 
@@ -37,7 +37,7 @@ impl Backend for Invalid {
         (Box::new(Invalid::new()), Selection::None)
     }
 
-    fn image(&self, _w: &MViewWidgets, _model: &ListStore, _iter: &TreeIter) -> Image {
+    fn image(&self, _w: &MViewWidgets, _cursor: &Cursor) -> Image {
         draw("invalid").unwrap()
     }
 

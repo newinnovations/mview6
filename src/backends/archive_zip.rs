@@ -15,12 +15,13 @@ use crate::{
     category::Category,
     draw::draw,
     error::MviewResult,
+    filelistview::Cursor,
     image::{ImageLoader, ImageSaver},
     window::MViewWidgets,
 };
 
 use super::{
-    filesystem::FileSystem, thumbnail::TSource, Backend, Backends, Columns, Selection,
+    filesystem::FileSystem, thumbnail::TEntry, Backend, Backends, Columns, Selection,
     TreeModelMviewExt,
 };
 
@@ -63,7 +64,7 @@ impl ZipArchive {
         store
     }
 
-    pub fn get_thumbnail(src: &TZipSource) -> MviewResult<DynamicImage> {
+    pub fn get_thumbnail(src: &TZipEntry) -> MviewResult<DynamicImage> {
         let thumb_filename = format!("{}-{}.mthumb", src.archive, src.index);
         let thumb_path = format!("{}/.mview/{}", src.directory, thumb_filename);
 
@@ -99,15 +100,15 @@ impl Backend for ZipArchive {
         )
     }
 
-    fn image(&self, _w: &MViewWidgets, model: &ListStore, iter: &TreeIter) -> Image {
-        match extract_zip(&self.filename, model.index(iter).try_into().unwrap()) {
+    fn image(&self, _w: &MViewWidgets, cursor: &Cursor) -> Image {
+        match extract_zip(&self.filename, cursor.index() as usize) {
             Ok(bytes) => ImageLoader::image_from_memory(bytes),
             Err(error) => draw(&format!("Error {}", error)).unwrap(),
         }
     }
 
-    fn thumb(&self, model: &ListStore, iter: &TreeIter) -> TSource {
-        TSource::ZipSource(TZipSource::new(self, model.index(iter)))
+    fn entry(&self, model: &ListStore, iter: &TreeIter) -> TEntry {
+        TEntry::ZipEntry(TZipEntry::new(self, model.index(iter)))
     }
 
     fn backend(&self) -> Backends {
@@ -190,16 +191,16 @@ fn list_zip(filename: &str, store: &ListStore) -> ZipResult<()> {
 }
 
 #[derive(Debug, Clone)]
-pub struct TZipSource {
+pub struct TZipEntry {
     filename: String,
     directory: String,
     archive: String,
     index: u32,
 }
 
-impl TZipSource {
+impl TZipEntry {
     pub fn new(backend: &ZipArchive, index: u32) -> Self {
-        TZipSource {
+        TZipEntry {
             filename: backend.filename.clone(),
             directory: backend.directory.clone(),
             archive: backend.archive.clone(),

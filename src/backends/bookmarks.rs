@@ -1,9 +1,8 @@
 use crate::{
-    backends::TreeModelMviewExt, category::Category, config::config, draw::draw,
-    window::MViewWidgets,
+    category::Category, config::config, draw::draw, filelistview::Cursor, window::MViewWidgets,
 };
 use eog::Image;
-use gtk::{prelude::GtkListStoreExtManual, ListStore, TreeIter};
+use gtk::{prelude::GtkListStoreExtManual, ListStore};
 use std::{cell::RefCell, fs, io, time::UNIX_EPOCH};
 
 use super::{empty_store, Backend, Backends, Columns, Selection};
@@ -81,16 +80,16 @@ impl Backend for Bookmarks {
         self.store.clone()
     }
 
-    fn enter(&self, model: &ListStore, iter: &TreeIter) -> Option<Box<dyn Backend>> {
-        Some(<dyn Backend>::new(&model.folder(iter)))
+    fn enter(&self, cursor: &Cursor) -> Option<Box<dyn Backend>> {
+        Some(<dyn Backend>::new(&cursor.folder()))
     }
 
     fn leave(&self) -> (Box<dyn Backend>, Selection) {
         (self.parent.borrow().backend().dynbox(), Selection::None)
     }
 
-    fn image(&self, _w: &MViewWidgets, model: &ListStore, iter: &TreeIter) -> Image {
-        draw(&model.folder(iter)).unwrap()
+    fn image(&self, _w: &MViewWidgets, cursor: &Cursor) -> Image {
+        draw(&cursor.folder()).unwrap()
     }
 
     fn set_parent(&self, parent: Box<dyn Backend>) {

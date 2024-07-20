@@ -5,13 +5,14 @@ use std::{
 };
 
 use super::{
-    archive_rar::TRarSource, archive_zip::TZipSource, empty_store, filesystem::TFileSource,
-    Backend, Backends, Columns, Selection, TreeModelMviewExt,
+    archive_rar::TRarEntry, archive_zip::TZipEntry, empty_store, filesystem::TFileEntry, Backend,
+    Backends, Columns, Selection,
 };
 use crate::{
     backends::{archive_rar::RarArchive, archive_zip::ZipArchive, filesystem::FileSystem},
     category::Category,
     error::MviewResult,
+    filelistview::Cursor,
     image::ImageLoader,
     window::MViewWidgets,
 };
@@ -19,7 +20,7 @@ use eog::{Image, ImageExt, ScrollView, ScrollViewExt};
 use gdk_pixbuf::Pixbuf;
 use gtk::{
     prelude::{GtkListStoreExtManual, TreeModelExt},
-    ListStore, TreeIter,
+    ListStore,
 };
 use image::DynamicImage;
 
@@ -167,8 +168,8 @@ impl Thumbnail {
                     break;
                 }
                 for col in 0..self.capacity_x() {
-                    let source = backend.thumb(&store, &iter);
-                    if !matches!(source, TSource::None) {
+                    let source = backend.entry(&store, &iter);
+                    if !matches!(source, TEntry::None) {
                         let task = TTask::new(
                             tid,
                             self.size as u32,
@@ -232,10 +233,11 @@ impl Backend for Thumbnail {
     }
 
     fn leave(&self) -> (Box<dyn Backend>, Selection) {
-        (self.parent.borrow().backend().dynbox(), Selection::None)
+        let parent_backend = self.parent.replace(<dyn Backend>::invalid());
+        (parent_backend, Selection::None)
     }
 
-    fn image(&self, w: &MViewWidgets, model: &ListStore, iter: &TreeIter) -> Image {
+    fn image(&self, w: &MViewWidgets, cursor: &Cursor) -> Image {
         let pixbuf = Pixbuf::new(
             gdk_pixbuf::Colorspace::Rgb,
             true,
@@ -250,7 +252,7 @@ impl Backend for Thumbnail {
         let image = Image::new_pixbuf(&pixbuf);
         image.set_zoom_mode(eog::ZoomMode::None);
         let id = image.id();
-        let page = model.index(iter);
+        let page = cursor.index();
         let command = TCommand::new(id, self.sheet(page as i32));
 
         let _ = w.sender.send(Message::Command(command));
@@ -270,13 +272,7 @@ impl Backend for Thumbnail {
         self.parent.borrow().backend()
     }
 
-    fn click(
-        &self,
-        model: &ListStore,
-        iter: &TreeIter,
-        x: f64,
-        y: f64,
-    ) -> Option<(Box<dyn Backend>, Selection)> {
+    fn click(&self, current: &Cursor, x: f64, y: f64) -> Option<(Box<dyn Backend>, Selection)> {
         let (offset_x, offset_y) = self.offset();
 
         // dbg!(x, y, offset_x, offset_y);
@@ -290,28 +286,28 @@ impl Backend for Thumbnail {
             return None;
         }
 
-        let page = model.index(iter) as i32;
+        let page = current.index() as i32;
         let pos = page * self.capacity() + y * self.capacity_x() + x;
         // dbg!(pos);
 
         let backend = self.parent.borrow();
         let store = backend.store();
         if let Some(iter) = store.iter_nth_child(None, pos) {
-            let source = backend.thumb(&store, &iter);
+            let source = backend.entry(&store, &iter);
             match source {
-                TSource::FileSource(src) => Some((
+                TEntry::FileEntry(src) => Some((
                     self.parent.borrow().backend().dynbox(),
                     Selection::Name(src.filename()),
                 )),
-                TSource::ZipSource(src) => Some((
+                TEntry::ZipEntry(src) => Some((
                     self.parent.borrow().backend().dynbox(),
                     Selection::Index(src.index()),
                 )),
-                TSource::RarSource(src) => Some((
+                TEntry::RarEntry(src) => Some((
                     self.parent.borrow().backend().dynbox(),
                     Selection::Name(src.selection()),
                 )),
-                TSource::None => None,
+                TEntry::None => None,
             }
         } else {
             None
@@ -351,10 +347,10 @@ pub fn start_thumbnail_task(
                     // thread::sleep(time::Duration::from_secs(2));
                     thread::sleep(time::Duration::from_millis(1));
                     let image = match panic::catch_unwind(|| match &task.source {
-                        TSource::FileSource(src) => thumb_result(FileSystem::get_thumbnail(src)),
-                        TSource::ZipSource(src) => thumb_result(ZipArchive::get_thumbnail(src)),
-                        TSource::RarSource(src) => thumb_result(RarArchive::get_thumbnail(src)),
-                        TSource::None => None,
+                        TEntry::FileEntry(src) => thumb_result(FileSystem::get_thumbnail(src)),
+                        TEntry::ZipEntry(src) => thumb_result(ZipArchive::get_thumbnail(src)),
+                        TEntry::RarEntry(src) => thumb_result(RarArchive::get_thumbnail(src)),
+                        TEntry::None => None,
                     }) {
                         Ok(image) => image,
                         Err(_) => {
@@ -433,10 +429,10 @@ pub fn handle_thumbnail_result(eog: &ScrollView, command: &mut TCommand, result:
 }
 
 #[derive(Debug, Clone)]
-pub enum TSource {
-    FileSource(TFileSource),
-    ZipSource(TZipSource),
-    RarSource(TRarSource),
+pub enum TEntry {
+    FileEntry(TFileEntry),
+    ZipEntry(TZipEntry),
+    RarEntry(TRarEntry),
     None,
 }
 
@@ -492,11 +488,11 @@ pub struct TTask {
     tid: i32,
     size: u32,
     position: (i32, i32),
-    source: TSource,
+    source: TEntry,
 }
 
 impl TTask {
-    pub fn new(tid: i32, size: u32, x: i32, y: i32, source: TSource) -> Self {
+    pub fn new(tid: i32, size: u32, x: i32, y: i32, source: TEntry) -> Self {
         TTask {
             tid,
             size,
