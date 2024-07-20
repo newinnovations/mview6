@@ -37,20 +37,20 @@ pub struct Thumbnail {
 
 impl Default for Thumbnail {
     fn default() -> Self {
-        Self::new(0)
+        Self::new(0, 175)
     }
 }
 
 impl Thumbnail {
-    pub fn new(pos: i32) -> Self {
+    pub fn new(position: i32, size: i32) -> Self {
         Thumbnail {
-            size: 175,
+            size,
             sheet_x: 3840, // 1920,
             sheet_y: 2160, // 1080,
             separator_x: 4,
             separator_y: 4,
             parent: RefCell::new(<dyn Backend>::invalid()),
-            parent_pos: pos,
+            parent_pos: position,
         }
     }
 

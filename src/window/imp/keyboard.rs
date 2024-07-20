@@ -23,12 +23,12 @@ impl MViewWindowImp {
             }
             gdk::keys::constants::t => {
                 if !w.backend.borrow().is_thumbnail() {
-                    let pos = if let Some(cursor) = w.file_list_view.current() {
+                    let position = if let Some(cursor) = w.file_list_view.current() {
                         cursor.position()
                     } else {
                         0
                     };
-                    let thumbnail = Thumbnail::new(pos);
+                    let thumbnail = Thumbnail::new(position, self.thumbnail_size.get());
                     let startpage = thumbnail.startpage();
                     let new_backend = <dyn Backend>::thumbnail(thumbnail);
                     self.set_backend(new_backend, startpage);
@@ -90,7 +90,23 @@ impl MViewWindowImp {
                 }
             }
             gdk::keys::constants::m | gdk::keys::constants::KP_0 => {
-                if w.eog.zoom_mode() == eog::ZoomMode::Max {
+                let backend = w.backend.borrow();
+                if backend.is_thumbnail() {
+                    let new_size = match self.thumbnail_size.get() {
+                        175 => 140,
+                        140 => 100,
+                        100 => 80,
+                        _ => 175,
+                    };
+                    self.thumbnail_size.set(new_size);
+                    let (parent_backend, _selection) = backend.leave();
+                    drop(backend);
+                    w.backend.replace(parent_backend);
+                    let thumbnail = Thumbnail::new(0, new_size);
+                    let startpage = thumbnail.startpage();
+                    let new_backend = <dyn Backend>::thumbnail(thumbnail);
+                    self.set_backend(new_backend, startpage);
+                } else if w.eog.zoom_mode() == eog::ZoomMode::Max {
                     w.eog.set_zoom_mode(eog::ZoomMode::Fill);
                 } else {
                     w.eog.set_zoom_mode(eog::ZoomMode::Max);
