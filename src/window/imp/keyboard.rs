@@ -1,4 +1,4 @@
-use super::MViewWindowImp;
+use super::{MViewWidgetExt, MViewWindowImp};
 
 use eog::{ImageExt, ScrollViewExt};
 use gdk::EventKey;
@@ -28,10 +28,19 @@ impl MViewWindowImp {
                     } else {
                         0
                     };
-                    let thumbnail = Thumbnail::new(position, self.thumbnail_size.get());
+                    let display_size = self.obj().display_size();
+                    let thumbnail = Thumbnail::new(
+                        display_size.width(),
+                        display_size.height(),
+                        position,
+                        self.thumbnail_size.get(),
+                    );
                     let startpage = thumbnail.startpage();
                     let new_backend = <dyn Backend>::thumbnail(thumbnail);
                     self.set_backend(new_backend, startpage);
+                    self.show_files_widget(false);
+                    self.obj().fullscreen();
+                    self.full_screen.set(true);
                 }
             }
             gdk::keys::constants::i => {
@@ -102,7 +111,9 @@ impl MViewWindowImp {
                     let (parent_backend, _selection) = backend.leave();
                     drop(backend);
                     w.backend.replace(parent_backend);
-                    let thumbnail = Thumbnail::new(0, new_size);
+                    let display_size = self.obj().display_size();
+                    let thumbnail =
+                        Thumbnail::new(display_size.width(), display_size.height(), 0, new_size);
                     let startpage = thumbnail.startpage();
                     let new_backend = <dyn Backend>::thumbnail(thumbnail);
                     self.set_backend(new_backend, startpage);

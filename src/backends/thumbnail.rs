@@ -11,6 +11,7 @@ use super::{
 use crate::{
     backends::{archive_rar::RarArchive, archive_zip::ZipArchive, filesystem::FileSystem},
     category::Category,
+    draw::thumbnail_sheet,
     error::MviewResult,
     filelistview::Cursor,
     image::ImageLoader,
@@ -27,154 +28,84 @@ use image::DynamicImage;
 #[derive(Debug)]
 pub struct Thumbnail {
     size: i32,
-    sheet_x: i32,
-    sheet_y: i32,
+    width: i32,
+    height: i32,
+    // calculated
     separator_x: i32,
     separator_y: i32,
+    capacity_x: i32,
+    capacity_y: i32,
+    offset_x: i32,
+    offset_y: i32,
+    // references
     parent: RefCell<Box<dyn Backend>>,
     parent_pos: i32,
 }
 
 impl Default for Thumbnail {
     fn default() -> Self {
-        Self::new(0, 175)
+        Self::new(800, 600, 0, 175)
     }
 }
 
 impl Thumbnail {
-    pub fn new(position: i32, size: i32) -> Self {
+    pub fn new(width: i32, height: i32, position: i32, size: i32) -> Self {
+        let footer = 50;
+        let min_separator = 5;
+
+        let capacity_x = (width + min_separator) / (size + min_separator);
+        let capacity_y = (height - footer + min_separator) / (size + min_separator);
+
+        let separator_x = (width - capacity_x * size) / capacity_x;
+        let separator_y = (height - footer - capacity_y * size) / capacity_y;
+
+        let offset_x = (width - capacity_x * (size + separator_x) + separator_x) / 2;
+        let offset_y = (height - footer - capacity_y * (size + separator_y) + separator_y) / 2;
+
         Thumbnail {
             size,
-            sheet_x: 3840, // 1920,
-            sheet_y: 2160, // 1080,
-            separator_x: 4,
-            separator_y: 4,
+            width,
+            height,
+            separator_x,
+            separator_y,
+            capacity_x,
+            capacity_y,
+            offset_x,
+            offset_y,
             parent: RefCell::new(<dyn Backend>::invalid()),
             parent_pos: position,
         }
     }
 
-    pub fn capacity_x(&self) -> i32 {
-        (self.sheet_x + self.separator_x) / (self.size + self.separator_x)
-    }
-    pub fn capacity_y(&self) -> i32 {
-        (self.sheet_y + self.separator_y) / (self.size + self.separator_y)
-    }
-
     pub fn capacity(&self) -> i32 {
-        self.capacity_x() * self.capacity_y()
+        self.capacity_x * self.capacity_y
     }
 
     pub fn startpage(&self) -> Selection {
         Selection::Index(self.parent_pos as u32 / self.capacity() as u32)
     }
 
-    // pub fn sheet(&self) -> MviewResult<Image> {
-    //     let backend = self.parent.borrow();
-    //     let store = backend.store();
-    //     // let caption = "sheet 1 of 100";
-    //     let offset_x = (self.sheet_x - self.capacity_col() * (self.size + self.separator_x)
-    //         + self.separator_x)
-    //         / 2;
-    //     let offset_y = (self.sheet_y - self.capacity_row() * (self.size + self.separator_y)
-    //         + self.separator_y)
-    //         / 2;
-
-    //     let surface = ImageSurface::create(Format::ARgb32, self.sheet_x, self.sheet_y)?;
-    //     let context = Context::new(&surface)?;
-
-    //     context.set_source_rgb(1.0, 0.2, 0.4);
-    //     // context.set_source_rgb(0.0, 0.0, 0.0);
-    //     context.paint()?;
-
-    //     // // graphics.setBackground(Color.white);
-    //     // // graphics.setFont(new Font("LucidaSans", Font.BOLD, 10));
-
-    //     // context.select_font_face(
-    //     //     "LucidaSans",
-    //     //     cairo::FontSlant::Normal,
-    //     //     cairo::FontWeight::Bold,
-    //     // ); //Bold);
-    //     // let extends = context.text_extents(&caption)?;
-    //     // dbg!(&extends);
-
-    //     // // FontMetrics fm = graphics.getFontMetrics();
-    //     // // int txtW = fm.stringWidth(caption);
-    //     // // int txtH = fm.getHeight();
-    //     // let txtW = extends.width();
-    //     // let txtH = extends.height();
-    //     // // graphics.clearRect(sheetX - txtW - 15, 5, txtW + 10, txtH + 7);
-    //     // // graphics.setPaint(Color.black);
-    //     // // graphics.drawString(caption, sheetX - txtW - 10, txtH + 5);
-
-    //     let mut done = false;
-    //     if let Some(iter) = store.iter_nth_child(None, 0) {
-    //         for y in 0..self.capacity_row() {
-    //             if done {
-    //                 break;
-    //             }
-    //             for x in 0..self.capacity_col() {
-    //                 let f = store.filename(&iter);
-    //                 dbg!(&f);
-
-    //                 if let Ok(thumb) = backend.thumb(&store, &iter) {
-    //                     let thumb = pixbuf_scale(thumb, self.size);
-    //                     let tox = (self.size - thumb.width()) / 2;
-    //                     let toy = (self.size - thumb.height()) / 2;
-    //                     let topleft_x = offset_x + tox + x * (self.size + self.separator_x);
-    //                     let topleft_y = offset_y + toy + y * (self.size + self.separator_y);
-    //                     context.set_source_pixbuf(&thumb, topleft_x as f64, topleft_y as f64);
-    //                     context.paint()?;
-    //                 }
-
-    //                 if !store.iter_next(&iter) {
-    //                     done = true;
-    //                     break;
-    //                 }
-    //             }
-    //         }
-    //     }
-
-    //     let image = Image::new_image_surface(&surface);
-    //     image.set_zoom_mode(eog::ZoomMode::None);
-    //     dbg!(image.pixbuf());
-
-    //     Ok(image)
-    // }
-
-    pub fn offset(&self) -> (i32, i32) {
-        (
-            (self.sheet_x - self.capacity_x() * (self.size + self.separator_x) + self.separator_x)
-                / 2,
-            (self.sheet_y - self.capacity_y() * (self.size + self.separator_y) + self.separator_y)
-                / 2,
-        )
-    }
-
     pub fn sheet(&self, page: i32) -> Vec<TTask> {
         let backend = self.parent.borrow();
         let store = backend.store();
-        let (offset_x, offset_y) = self.offset();
-
-        // let caption = "sheet 1 of 100";
 
         let mut res = Vec::<TTask>::new();
 
         let mut done = false;
         let mut tid = 0;
         if let Some(iter) = store.iter_nth_child(None, page * self.capacity()) {
-            for row in 0..self.capacity_y() {
+            for row in 0..self.capacity_y {
                 if done {
                     break;
                 }
-                for col in 0..self.capacity_x() {
+                for col in 0..self.capacity_x {
                     let source = backend.entry(&store, &iter);
                     if !matches!(source, TEntry::None) {
                         let task = TTask::new(
                             tid,
                             self.size as u32,
-                            offset_x + col * (self.size + self.separator_x),
-                            offset_y + row * (self.size + self.separator_y),
+                            self.offset_x + col * (self.size + self.separator_x),
+                            self.offset_y + row * (self.size + self.separator_y),
                             source,
                         );
                         res.push(task);
@@ -204,14 +135,8 @@ impl Backend for Thumbnail {
     fn store(&self) -> ListStore {
         let parent_store = self.parent.borrow().store();
         let num_items = parent_store.iter_n_children(None);
-
         let pages = (1 + num_items / self.capacity()) as u32;
-
         let store = empty_store();
-
-        // let modified = metadata.modified().unwrap_or(UNIX_EPOCH);
-        // let modified = modified.duration_since(UNIX_EPOCH).unwrap().as_secs();
-        // let file_size = metadata.len();
         let cat = Category::Image;
 
         for page in 0..pages {
@@ -223,9 +148,6 @@ impl Backend for Thumbnail {
                     (Columns::Icon as u32, &cat.icon()),
                     (Columns::Name as u32, &name),
                     (Columns::Index as u32, &page),
-                    // (Columns::Folder as u32, &entry.folder),
-                    // (Columns::Size as u32, &file_size),
-                    // (Columns::Modified as u32, &modified),
                 ],
             );
         }
@@ -238,21 +160,27 @@ impl Backend for Thumbnail {
     }
 
     fn image(&self, w: &MViewWidgets, cursor: &Cursor) -> Image {
-        let pixbuf = Pixbuf::new(
-            gdk_pixbuf::Colorspace::Rgb,
-            true,
-            8,
-            self.sheet_x,
-            self.sheet_y,
-        )
-        .unwrap();
-
-        pixbuf.fill(0x202020ff);
-
-        let image = Image::new_pixbuf(&pixbuf);
-        image.set_zoom_mode(eog::ZoomMode::None);
-        let id = image.id();
         let page = cursor.index();
+        let caption = format!("sheet {} of {}", page + 1, cursor.store_size());
+
+        let image = match thumbnail_sheet(self.width, self.height, self.offset_x, &caption) {
+            Ok(image) => image,
+            Err(_) => {
+                let pixbuf = Pixbuf::new(
+                    gdk_pixbuf::Colorspace::Rgb,
+                    true,
+                    8,
+                    self.width,
+                    self.height,
+                )
+                .unwrap();
+                pixbuf.fill(0x202020ff);
+                let image = Image::new_pixbuf(&pixbuf);
+                image.set_zoom_mode(eog::ZoomMode::None);
+                image
+            }
+        };
+        let id = image.id();
         let command = TCommand::new(id, self.sheet(page as i32));
 
         let _ = w.sender.send(Message::Command(command));
@@ -273,22 +201,15 @@ impl Backend for Thumbnail {
     }
 
     fn click(&self, current: &Cursor, x: f64, y: f64) -> Option<(Box<dyn Backend>, Selection)> {
-        let (offset_x, offset_y) = self.offset();
+        let x = (x as i32 - self.offset_x) / (self.size + self.separator_x);
+        let y = (y as i32 - self.offset_y) / (self.size + self.separator_y);
 
-        // dbg!(x, y, offset_x, offset_y);
-
-        let x = (x as i32 - offset_x) / (self.size + self.separator_x);
-        let y = (y as i32 - offset_y) / (self.size + self.separator_y);
-
-        // dbg!(x, y);
-
-        if x < 0 || y < 0 || x >= self.capacity_x() || y >= self.capacity_y() {
+        if x < 0 || y < 0 || x >= self.capacity_x || y >= self.capacity_y {
             return None;
         }
 
         let page = current.index() as i32;
-        let pos = page * self.capacity() + y * self.capacity_x() + x;
-        // dbg!(pos);
+        let pos = page * self.capacity() + y * self.capacity_x + x;
 
         let backend = self.parent.borrow();
         let store = backend.store();
