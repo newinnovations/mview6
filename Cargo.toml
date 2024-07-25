@@ -57,3 +57,8 @@ rev = "0a0f18734e5054dee3c1667f7f04bb6e93214721"
 
 [profile.dev.package.image]
 opt-level = 3
+
+[build-dependencies.glib-build-tools]
+version = "0.18"
+branch = "0.18"
+git = "https://github.com/gtk-rs/gtk-rs-core"

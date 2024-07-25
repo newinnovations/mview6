@@ -10,8 +10,8 @@ mod window;
 
 use gdk::Screen;
 use gtk::{
-    prelude::ApplicationExtManual, prelude::CssProviderExt, CssProvider, StyleContext,
-    STYLE_PROVIDER_PRIORITY_USER,
+    prelude::{ApplicationExtManual, CssProviderExt, IconThemeExt},
+    CssProvider, IconTheme, StyleContext, STYLE_PROVIDER_PRIORITY_USER,
 };
 use std::env;
 
@@ -26,15 +26,18 @@ fn main() {
     };
     dbg!(filename);
 
+    gio::resources_register_include!("mview6.gresource").unwrap();
+
     let css_provider = CssProvider::new();
-    css_provider
-        .load_from_data(include_bytes!("mview6.css"))
-        .unwrap();
+    css_provider.load_from_resource("/css/mview6.css");
     StyleContext::add_provider_for_screen(
         &Screen::default().unwrap(),
         &css_provider,
         STYLE_PROVIDER_PRIORITY_USER,
     );
+
+    let icon_theme = IconTheme::for_screen(&Screen::default().unwrap()).unwrap();
+    icon_theme.add_resource_path("/icons");
 
     let app = application::MviewApplication::new();
 

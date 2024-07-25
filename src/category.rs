@@ -52,14 +52,33 @@ impl Category {
         *self as u32
     }
 
+    // https://www.svgrepo.com/svg/347736/file-directory
+    // 40% #2ec27e
+    //
+    // https://www.svgrepo.com/svg/528877/box
+    // 70% #62a0ea
+    //
+    // https://www.svgrepo.com/svg/511024/image-01
+    // 70% #f8e45c
+    //
+    // https://www.svgrepo.com/svg/458675/favorite
+    //
+    // https://www.svgrepo.com/svg/533010/trash-alt
+    // 70% #ffbe6f
+    //
+    // https://www.svgrepo.com/svg/355272/status-unknown
+    // 70% #c0bfbc
+    //
+    // https://www.svgrepo.com/svg/533035/bookmark
+
     pub fn icon(&self) -> &str {
         match self {
-            Self::Direcory => "folder",
-            Self::Favorite => "emblem-favorite", // "starred"
-            Self::Image => "image-x-generic",
-            Self::Archive => "package-x-generic",
-            Self::Trash => "user-trash",
-            Self::Unsupported => "text-x-generic",
+            Self::Direcory => "mv6-folder",
+            Self::Favorite => "mv6-favorite",
+            Self::Image => "mv6-image",
+            Self::Archive => "mv6-box",
+            Self::Trash => "mv6-trash",
+            Self::Unsupported => "mv6-unknown",
         }
     }
 }

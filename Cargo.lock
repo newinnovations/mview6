@@ -13,6 +13,7 @@ dependencies = [
  "gdk-pixbuf",
  "gio",
  "glib",
+ "glib-build-tools",
  "gtk",
  "human_bytes",
  "image",
@@ -751,6 +752,11 @@ dependencies = [
  "smallvec",
  "thiserror",
 ]
+
+[[package]]
+name = "glib-build-tools"
+version = "0.18.5"
+source = "git+https://github.com/gtk-rs/gtk-rs-core?branch=0.18#42b9caf98e03ded086362d9653ca58fe94dc8658"
 
 [[package]]
 name = "glib-macros"
