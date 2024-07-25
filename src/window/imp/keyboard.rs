@@ -38,6 +38,9 @@ impl MViewWindowImp {
                     let startpage = thumbnail.startpage();
                     let new_backend = <dyn Backend>::thumbnail(thumbnail);
                     self.set_backend(new_backend, startpage);
+                    if let Some(cursor) = w.file_list_view.current() {
+                        cursor.set_sort(SortColumn::Index(0), gtk::SortType::Ascending)
+                    }
                     self.show_files_widget(false);
                     self.obj().fullscreen();
                     self.full_screen.set(true);
@@ -105,6 +108,7 @@ impl MViewWindowImp {
                         175 => 140,
                         140 => 100,
                         100 => 80,
+                        80 => 250,
                         _ => 175,
                     };
                     self.thumbnail_size.set(new_size);
@@ -208,21 +212,27 @@ impl MViewWindowImp {
                 }
             }
             gdk::keys::constants::_2 => {
-                if let Some(current) = w.file_list_view.current() {
-                    current.set_sort_column(SortColumn::Index(2));
-                    w.file_list_view.goto(&Selection::None);
+                if !w.backend.borrow().is_thumbnail() {
+                    if let Some(current) = w.file_list_view.current() {
+                        current.set_sort_column(SortColumn::Index(2));
+                        w.file_list_view.goto(&Selection::None);
+                    }
                 }
             }
             gdk::keys::constants::_3 => {
-                if let Some(current) = w.file_list_view.current() {
-                    current.set_sort_column(SortColumn::Index(3));
-                    w.file_list_view.goto(&Selection::None);
+                if !w.backend.borrow().is_thumbnail() {
+                    if let Some(current) = w.file_list_view.current() {
+                        current.set_sort_column(SortColumn::Index(3));
+                        w.file_list_view.goto(&Selection::None);
+                    }
                 }
             }
             gdk::keys::constants::_4 => {
-                if let Some(current) = w.file_list_view.current() {
-                    current.set_sort_column(SortColumn::Index(4));
-                    w.file_list_view.goto(&Selection::None);
+                if !w.backend.borrow().is_thumbnail() {
+                    if let Some(current) = w.file_list_view.current() {
+                        current.set_sort_column(SortColumn::Index(4));
+                        w.file_list_view.goto(&Selection::None);
+                    }
                 }
             }
             _ => (),

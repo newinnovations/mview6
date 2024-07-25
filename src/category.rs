@@ -2,11 +2,11 @@
 #[repr(u32)]
 pub enum Category {
     Direcory = 0,
-    Favorite,
-    Image,
-    Archive,
-    Trash,
-    Unsupported,
+    Favorite = 1,
+    Image = 2,
+    Archive = 3,
+    Trash = 4,
+    Unsupported = 5,
 }
 
 impl Category {
@@ -52,12 +52,23 @@ impl Category {
         *self as u32
     }
 
+    pub fn from(id: u32) -> Self {
+        match id {
+            0 => Self::Direcory,
+            1 => Self::Favorite,
+            2 => Self::Image,
+            3 => Self::Archive,
+            4 => Self::Trash,
+            _ => Self::Unsupported,
+        }
+    }
+
     pub fn icon(&self) -> &str {
         match self {
             Self::Direcory => "folder",
-            Self::Archive => "package-x-generic",
-            Self::Image => "image-x-generic",
             Self::Favorite => "emblem-favorite", // "starred"
+            Self::Image => "image-x-generic",
+            Self::Archive => "package-x-generic",
             Self::Trash => "user-trash",
             Self::Unsupported => "text-x-generic",
         }

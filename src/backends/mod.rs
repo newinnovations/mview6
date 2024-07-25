@@ -11,7 +11,7 @@ use gtk::{
     ListStore, TreeIter, TreeModel,
 };
 use invalid::Invalid;
-use thumbnail::{TEntry, Thumbnail};
+use thumbnail::{TEntry, TReference, Thumbnail};
 
 use crate::{
     category::Category,
@@ -45,13 +45,13 @@ pub enum Selection {
     None,
 }
 
-impl From<TEntry> for Selection {
-    fn from(item: TEntry) -> Self {
+impl From<TReference> for Selection {
+    fn from(item: TReference) -> Self {
         match item {
-            TEntry::FileEntry(file) => Selection::Name(file.filename()),
-            TEntry::ZipEntry(zip) => Selection::Index(zip.index()),
-            TEntry::RarEntry(rar) => Selection::Name(rar.selection()),
-            TEntry::None => Selection::None,
+            TReference::FileReference(file) => Selection::Name(file.filename()),
+            TReference::ZipReference(zip) => Selection::Index(zip.index()),
+            TReference::RarReference(rar) => Selection::Name(rar.selection()),
+            TReference::None => Selection::None,
         }
     }
 }
@@ -69,8 +69,8 @@ pub trait Backend {
     }
     fn leave(&self) -> (Box<dyn Backend>, Selection);
     fn image(&self, w: &MViewWidgets, cursor: &Cursor) -> Image;
-    fn entry(&self, model: &ListStore, iter: &TreeIter) -> TEntry {
-        TEntry::None
+    fn entry(&self, cursor: &Cursor) -> TEntry {
+        Default::default()
     }
     fn set_parent(&self, parent: Box<dyn Backend>) {}
     fn backend(&self) -> Backends;

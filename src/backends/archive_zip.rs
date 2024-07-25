@@ -6,7 +6,7 @@ use std::{
 
 use chrono::{Local, TimeZone};
 use eog::Image;
-use gtk::{prelude::GtkListStoreExtManual, ListStore, TreeIter};
+use gtk::{prelude::GtkListStoreExtManual, ListStore};
 use image::DynamicImage;
 use zip::result::ZipResult;
 
@@ -21,8 +21,9 @@ use crate::{
 };
 
 use super::{
-    filesystem::FileSystem, thumbnail::TEntry, Backend, Backends, Columns, Selection,
-    TreeModelMviewExt,
+    filesystem::FileSystem,
+    thumbnail::{TEntry, TReference},
+    Backend, Backends, Columns, Selection,
 };
 
 #[derive(Clone)]
@@ -64,7 +65,7 @@ impl ZipArchive {
         store
     }
 
-    pub fn get_thumbnail(src: &TZipEntry) -> MviewResult<DynamicImage> {
+    pub fn get_thumbnail(src: &TZipReference) -> MviewResult<DynamicImage> {
         let thumb_filename = format!("{}-{}.mthumb", src.archive, src.index);
         let thumb_path = format!("{}/.mview/{}", src.directory, thumb_filename);
 
@@ -107,8 +108,12 @@ impl Backend for ZipArchive {
         }
     }
 
-    fn entry(&self, model: &ListStore, iter: &TreeIter) -> TEntry {
-        TEntry::ZipEntry(TZipEntry::new(self, model.index(iter)))
+    fn entry(&self, cursor: &Cursor) -> TEntry {
+        TEntry::new(
+            Category::from(cursor.category()),
+            &cursor.name(),
+            TReference::ZipReference(TZipReference::new(self, cursor.index())),
+        )
     }
 
     fn backend(&self) -> Backends {
@@ -191,16 +196,16 @@ fn list_zip(filename: &str, store: &ListStore) -> ZipResult<()> {
 }
 
 #[derive(Debug, Clone)]
-pub struct TZipEntry {
+pub struct TZipReference {
     filename: String,
     directory: String,
     archive: String,
     index: u32,
 }
 
-impl TZipEntry {
+impl TZipReference {
     pub fn new(backend: &ZipArchive, index: u32) -> Self {
-        TZipEntry {
+        TZipReference {
             filename: backend.filename.clone(),
             directory: backend.directory.clone(),
             archive: backend.archive.clone(),

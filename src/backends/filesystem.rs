@@ -1,5 +1,4 @@
 use crate::{
-    backends::TreeModelMviewExt,
     category::Category,
     error::MviewResult,
     filelistview::{Cursor, Direction},
@@ -7,7 +6,7 @@ use crate::{
     window::MViewWidgets,
 };
 use eog::Image;
-use gtk::{prelude::GtkListStoreExtManual, ListStore, TreeIter};
+use gtk::{prelude::GtkListStoreExtManual, ListStore};
 use image::DynamicImage;
 use regex::Regex;
 use std::{
@@ -18,7 +17,11 @@ use std::{
     time::UNIX_EPOCH,
 };
 
-use super::{empty_store, thumbnail::TEntry, Backend, Backends, Columns, Selection};
+use super::{
+    empty_store,
+    thumbnail::{TEntry, TReference},
+    Backend, Backends, Columns, Selection,
+};
 
 #[derive(Clone)]
 pub struct FileSystem {
@@ -84,7 +87,7 @@ impl FileSystem {
         store
     }
 
-    pub fn get_thumbnail(src: &TFileEntry) -> MviewResult<DynamicImage> {
+    pub fn get_thumbnail(src: &TFileReference) -> MviewResult<DynamicImage> {
         let thumb_filename = src.filename.replace(".lo.", ".").replace(".hi.", ".") + ".mthumb";
         let thumb_path = format!("{}/.mview/{}", src.directory, thumb_filename);
         if Path::new(&thumb_path).exists() {
@@ -195,8 +198,13 @@ impl Backend for FileSystem {
         }
     }
 
-    fn entry(&self, model: &ListStore, iter: &TreeIter) -> TEntry {
-        TEntry::FileEntry(TFileEntry::new(&self.directory, &model.name(iter)))
+    fn entry(&self, cursor: &Cursor) -> TEntry {
+        let name = &cursor.name();
+        TEntry::new(
+            Category::from(cursor.category()),
+            name,
+            TReference::FileReference(TFileReference::new(&self.directory, name)),
+        )
     }
 
     fn backend(&self) -> Backends {
@@ -205,14 +213,14 @@ impl Backend for FileSystem {
 }
 
 #[derive(Debug, Clone)]
-pub struct TFileEntry {
+pub struct TFileReference {
     directory: String,
     filename: String,
 }
 
-impl TFileEntry {
+impl TFileReference {
     pub fn new(directory: &str, filename: &str) -> Self {
-        TFileEntry {
+        TFileReference {
             directory: directory.to_string(),
             filename: filename.to_string(),
         }

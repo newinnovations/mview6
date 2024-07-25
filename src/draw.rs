@@ -1,7 +1,12 @@
 use cairo::{Context, Format, ImageSurface};
 use eog::{Image, ImageExt};
+use gdk::pixbuf_get_from_surface;
+use gdk_pixbuf::Pixbuf;
 
-use crate::error::MviewResult;
+use crate::{
+    backends::thumbnail::TMessage,
+    error::{AppError, MviewError, MviewResult},
+};
 
 pub fn draw(text: &str) -> MviewResult<Image> {
     let surface = ImageSurface::create(Format::ARgb32, 600, 600)?;
@@ -130,4 +135,44 @@ fn logo(context: &Context, x: i32, y: i32, size: f64) -> MviewResult<()> {
     context.show_text("View6")?;
     context.stroke()?;
     Ok(())
+}
+
+pub fn text_thumb(message: TMessage) -> MviewResult<Pixbuf> {
+    let surface: ImageSurface = ImageSurface::create(Format::ARgb32, 175, 175)?;
+    let context = Context::new(&surface)?;
+
+    // context.set_source_rgb(0.1, 0.1, 0.2);
+    context.set_source_rgb(0.2, 0.1, 0.1);
+    context.paint()?;
+
+    // logo(&context, width - offset_x, height - 15, 30.0)?;
+
+    context.select_font_face(
+        "Liberation Sans",
+        cairo::FontSlant::Normal,
+        cairo::FontWeight::Bold,
+    );
+    context.set_font_size(20.0);
+    let extends = context.text_extents(message.title())?;
+    context.move_to((175.0 - extends.width()) / 2.0, 60.0);
+    context.set_source_rgb(1.0, 1.0, 1.0);
+    context.show_text(message.title())?;
+
+    context.select_font_face(
+        "Liberation Sans",
+        cairo::FontSlant::Normal,
+        cairo::FontWeight::Normal,
+    );
+    context.set_font_size(14.0);
+    let extends = context.text_extents(message.message())?;
+    context.move_to((175.0 - extends.width()) / 2.0, 110.0);
+    context.set_source_rgb(1.0, 1.0, 1.0);
+    context.show_text(message.message())?;
+
+    match pixbuf_get_from_surface(&surface, 0, 0, 175, 175) {
+        Some(pixbuf) => Ok(pixbuf),
+        None => Err(MviewError::App(AppError::new(
+            "Failed to get pixbuf from surface",
+        ))),
+    }
 }

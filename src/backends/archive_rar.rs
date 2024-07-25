@@ -2,7 +2,7 @@ use std::path::Path;
 
 use chrono::{Local, TimeZone};
 use eog::Image;
-use gtk::{prelude::GtkListStoreExtManual, ListStore, TreeIter};
+use gtk::{prelude::GtkListStoreExtManual, ListStore};
 use image::DynamicImage;
 use sha2::{Digest, Sha256};
 use unrar::{error::UnrarError, Archive, UnrarResult};
@@ -18,8 +18,9 @@ use crate::{
 };
 
 use super::{
-    filesystem::FileSystem, thumbnail::TEntry, Backend, Backends, Columns, Selection,
-    TreeModelMviewExt,
+    filesystem::FileSystem,
+    thumbnail::{TEntry, TReference},
+    Backend, Backends, Columns, Selection,
 };
 
 #[derive(Clone)]
@@ -61,7 +62,7 @@ impl RarArchive {
         store
     }
 
-    pub fn get_thumbnail(src: &TRarEntry) -> MviewResult<DynamicImage> {
+    pub fn get_thumbnail(src: &TRarReference) -> MviewResult<DynamicImage> {
         let mut hasher = Sha256::new();
         hasher.update(src.archive.as_bytes());
         hasher.update(src.selection.as_bytes());
@@ -109,8 +110,12 @@ impl Backend for RarArchive {
         }
     }
 
-    fn entry(&self, model: &ListStore, iter: &TreeIter) -> TEntry {
-        TEntry::RarEntry(TRarEntry::new(self, &model.name(iter)))
+    fn entry(&self, cursor: &Cursor) -> TEntry {
+        TEntry::new(
+            Category::from(cursor.category()),
+            &cursor.name(),
+            TReference::RarReference(TRarReference::new(self, &cursor.name())),
+        )
     }
 
     fn backend(&self) -> Backends {
@@ -187,16 +192,16 @@ pub fn unix_from_msdos(dostime: u32) -> u64 {
 }
 
 #[derive(Debug, Clone)]
-pub struct TRarEntry {
+pub struct TRarReference {
     filename: String,
     directory: String,
     archive: String,
     selection: String,
 }
 
-impl TRarEntry {
+impl TRarReference {
     pub fn new(backend: &RarArchive, selection: &str) -> Self {
-        TRarEntry {
+        TRarReference {
             filename: backend.filename.clone(),
             directory: backend.directory.clone(),
             archive: backend.archive.clone(),

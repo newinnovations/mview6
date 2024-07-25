@@ -52,6 +52,14 @@ pub struct Cursor {
 }
 
 impl Cursor {
+    pub fn new(store: ListStore, iter: TreeIter, position: i32) -> Self {
+        Cursor {
+            store,
+            iter,
+            position,
+        }
+    }
+
     /// Postion in the list (depends on the sorting order)
     pub fn position(&self) -> i32 {
         self.position
@@ -90,6 +98,10 @@ impl Cursor {
                 (Columns::Name as u32, &new_filename),
             ],
         );
+    }
+
+    pub fn set_sort(&self, sort_column_id: SortColumn, order: SortType) {
+        self.store.set_sort_column_id(sort_column_id, order);
     }
 
     pub fn set_sort_column(&self, new_column: SortColumn) {
@@ -146,6 +158,10 @@ impl Cursor {
             }
         }
         self.store.path(&self.iter)
+    }
+
+    pub fn next(&self) -> bool {
+        self.store.iter_next(&self.iter)
     }
 }
 

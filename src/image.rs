@@ -175,6 +175,19 @@ impl ImageLoader {
         );
         Ok(pixbuf)
     }
+
+    pub fn pixbuf_scale(pixbuf: Pixbuf, size: i32) -> Option<Pixbuf> {
+        let width = pixbuf.width();
+        let height = pixbuf.height();
+
+        let (thumb_width, thumb_height) = if width > height {
+            (size, height * size / width)
+        } else {
+            (width * size / height, size)
+        };
+
+        pixbuf.scale_simple(thumb_width, thumb_height, gdk_pixbuf::InterpType::Bilinear)
+    }
 }
 
 pub struct ImageSaver {}

@@ -5,13 +5,13 @@ use std::{
 };
 
 use super::{
-    archive_rar::TRarEntry, archive_zip::TZipEntry, empty_store, filesystem::TFileEntry, Backend,
-    Backends, Columns, Selection,
+    archive_rar::TRarReference, archive_zip::TZipReference, empty_store,
+    filesystem::TFileReference, Backend, Backends, Columns, Selection,
 };
 use crate::{
     backends::{archive_rar::RarArchive, archive_zip::ZipArchive, filesystem::FileSystem},
     category::Category,
-    draw::thumbnail_sheet,
+    draw::{text_thumb, thumbnail_sheet},
     error::MviewResult,
     filelistview::Cursor,
     image::ImageLoader,
@@ -93,14 +93,16 @@ impl Thumbnail {
 
         let mut done = false;
         let mut tid = 0;
-        if let Some(iter) = store.iter_nth_child(None, page * self.capacity()) {
+        let start = page * self.capacity();
+        if let Some(iter) = store.iter_nth_child(None, start) {
+            let cursor = Cursor::new(store, iter, start);
             for row in 0..self.capacity_y {
                 if done {
                     break;
                 }
                 for col in 0..self.capacity_x {
-                    let source = backend.entry(&store, &iter);
-                    if !matches!(source, TEntry::None) {
+                    let source = backend.entry(&cursor);
+                    if !matches!(source.reference, TReference::None) {
                         let task = TTask::new(
                             tid,
                             self.size as u32,
@@ -111,7 +113,7 @@ impl Thumbnail {
                         res.push(task);
                         tid += 1;
                     }
-                    if !store.iter_next(&iter) {
+                    if !cursor.next() {
                         done = true;
                         break;
                     }
@@ -214,21 +216,22 @@ impl Backend for Thumbnail {
         let backend = self.parent.borrow();
         let store = backend.store();
         if let Some(iter) = store.iter_nth_child(None, pos) {
-            let source = backend.entry(&store, &iter);
+            let cursor = Cursor::new(store, iter, pos);
+            let source = backend.entry(&cursor).reference;
             match source {
-                TEntry::FileEntry(src) => Some((
+                TReference::FileReference(src) => Some((
                     self.parent.borrow().backend().dynbox(),
                     Selection::Name(src.filename()),
                 )),
-                TEntry::ZipEntry(src) => Some((
+                TReference::ZipReference(src) => Some((
                     self.parent.borrow().backend().dynbox(),
                     Selection::Index(src.index()),
                 )),
-                TEntry::RarEntry(src) => Some((
+                TReference::RarReference(src) => Some((
                     self.parent.borrow().backend().dynbox(),
                     Selection::Name(src.selection()),
                 )),
-                TEntry::None => None,
+                TReference::None => None,
             }
         } else {
             None
@@ -236,13 +239,24 @@ impl Backend for Thumbnail {
     }
 }
 
-fn thumb_result(res: MviewResult<DynamicImage>) -> Option<DynamicImage> {
+fn thumb_result(res: MviewResult<DynamicImage>, task: &TTask) -> TResultOption {
     match res {
-        Ok(image) => Some(image),
-        Err(error) => {
-            println!("Thumbnail failed: {:?}", error);
-            None
+        Ok(image) => {
+            let image = image.resize(task.size, task.size, image::imageops::FilterType::Lanczos3);
+            TResultOption::Image(image)
         }
+        Err(_error) => match task.source.category {
+            Category::Direcory => {
+                TResultOption::Message(TMessage::new("directory", &task.source.name))
+            }
+            Category::Archive => {
+                TResultOption::Message(TMessage::new("archive", &task.source.name))
+            }
+            Category::Unsupported => {
+                TResultOption::Message(TMessage::new("unsupported", &task.source.name))
+            }
+            _ => TResultOption::Message(TMessage::new("error", &task.source.name)),
+        },
     }
 }
 
@@ -267,28 +281,24 @@ pub fn start_thumbnail_task(
                     // println!("{tid:3}: start {:7.3}", elapsed);
                     // thread::sleep(time::Duration::from_secs(2));
                     thread::sleep(time::Duration::from_millis(1));
-                    let image = match panic::catch_unwind(|| match &task.source {
-                        TEntry::FileEntry(src) => thumb_result(FileSystem::get_thumbnail(src)),
-                        TEntry::ZipEntry(src) => thumb_result(ZipArchive::get_thumbnail(src)),
-                        TEntry::RarEntry(src) => thumb_result(RarArchive::get_thumbnail(src)),
-                        TEntry::None => None,
+                    let result = match panic::catch_unwind(|| match &task.source.reference {
+                        TReference::FileReference(src) => {
+                            thumb_result(FileSystem::get_thumbnail(src), &task)
+                        }
+                        TReference::ZipReference(src) => {
+                            thumb_result(ZipArchive::get_thumbnail(src), &task)
+                        }
+                        TReference::RarReference(src) => {
+                            thumb_result(RarArchive::get_thumbnail(src), &task)
+                        }
+                        TReference::None => {
+                            TResultOption::Message(TMessage::new("none", "TEntry::None"))
+                        }
                     }) {
                         Ok(image) => image,
-                        Err(_) => {
-                            println!("*** Panic in image-rs/zune-jpeg ***");
-                            None
-                        }
+                        Err(_) => TResultOption::Message(TMessage::new("panic", &task.source.name)),
                     };
-                    let image = match image {
-                        Some(im) => Some(im.resize(
-                            task.size,
-                            task.size,
-                            image::imageops::FilterType::Lanczos3,
-                        )),
-                        None => None,
-                    };
-
-                    let _ = sender_clone.send(Message::Result(TResult::new(id, task, image)));
+                    let _ = sender_clone.send(Message::Result(TResult::new(id, task, result)));
                 });
             }
         } else {
@@ -309,30 +319,38 @@ pub fn handle_thumbnail_result(eog: &ScrollView, command: &mut TCommand, result:
         let id = image.id();
         if result.id == id {
             // println!("{tid:3}: -- result id is ok: {id}");
-            if let Some(thumb) = result.image {
-                // println!("{tid:3}:    -- got thumb image");
-                match ImageLoader::image_rs_to_pixbuf(thumb) {
-                    Ok(thumb_pb) => {
-                        if let Some(image_pb) = image.pixbuf() {
-                            let size = result.task.size as i32;
-                            let (x, y) = result.task.position;
-                            thumb_pb.copy_area(
-                                0,
-                                0,
-                                thumb_pb.width(),
-                                thumb_pb.height(),
-                                &image_pb,
-                                x + (size - thumb_pb.width()) / 2,
-                                y + (size - thumb_pb.height()) / 2,
-                            );
-                        }
-                    }
-                    Err(error) => {
-                        println!("Thumbnail: failed to convert to pixbuf {:?}", error);
+
+            let pixbuf = match result.result {
+                TResultOption::Image(image) => ImageLoader::image_rs_to_pixbuf(image),
+                TResultOption::Message(message) => text_thumb(message),
+            };
+
+            match pixbuf {
+                Ok(thumb_pb) => {
+                    if let Some(image_pb) = image.pixbuf() {
+                        let size = result.task.size as i32;
+
+                        let thumb_pb = if thumb_pb.width() > size || thumb_pb.height() > size {
+                            ImageLoader::pixbuf_scale(thumb_pb, size).unwrap()
+                        } else {
+                            thumb_pb
+                        };
+
+                        let (x, y) = result.task.position;
+                        thumb_pb.copy_area(
+                            0,
+                            0,
+                            thumb_pb.width(),
+                            thumb_pb.height(),
+                            &image_pb,
+                            x + (size - thumb_pb.width()) / 2,
+                            y + (size - thumb_pb.height()) / 2,
+                        );
                     }
                 }
-            } else {
-                // println!("{tid:3}:    -- no thumb image");
+                Err(error) => {
+                    println!("Thumbnail: failed to convert to pixbuf {:?}", error);
+                }
             }
             if command.todo == 0 || (elapsed - command.last_update) > 0.3 {
                 if command.last_update == 0.0 {
@@ -350,11 +368,38 @@ pub fn handle_thumbnail_result(eog: &ScrollView, command: &mut TCommand, result:
 }
 
 #[derive(Debug, Clone)]
-pub enum TEntry {
-    FileEntry(TFileEntry),
-    ZipEntry(TZipEntry),
-    RarEntry(TRarEntry),
+pub enum TReference {
+    FileReference(TFileReference),
+    ZipReference(TZipReference),
+    RarReference(TRarReference),
     None,
+}
+
+#[derive(Debug, Clone)]
+pub struct TEntry {
+    category: Category,
+    name: String,
+    reference: TReference,
+}
+
+impl TEntry {
+    pub fn new(category: Category, name: &str, reference: TReference) -> Self {
+        TEntry {
+            category,
+            name: name.to_string(),
+            reference,
+        }
+    }
+}
+
+impl Default for TEntry {
+    fn default() -> Self {
+        Self {
+            category: Category::Unsupported,
+            name: Default::default(),
+            reference: TReference::None,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -424,15 +469,42 @@ impl TTask {
 }
 
 #[derive(Debug, Clone)]
+pub struct TMessage {
+    title: String,
+    message: String,
+}
+
+impl TMessage {
+    pub fn new(title: &str, message: &str) -> Self {
+        TMessage {
+            title: title.to_string(),
+            message: message.to_string(),
+        }
+    }
+    pub fn title(&self) -> &str {
+        &self.title
+    }
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum TResultOption {
+    Image(DynamicImage),
+    Message(TMessage),
+}
+
+#[derive(Debug, Clone)]
 pub struct TResult {
     id: i32,
     task: TTask,
-    image: Option<DynamicImage>,
+    result: TResultOption,
 }
 
 impl TResult {
-    pub fn new(id: i32, task: TTask, image: Option<DynamicImage>) -> Self {
-        TResult { id, task, image }
+    pub fn new(id: i32, task: TTask, result: TResultOption) -> Self {
+        TResult { id, task, result }
     }
 }
 
