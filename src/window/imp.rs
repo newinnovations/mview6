@@ -102,6 +102,7 @@ impl ObjectImpl for MViewWindowImp {
 
         let file_list_view = FileListView::new();
         file_list_view.set_vexpand(true);
+        file_list_view.set_fixed_height_mode(true);
         files_widget.add(&file_list_view);
 
         let eog = ScrollView::new();
