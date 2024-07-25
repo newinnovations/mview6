@@ -80,8 +80,13 @@ impl Cursor {
         self.store.folder(&self.iter)
     }
 
-    /// Value of the category field of the row
-    pub fn category(&self) -> u32 {
+    /// Value of the category field of the row (as u32)
+    pub fn category_id(&self) -> u32 {
+        self.store.category_id(&self.iter)
+    }
+
+    /// Value of the category field of the row (as Category)
+    pub fn category(&self) -> Category {
         self.store.category(&self.iter)
     }
 
@@ -141,11 +146,9 @@ impl Cursor {
 
             let skip = match filter {
                 Filter::None => false,
-                Filter::Image => cat != Category::Image.id() && cat != Category::Favorite.id(),
-                Filter::Favorite => cat != Category::Favorite.id(),
-                Filter::Container => {
-                    cat != Category::Direcory.id() && cat != Category::Archive.id()
-                }
+                Filter::Image => cat != Category::Image && cat != Category::Favorite,
+                Filter::Favorite => cat != Category::Favorite,
+                Filter::Container => cat != Category::Direcory && cat != Category::Archive,
             };
 
             if skip {

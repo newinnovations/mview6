@@ -112,7 +112,7 @@ impl Backend for RarArchive {
 
     fn entry(&self, cursor: &Cursor) -> TEntry {
         TEntry::new(
-            Category::from(cursor.category()),
+            cursor.category(),
             &cursor.name(),
             TReference::RarReference(TRarReference::new(self, &cursor.name())),
         )

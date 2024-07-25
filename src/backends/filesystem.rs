@@ -117,7 +117,7 @@ impl Backend for FileSystem {
 
     fn enter(&self, cursor: &Cursor) -> Option<Box<dyn Backend>> {
         let category = cursor.category();
-        if category == Category::Direcory.id() || category == Category::Archive.id() {
+        if category == Category::Direcory || category == Category::Archive {
             Some(<dyn Backend>::new(&format!(
                 "{}/{}",
                 self.directory,
@@ -155,10 +155,7 @@ impl Backend for FileSystem {
 
     fn favorite(&self, cursor: &Cursor, direction: Direction) -> bool {
         let cat = cursor.category();
-        if cat != Category::Image.id()
-            && cat != Category::Favorite.id()
-            && cat != Category::Trash.id()
-        {
+        if cat != Category::Image && cat != Category::Favorite && cat != Category::Trash {
             return false;
         }
 
@@ -201,7 +198,7 @@ impl Backend for FileSystem {
     fn entry(&self, cursor: &Cursor) -> TEntry {
         let name = &cursor.name();
         TEntry::new(
-            Category::from(cursor.category()),
+            cursor.category(),
             name,
             TReference::FileReference(TFileReference::new(&self.directory, name)),
         )

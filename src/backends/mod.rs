@@ -140,7 +140,8 @@ impl Backends {
 pub trait TreeModelMviewExt: IsA<TreeModel> {
     fn name(&self, iter: &TreeIter) -> String;
     fn folder(&self, iter: &TreeIter) -> String;
-    fn category(&self, iter: &TreeIter) -> u32;
+    fn category_id(&self, iter: &TreeIter) -> u32;
+    fn category(&self, iter: &TreeIter) -> Category;
     fn index(&self, iter: &TreeIter) -> u32;
 }
 
@@ -155,10 +156,16 @@ impl<O: IsA<TreeModel>> TreeModelMviewExt for O {
             .get::<String>()
             .unwrap_or_default()
     }
-    fn category(&self, iter: &TreeIter) -> u32 {
+    fn category_id(&self, iter: &TreeIter) -> u32 {
         self.value(iter, Columns::Cat as i32)
             .get::<u32>()
             .unwrap_or(Category::Unsupported.id())
+    }
+    fn category(&self, iter: &TreeIter) -> Category {
+        match self.value(iter, Columns::Cat as i32).get::<u32>() {
+            Ok(id) => Category::from(id),
+            Err(_) => Default::default(),
+        }
     }
     fn index(&self, iter: &TreeIter) -> u32 {
         self.value(iter, Columns::Index as i32)
@@ -181,8 +188,8 @@ pub fn empty_store() -> ListStore {
     store.set_sort_func(
         gtk::SortColumn::Index(Columns::Cat as u32),
         |model, iter1, iter2| {
-            let cat1 = model.category(iter1);
-            let cat2 = model.category(iter2);
+            let cat1 = model.category_id(iter1);
+            let cat2 = model.category_id(iter2);
             let result = cat1.cmp(&cat2);
             if result.is_eq() {
                 let filename1 = model.name(iter1).to_lowercase();

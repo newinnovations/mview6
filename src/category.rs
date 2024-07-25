@@ -1,4 +1,4 @@
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 #[repr(u32)]
 pub enum Category {
     Direcory = 0,
@@ -52,17 +52,6 @@ impl Category {
         *self as u32
     }
 
-    pub fn from(id: u32) -> Self {
-        match id {
-            0 => Self::Direcory,
-            1 => Self::Favorite,
-            2 => Self::Image,
-            3 => Self::Archive,
-            4 => Self::Trash,
-            _ => Self::Unsupported,
-        }
-    }
-
     pub fn icon(&self) -> &str {
         match self {
             Self::Direcory => "folder",
@@ -72,5 +61,24 @@ impl Category {
             Self::Trash => "user-trash",
             Self::Unsupported => "text-x-generic",
         }
+    }
+}
+
+impl From<u32> for Category {
+    fn from(value: u32) -> Self {
+        match value {
+            0 => Self::Direcory,
+            1 => Self::Favorite,
+            2 => Self::Image,
+            3 => Self::Archive,
+            4 => Self::Trash,
+            _ => Self::Unsupported,
+        }
+    }
+}
+
+impl Default for Category {
+    fn default() -> Self {
+        Self::Unsupported
     }
 }

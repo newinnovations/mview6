@@ -110,7 +110,7 @@ impl Backend for ZipArchive {
 
     fn entry(&self, cursor: &Cursor) -> TEntry {
         TEntry::new(
-            Category::from(cursor.category()),
+            cursor.category(),
             &cursor.name(),
             TReference::ZipReference(TZipReference::new(self, cursor.index())),
         )
