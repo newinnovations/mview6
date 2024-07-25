@@ -164,10 +164,65 @@ pub fn text_thumb(message: TMessage) -> MviewResult<Pixbuf> {
         cairo::FontWeight::Normal,
     );
     context.set_font_size(14.0);
-    let extends = context.text_extents(message.message())?;
-    context.move_to((175.0 - extends.width()) / 2.0, 110.0);
     context.set_source_rgb(1.0, 1.0, 1.0);
-    context.show_text(message.message())?;
+
+    let target_width = 160.0;
+
+    let extends = context.text_extents(message.message())?;
+
+    if extends.width() > target_width {
+        let msg = message.message().chars().collect::<Vec<char>>();
+
+        let mid = msg.len() / 2;
+
+        let mut chars_lost = false;
+
+        let mut m = mid;
+        let mut first;
+        let mut first_extends;
+        loop {
+            let a = &msg[..m];
+            first = a.iter().collect::<String>();
+            first_extends = context.text_extents(&first)?;
+            if first_extends.width() <= target_width || m == 0 {
+                break;
+            }
+            chars_lost = true;
+            m -= 1;
+        }
+
+        let mut m = mid;
+        let mut second;
+        let mut second_extends;
+        loop {
+            let a = &msg[m..];
+            second = a.iter().collect::<String>();
+            second_extends = context.text_extents(&second)?;
+            m += 1;
+            if second_extends.width() <= target_width || m == msg.len() {
+                break;
+            }
+            chars_lost = true;
+        }
+
+        if chars_lost {
+            context.move_to(80.0, 120.0);
+            context.show_text("...")?;
+            context.move_to((175.0 - first_extends.width()) / 2.0, 110.0);
+            context.show_text(&first)?;
+            context.move_to((175.0 - second_extends.width()) / 2.0, 140.0);
+            context.show_text(&second)?;
+
+        } else {
+            context.move_to((175.0 - first_extends.width()) / 2.0, 110.0);
+            context.show_text(&first)?;
+            context.move_to((175.0 - second_extends.width()) / 2.0, 135.0);
+            context.show_text(&second)?;
+        }
+    } else {
+        context.move_to((175.0 - extends.width()) / 2.0, 110.0);
+        context.show_text(message.message())?;
+    }
 
     match pixbuf_get_from_surface(&surface, 0, 0, 175, 175) {
         Some(pixbuf) => Ok(pixbuf),
