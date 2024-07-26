@@ -11,11 +11,10 @@ use image::DynamicImage;
 use zip::result::ZipResult;
 
 use crate::{
-    backends::empty_store,
     category::Category,
     draw::draw,
     error::MviewResult,
-    filelistview::Cursor,
+    filelistview::{Columns, Cursor},
     image::{ImageLoader, ImageSaver},
     window::MViewWidgets,
 };
@@ -23,7 +22,7 @@ use crate::{
 use super::{
     filesystem::FileSystem,
     thumbnail::{TEntry, TReference},
-    Backend, Backends, Columns, Selection,
+    Backend, Backends, Selection,
 };
 
 #[derive(Clone)]
@@ -57,7 +56,7 @@ impl ZipArchive {
 
     fn create_store(filename: &str) -> ListStore {
         println!("create_store ZipArchive {}", filename);
-        let store = empty_store();
+        let store = Columns::store();
         match list_zip(filename, &store) {
             Ok(()) => println!("OK"),
             Err(e) => println!("ERROR {:?}", e),

@@ -1,4 +1,3 @@
-use crate::backends::Columns;
 use crate::filelistview;
 use chrono::{DateTime, Local, TimeZone};
 use glib::ObjectExt;
@@ -6,6 +5,8 @@ use gtk::glib;
 use gtk::prelude::{TreeModelExt, TreeViewColumnExt, TreeViewExt};
 use gtk::subclass::prelude::*;
 use human_bytes::human_bytes;
+
+use super::Columns;
 
 #[derive(Debug, Default)]
 pub struct FileListViewImp {

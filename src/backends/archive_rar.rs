@@ -8,11 +8,10 @@ use sha2::{Digest, Sha256};
 use unrar::{error::UnrarError, Archive, UnrarResult};
 
 use crate::{
-    backends::empty_store,
     category::Category,
     draw::draw,
     error::MviewResult,
-    filelistview::Cursor,
+    filelistview::{Columns, Cursor},
     image::{ImageLoader, ImageSaver},
     window::MViewWidgets,
 };
@@ -20,7 +19,7 @@ use crate::{
 use super::{
     filesystem::FileSystem,
     thumbnail::{TEntry, TReference},
-    Backend, Backends, Columns, Selection,
+    Backend, Backends, Selection,
 };
 
 #[derive(Clone)]
@@ -54,7 +53,7 @@ impl RarArchive {
 
     fn create_store(filename: &str) -> ListStore {
         println!("create_store RarArchive {}", &filename);
-        let store = empty_store();
+        let store = Columns::store();
         match list_rar(filename, &store) {
             Ok(()) => println!("OK"),
             Err(e) => println!("ERROR {:?}", e),

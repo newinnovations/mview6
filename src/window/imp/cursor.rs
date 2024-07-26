@@ -3,8 +3,8 @@ use std::path::Path;
 use super::MViewWindowImp;
 
 use crate::{
-    backends::{Backend, Selection},
-    filelistview::{Direction, FileListViewExt, Filter},
+    backends::Backend,
+    filelistview::{Direction, FileListViewExt, Filter, Selection},
 };
 use eog::ScrollViewExt;
 use gio::File;

@@ -1,9 +1,13 @@
 use eog::Image;
 use gtk::ListStore;
 
-use crate::{draw::draw, filelistview::Cursor, window::MViewWidgets};
+use crate::{
+    draw::draw,
+    filelistview::{Columns, Cursor},
+    window::MViewWidgets,
+};
 
-use super::{empty_store, Backend, Backends, Selection};
+use super::{Backend, Backends, Selection};
 
 #[derive(Clone)]
 pub struct Invalid {}
@@ -30,7 +34,7 @@ impl Backend for Invalid {
     }
 
     fn store(&self) -> ListStore {
-        empty_store()
+        Columns::store()
     }
 
     fn leave(&self) -> (Box<dyn Backend>, Selection) {

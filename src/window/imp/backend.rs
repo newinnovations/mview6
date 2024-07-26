@@ -7,8 +7,8 @@ use gtk::{
 };
 
 use crate::{
-    backends::{Backend, Columns, Selection},
-    filelistview::FileListViewExt,
+    backends::Backend,
+    filelistview::{Columns, FileListViewExt, Selection},
     window::imp::Sort,
 };
 

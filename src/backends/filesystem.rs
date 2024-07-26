@@ -1,7 +1,7 @@
 use crate::{
     category::Category,
     error::MviewResult,
-    filelistview::{Cursor, Direction},
+    filelistview::{Columns, Cursor, Direction},
     image::{ImageLoader, ImageSaver},
     window::MViewWidgets,
 };
@@ -18,9 +18,8 @@ use std::{
 };
 
 use super::{
-    empty_store,
     thumbnail::{TEntry, TReference},
-    Backend, Backends, Columns, Selection,
+    Backend, Backends, Selection,
 };
 
 #[derive(Clone)]
@@ -77,7 +76,7 @@ impl FileSystem {
     }
 
     fn create_store(directory: &str) -> ListStore {
-        let store = empty_store();
+        let store = Columns::store();
         match Self::read_directory(&store, directory) {
             Ok(()) => (),
             Err(e) => {

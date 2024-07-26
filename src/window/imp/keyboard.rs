@@ -5,8 +5,8 @@ use gdk::EventKey;
 use gtk::{prelude::*, subclass::prelude::*, SortColumn};
 
 use crate::{
-    backends::{thumbnail::Thumbnail, Backend, Selection},
-    filelistview::{Direction, FileListViewExt, Filter},
+    backends::{thumbnail::Thumbnail, Backend},
+    filelistview::{Direction, FileListViewExt, Filter, Selection},
 };
 
 impl MViewWindowImp {

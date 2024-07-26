@@ -6,6 +6,7 @@ mod draw;
 mod error;
 mod filelistview;
 mod image;
+mod widget;
 mod window;
 
 use gdk::Screen;

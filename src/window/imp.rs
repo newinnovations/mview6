@@ -5,37 +5,25 @@ mod mouse;
 
 use crate::{
     backends::{
-        thumbnail::{handle_thumbnail_result, start_thumbnail_task, Message, TCommand},
-        Backend, Columns, Selection,
+        thumbnail::{
+            processing::{handle_thumbnail_result, start_thumbnail_task},
+            Message, TCommand,
+        },
+        Backend,
     },
-    filelistview::FileListView,
+    filelistview::{FileListView, Selection, Sort},
+    widget::MViewWidgetExt,
 };
 use eog::{ScrollView, ScrollViewExt};
-use gdk::{Display, Rectangle};
 use gdk_pixbuf::PixbufLoader;
 use glib::{clone, once_cell::unsync::OnceCell};
-use gtk::{glib, prelude::*, subclass::prelude::*, ScrolledWindow, SortColumn, SortType};
+use gtk::{glib, prelude::*, subclass::prelude::*, ScrolledWindow};
 use std::{
     cell::{Cell, RefCell},
     rc::Rc,
 };
 
 use super::MViewWidgets;
-
-#[derive(Clone, Copy, Debug)]
-struct Sort {
-    column: SortColumn,
-    order: SortType,
-}
-
-impl Default for Sort {
-    fn default() -> Self {
-        Self {
-            column: SortColumn::Index(Columns::Cat as u32),
-            order: SortType::Ascending,
-        }
-    }
-}
 
 #[derive(Debug, Default)]
 pub struct MViewWindowImp {
@@ -195,20 +183,3 @@ impl ContainerImpl for MViewWindowImp {}
 impl BinImpl for MViewWindowImp {}
 impl WindowImpl for MViewWindowImp {}
 impl ApplicationWindowImpl for MViewWindowImp {}
-
-pub trait MViewWidgetExt: IsA<gtk::Widget> {
-    fn display_size(&self) -> gdk::Rectangle;
-}
-
-impl<O: IsA<gtk::Widget>> MViewWidgetExt for O {
-    fn display_size(&self) -> gdk::Rectangle {
-        if let Some(display) = Display::default() {
-            if let Some(window) = self.window() {
-                if let Some(monitor) = display.monitor_at_window(&window) {
-                    return monitor.workarea();
-                }
-            }
-        }
-        Rectangle::new(0, 0, 800, 600)
-    }
-}

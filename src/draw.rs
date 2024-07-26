@@ -206,13 +206,12 @@ pub fn text_thumb(message: TMessage) -> MviewResult<Pixbuf> {
         }
 
         if chars_lost {
-            context.move_to(80.0, 120.0);
+            context.move_to(80.0, 121.0);
             context.show_text("...")?;
             context.move_to((175.0 - first_extends.width()) / 2.0, 110.0);
             context.show_text(&first)?;
             context.move_to((175.0 - second_extends.width()) / 2.0, 140.0);
             context.show_text(&second)?;
-
         } else {
             context.move_to((175.0 - first_extends.width()) / 2.0, 110.0);
             context.show_text(&first)?;

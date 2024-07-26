@@ -1,11 +1,15 @@
 use crate::{
-    category::Category, config::config, draw::draw, filelistview::Cursor, window::MViewWidgets,
+    category::Category,
+    config::config,
+    draw::draw,
+    filelistview::{Columns, Cursor},
+    window::MViewWidgets,
 };
 use eog::Image;
 use gtk::{prelude::GtkListStoreExtManual, ListStore};
 use std::{cell::RefCell, fs, io, time::UNIX_EPOCH};
 
-use super::{empty_store, Backend, Backends, Columns, Selection};
+use super::{Backend, Backends, Selection};
 
 pub struct Bookmarks {
     store: ListStore,
@@ -56,7 +60,7 @@ impl Bookmarks {
     }
 
     fn create_store() -> ListStore {
-        let store = empty_store();
+        let store = Columns::store();
         match Self::read_directory(&store) {
             Ok(()) => (),
             Err(e) => {
