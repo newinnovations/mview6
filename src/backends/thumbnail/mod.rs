@@ -3,7 +3,7 @@ pub mod processing;
 
 use std::cell::RefCell;
 
-use super::{Backend, Backends, Selection};
+use super::{Backend, Selection};
 use crate::{
     category::Category,
     draw::thumbnail_sheet,
@@ -65,7 +65,7 @@ impl Thumbnail {
             capacity_y,
             offset_x,
             offset_y,
-            parent: RefCell::new(<dyn Backend>::invalid()),
+            parent: RefCell::new(<dyn Backend>::none()),
             parent_pos: position,
         }
     }
@@ -150,7 +150,7 @@ impl Backend for Thumbnail {
     }
 
     fn leave(&self) -> (Box<dyn Backend>, Selection) {
-        let parent_backend = self.parent.replace(<dyn Backend>::invalid());
+        let parent_backend = self.parent.replace(<dyn Backend>::none());
         (parent_backend, Selection::None)
     }
 
@@ -191,10 +191,6 @@ impl Backend for Thumbnail {
         true
     }
 
-    fn backend(&self) -> Backends {
-        self.parent.borrow().backend()
-    }
-
     fn click(&self, current: &Cursor, x: f64, y: f64) -> Option<(Box<dyn Backend>, Selection)> {
         let x = (x as i32 - self.offset_x) / (self.size + self.separator_x);
         let y = (y as i32 - self.offset_y) / (self.size + self.separator_y);
@@ -211,17 +207,18 @@ impl Backend for Thumbnail {
         if let Some(iter) = store.iter_nth_child(None, pos) {
             let cursor = Cursor::new(store, iter, pos);
             let source = backend.entry(&cursor).reference;
+            drop(backend);
             match source {
                 TReference::FileReference(src) => Some((
-                    self.parent.borrow().backend().dynbox(),
+                    self.parent.replace(<dyn Backend>::none()),
                     Selection::Name(src.filename()),
                 )),
                 TReference::ZipReference(src) => Some((
-                    self.parent.borrow().backend().dynbox(),
+                    self.parent.replace(<dyn Backend>::none()),
                     Selection::Index(src.index()),
                 )),
                 TReference::RarReference(src) => Some((
-                    self.parent.borrow().backend().dynbox(),
+                    self.parent.replace(<dyn Backend>::none()),
                     Selection::Name(src.selection()),
                 )),
                 TReference::None => None,

@@ -1,7 +1,7 @@
 use crate::{
     category::Category,
     error::MviewResult,
-    filelistview::{Columns, Cursor, Direction},
+    filelistview::{Columns, Cursor, Direction, Sort},
     image::{ImageLoader, ImageSaver},
     window::MViewWidgets,
 };
@@ -10,6 +10,7 @@ use gtk::{prelude::GtkListStoreExtManual, ListStore};
 use image::DynamicImage;
 use regex::Regex;
 use std::{
+    cell::Cell,
     ffi::OsStr,
     fs::{self, rename},
     io,
@@ -19,13 +20,14 @@ use std::{
 
 use super::{
     thumbnail::{TEntry, TReference},
-    Backend, Backends, Selection,
+    Backend, Selection,
 };
 
 #[derive(Clone)]
 pub struct FileSystem {
     directory: String,
     store: ListStore,
+    sort: Cell<Sort>,
 }
 
 impl FileSystem {
@@ -33,6 +35,7 @@ impl FileSystem {
         FileSystem {
             directory: directory.to_string(),
             store: Self::create_store(directory),
+            sort: Default::default(),
         }
     }
 
@@ -203,8 +206,12 @@ impl Backend for FileSystem {
         )
     }
 
-    fn backend(&self) -> Backends {
-        Backends::File(self.clone())
+    fn set_sort(&self, sort: &Sort) {
+        self.sort.set(*sort)
+    }
+
+    fn sort(&self) -> Sort {
+        self.sort.get()
     }
 }
 

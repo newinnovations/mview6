@@ -7,24 +7,24 @@ use crate::{
     window::MViewWidgets,
 };
 
-use super::{Backend, Backends, Selection};
+use super::{Backend, Selection};
 
 #[derive(Clone)]
-pub struct Invalid {}
+pub struct NoneBackend {}
 
-impl Invalid {
+impl NoneBackend {
     pub fn new() -> Self {
-        Invalid {}
+        NoneBackend {}
     }
 }
 
-impl Default for Invalid {
+impl Default for NoneBackend {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Backend for Invalid {
+impl Backend for NoneBackend {
     fn class_name(&self) -> &str {
         "Invalid"
     }
@@ -38,14 +38,10 @@ impl Backend for Invalid {
     }
 
     fn leave(&self) -> (Box<dyn Backend>, Selection) {
-        (Box::new(Invalid::new()), Selection::None)
+        (Box::new(NoneBackend::new()), Selection::None)
     }
 
     fn image(&self, _w: &MViewWidgets, _cursor: &Cursor) -> Image {
         draw("invalid").unwrap()
-    }
-
-    fn backend(&self) -> Backends {
-        Backends::Invalid(self.clone())
     }
 }

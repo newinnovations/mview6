@@ -9,7 +9,7 @@ use eog::Image;
 use gtk::{prelude::GtkListStoreExtManual, ListStore};
 use std::{cell::RefCell, fs, io, time::UNIX_EPOCH};
 
-use super::{Backend, Backends, Selection};
+use super::{Backend, Selection};
 
 pub struct Bookmarks {
     store: ListStore,
@@ -26,7 +26,7 @@ impl Bookmarks {
     pub fn new() -> Self {
         Bookmarks {
             store: Self::create_store(),
-            parent: RefCell::new(<dyn Backend>::invalid()),
+            parent: RefCell::new(<dyn Backend>::none()),
         }
     }
 
@@ -89,7 +89,7 @@ impl Backend for Bookmarks {
     }
 
     fn leave(&self) -> (Box<dyn Backend>, Selection) {
-        (self.parent.borrow().backend().dynbox(), Selection::None)
+        (self.parent.replace(<dyn Backend>::none()), Selection::None)
     }
 
     fn image(&self, _w: &MViewWidgets, cursor: &Cursor) -> Image {
@@ -98,9 +98,5 @@ impl Backend for Bookmarks {
 
     fn set_parent(&self, parent: Box<dyn Backend>) {
         self.parent.replace(parent);
-    }
-
-    fn backend(&self) -> Backends {
-        self.parent.borrow().backend()
     }
 }

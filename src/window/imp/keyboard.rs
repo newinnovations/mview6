@@ -47,7 +47,7 @@ impl MViewWindowImp {
                 }
             }
             gdk::keys::constants::i => {
-                w.eog.set_rectangle(100, 100, 100, 100);
+                dbg!(w.backend.borrow().sort());
             }
             gdk::keys::constants::w
             | gdk::keys::constants::KP_7

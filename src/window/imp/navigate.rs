@@ -49,6 +49,7 @@ impl MViewWindowImp {
         let w = self.widgets.get().unwrap();
         let backend = w.backend.borrow();
         let (new_backend, selection) = backend.leave();
+        dbg!(&backend, &new_backend);
         drop(backend);
         self.set_backend(new_backend, selection);
     }
@@ -65,8 +66,7 @@ impl MViewWindowImp {
             .unwrap_or_else(|| Path::new("/"))
             .to_str()
             .unwrap_or("/");
-        println!("filename = {filename}");
-        println!("directory = {directory}");
+        dbg!(filename, directory);
         let new_backend = <dyn Backend>::new(directory);
         self.set_backend(new_backend, Selection::Name(filename.to_string()));
     }

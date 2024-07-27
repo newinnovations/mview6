@@ -1,7 +1,7 @@
 mod backend;
-mod cursor;
 mod keyboard;
 mod mouse;
+mod navigate;
 
 use crate::{
     backends::{
@@ -75,7 +75,9 @@ impl ObjectImpl for MViewWindowImp {
         window.set_default_size(1280, 720);
 
         let loader = PixbufLoader::with_type("svg").unwrap();
-        loader.write(include_bytes!("icon.svg")).unwrap();
+        loader
+            .write(include_bytes!("../../resources/icon.svg"))
+            .unwrap();
         loader.close().unwrap();
         window.set_icon(Some(&loader.pixbuf().unwrap()));
 
@@ -130,7 +132,7 @@ impl ObjectImpl for MViewWindowImp {
         self.widgets
             .set(MViewWidgets {
                 hbox,
-                backend: RefCell::new(<dyn Backend>::invalid()),
+                backend: RefCell::new(<dyn Backend>::none()),
                 file_list_view,
                 files_widget,
                 eog,

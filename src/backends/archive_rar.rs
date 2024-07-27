@@ -19,7 +19,7 @@ use crate::{
 use super::{
     filesystem::FileSystem,
     thumbnail::{TEntry, TReference},
-    Backend, Backends, Selection,
+    Backend, Selection,
 };
 
 #[derive(Clone)]
@@ -115,10 +115,6 @@ impl Backend for RarArchive {
             &cursor.name(),
             TReference::RarReference(TRarReference::new(self, &cursor.name())),
         )
-    }
-
-    fn backend(&self) -> Backends {
-        Backends::Rar(self.clone())
     }
 }
 

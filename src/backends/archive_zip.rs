@@ -22,7 +22,7 @@ use crate::{
 use super::{
     filesystem::FileSystem,
     thumbnail::{TEntry, TReference},
-    Backend, Backends, Selection,
+    Backend, Selection,
 };
 
 #[derive(Clone)]
@@ -113,10 +113,6 @@ impl Backend for ZipArchive {
             &cursor.name(),
             TReference::ZipReference(TZipReference::new(self, cursor.index())),
         )
-    }
-
-    fn backend(&self) -> Backends {
-        Backends::Zip(self.clone())
     }
 }
 

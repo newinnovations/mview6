@@ -6,11 +6,11 @@ use bookmarks::Bookmarks;
 use eog::Image;
 use filesystem::FileSystem;
 use gtk::ListStore;
-use invalid::Invalid;
+use none::NoneBackend;
 use thumbnail::{TEntry, Thumbnail};
 
 use crate::{
-    filelistview::{Cursor, Direction, Selection},
+    filelistview::{Cursor, Direction, Selection, Sort},
     window::MViewWidgets,
 };
 
@@ -18,7 +18,7 @@ mod archive_rar;
 mod archive_zip;
 mod bookmarks;
 pub mod filesystem;
-mod invalid;
+mod none;
 pub mod thumbnail;
 
 #[allow(unused_variables)]
@@ -37,13 +37,16 @@ pub trait Backend {
     fn entry(&self, cursor: &Cursor) -> TEntry {
         Default::default()
     }
-    fn set_parent(&self, parent: Box<dyn Backend>) {}
-    fn backend(&self) -> Backends;
     fn is_thumbnail(&self) -> bool {
         false
     }
     fn click(&self, current: &Cursor, x: f64, y: f64) -> Option<(Box<dyn Backend>, Selection)> {
         None
+    }
+    fn set_parent(&self, parent: Box<dyn Backend>) {}
+    fn set_sort(&self, sort: &Sort) {}
+    fn sort(&self) -> Sort {
+        Default::default()
     }
 }
 
@@ -72,32 +75,14 @@ impl dyn Backend {
         Box::new(thumbnail)
     }
 
-    pub fn invalid() -> Box<dyn Backend> {
-        Box::new(Invalid::new())
+    pub fn none() -> Box<dyn Backend> {
+        Box::new(NoneBackend::new())
     }
 
     pub fn current_dir() -> Box<dyn Backend> {
         match env::current_dir() {
             Ok(cwd) => Box::new(FileSystem::new(cwd.as_os_str().to_str().unwrap_or("/"))),
-            Err(_) => Self::invalid(),
-        }
-    }
-}
-
-pub enum Backends {
-    File(FileSystem),
-    Zip(ZipArchive),
-    Rar(RarArchive),
-    Invalid(Invalid),
-}
-
-impl Backends {
-    fn dynbox(&self) -> Box<dyn Backend> {
-        match self {
-            Backends::File(f) => Box::new(f.clone()),
-            Backends::Zip(f) => Box::new(f.clone()),
-            Backends::Rar(f) => Box::new(f.clone()),
-            Backends::Invalid(f) => Box::new(f.clone()),
+            Err(_) => Box::new(FileSystem::new("/")),
         }
     }
 }
