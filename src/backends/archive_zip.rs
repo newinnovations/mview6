@@ -1,4 +1,5 @@
 use std::{
+    cell::{Cell, RefCell},
     fs,
     io::{BufReader, Read},
     path::Path,
@@ -14,7 +15,7 @@ use crate::{
     category::Category,
     draw::draw,
     error::MviewResult,
-    filelistview::{Columns, Cursor},
+    filelistview::{Columns, Cursor, Sort},
     image::{ImageLoader, ImageSaver},
     window::MViewWidgets,
 };
@@ -25,12 +26,13 @@ use super::{
     Backend, Selection,
 };
 
-#[derive(Clone)]
 pub struct ZipArchive {
     filename: String,
     directory: String,
     archive: String,
     store: ListStore,
+    parent: RefCell<Box<dyn Backend>>,
+    sort: Cell<Sort>,
 }
 
 impl ZipArchive {
@@ -51,6 +53,8 @@ impl ZipArchive {
             directory: directory.to_string(),
             archive: archive.to_string(),
             store: Self::create_store(filename),
+            parent: RefCell::new(<dyn Backend>::none()),
+            sort: Default::default(),
         }
     }
 
@@ -85,6 +89,10 @@ impl Backend for ZipArchive {
         "ZipArchive"
     }
 
+    fn is_container(&self) -> bool {
+        true
+    }
+
     fn path(&self) -> &str {
         &self.filename
     }
@@ -94,10 +102,17 @@ impl Backend for ZipArchive {
     }
 
     fn leave(&self) -> (Box<dyn Backend>, Selection) {
-        (
-            Box::new(FileSystem::new(&self.directory)),
-            Selection::Name(self.archive.clone()),
-        )
+        if self.parent.borrow().is_none() {
+            (
+                Box::new(FileSystem::new(&self.directory)),
+                Selection::Name(self.archive.clone()),
+            )
+        } else {
+            (
+                self.parent.replace(<dyn Backend>::none()),
+                Selection::Name(self.archive.clone()),
+            )
+        }
     }
 
     fn image(&self, _w: &MViewWidgets, cursor: &Cursor) -> Image {
@@ -113,6 +128,20 @@ impl Backend for ZipArchive {
             &cursor.name(),
             TReference::ZipReference(TZipReference::new(self, cursor.index())),
         )
+    }
+
+    fn set_parent(&self, parent: Box<dyn Backend>) {
+        if self.parent.borrow().is_none() {
+            self.parent.replace(parent);
+        }
+    }
+
+    fn set_sort(&self, sort: &Sort) {
+        self.sort.set(*sort)
+    }
+
+    fn sort(&self) -> Sort {
+        self.sort.get()
     }
 }
 

@@ -37,17 +37,24 @@ pub trait Backend {
     fn entry(&self, cursor: &Cursor) -> TEntry {
         Default::default()
     }
+    fn is_container(&self) -> bool {
+        false
+    }
+    fn is_bookmarks(&self) -> bool {
+        false
+    }
     fn is_thumbnail(&self) -> bool {
+        false
+    }
+    fn is_none(&self) -> bool {
         false
     }
     fn click(&self, current: &Cursor, x: f64, y: f64) -> Option<(Box<dyn Backend>, Selection)> {
         None
     }
     fn set_parent(&self, parent: Box<dyn Backend>) {}
-    fn set_sort(&self, sort: &Sort) {}
-    fn sort(&self) -> Sort {
-        Default::default()
-    }
+    fn set_sort(&self, sort: &Sort);
+    fn sort(&self) -> Sort;
 }
 
 impl std::fmt::Debug for dyn Backend {

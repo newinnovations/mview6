@@ -34,7 +34,6 @@ pub trait FileListViewExt: IsA<FileListView> + IsA<TreeView> + 'static {
     fn goto(&self, selection: &Selection) -> bool;
     fn current(&self) -> Option<Cursor>;
     fn navigate(&self, direction: Direction, filter: Filter, count: i32);
-    // fn set_sort_column(&self, sort_column_id: SortColumn, order: SortType);
     fn set_unsorted(&self);
 }
 
@@ -58,7 +57,7 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
     }
 
     fn goto(&self, selection: &Selection) -> bool {
-        println!("Goto {:?}", selection);
+        // println!("Goto {:?}", selection);
         let model = self.model().unwrap().downcast::<ListStore>().unwrap();
         if let Some(iter) = model.iter_first() {
             loop {
@@ -88,11 +87,6 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
             }
         }
     }
-
-    // fn set_sort_column(&self, sort_column_id: SortColumn, order: SortType) {
-    //     let model = self.model().unwrap().downcast::<ListStore>().unwrap();
-    //     model.set_sort_column_id(sort_column_id, order);
-    // }
 
     fn set_unsorted(&self) {
         let model = self.model().unwrap().downcast::<ListStore>().unwrap();

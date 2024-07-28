@@ -2,24 +2,23 @@ use crate::{
     category::Category,
     config::config,
     draw::draw,
-    filelistview::{Columns, Cursor},
+    filelistview::{Columns, Cursor, Sort},
     window::MViewWidgets,
 };
 use eog::Image;
 use gtk::{prelude::GtkListStoreExtManual, ListStore};
-use std::{cell::RefCell, fs, io, time::UNIX_EPOCH};
+use std::{
+    cell::{Cell, RefCell},
+    fs, io,
+    time::UNIX_EPOCH,
+};
 
 use super::{Backend, Selection};
 
 pub struct Bookmarks {
     store: ListStore,
     parent: RefCell<Box<dyn Backend>>,
-}
-
-impl Default for Bookmarks {
-    fn default() -> Self {
-        Self::new()
-    }
+    sort: Cell<Sort>,
 }
 
 impl Bookmarks {
@@ -27,6 +26,7 @@ impl Bookmarks {
         Bookmarks {
             store: Self::create_store(),
             parent: RefCell::new(<dyn Backend>::none()),
+            sort: Default::default(),
         }
     }
 
@@ -76,6 +76,10 @@ impl Backend for Bookmarks {
         "Bookmarks"
     }
 
+    fn is_bookmarks(&self) -> bool {
+        true
+    }
+
     fn path(&self) -> &str {
         "/bookmarks"
     }
@@ -98,5 +102,13 @@ impl Backend for Bookmarks {
 
     fn set_parent(&self, parent: Box<dyn Backend>) {
         self.parent.replace(parent);
+    }
+
+    fn set_sort(&self, sort: &Sort) {
+        self.sort.set(*sort)
+    }
+
+    fn sort(&self) -> Sort {
+        self.sort.get()
     }
 }

@@ -6,7 +6,7 @@ use gtk::{prelude::*, subclass::prelude::*, SortColumn};
 
 use crate::{
     backends::{thumbnail::Thumbnail, Backend},
-    filelistview::{Direction, FileListViewExt, Filter, Selection},
+    filelistview::{Direction, FileListViewExt, Filter, Selection, Sort},
 };
 
 impl MViewWindowImp {
@@ -18,11 +18,13 @@ impl MViewWindowImp {
                 self.obj().close();
             }
             gdk::keys::constants::d => {
-                self.show_files_widget(true);
-                self.set_backend(<dyn Backend>::bookmarks(), Selection::None);
+                if !w.backend.borrow().is_bookmarks() {
+                    self.show_files_widget(true);
+                    self.set_backend(<dyn Backend>::bookmarks(), Selection::None, true);
+                }
             }
             gdk::keys::constants::t => {
-                if !w.backend.borrow().is_thumbnail() {
+                if w.backend.borrow().is_container() {
                     let position = if let Some(cursor) = w.file_list_view.current() {
                         cursor.position()
                     } else {
@@ -37,10 +39,8 @@ impl MViewWindowImp {
                     );
                     let startpage = thumbnail.startpage();
                     let new_backend = <dyn Backend>::thumbnail(thumbnail);
-                    self.set_backend(new_backend, startpage);
-                    if let Some(cursor) = w.file_list_view.current() {
-                        cursor.set_sort(SortColumn::Index(0), gtk::SortType::Ascending)
-                    }
+                    new_backend.set_sort(&Sort::sort_on_category());
+                    self.set_backend(new_backend, startpage, true);
                     self.show_files_widget(false);
                     self.obj().fullscreen();
                     self.full_screen.set(true);
@@ -89,7 +89,7 @@ impl MViewWindowImp {
                 }
             }
             gdk::keys::constants::Return => {
-                self.dir_enter();
+                self.dir_enter(None);
             }
             gdk::keys::constants::BackSpace => {
                 self.dir_leave();
@@ -120,7 +120,7 @@ impl MViewWindowImp {
                         Thumbnail::new(display_size.width(), display_size.height(), 0, new_size);
                     let startpage = thumbnail.startpage();
                     let new_backend = <dyn Backend>::thumbnail(thumbnail);
-                    self.set_backend(new_backend, startpage);
+                    self.set_backend(new_backend, startpage, true);
                 } else if w.eog.zoom_mode() == eog::ZoomMode::Max {
                     w.eog.set_zoom_mode(eog::ZoomMode::Fill);
                 } else {

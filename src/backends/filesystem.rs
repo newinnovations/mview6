@@ -10,7 +10,7 @@ use gtk::{prelude::GtkListStoreExtManual, ListStore};
 use image::DynamicImage;
 use regex::Regex;
 use std::{
-    cell::Cell,
+    cell::{Cell, RefCell},
     ffi::OsStr,
     fs::{self, rename},
     io,
@@ -23,10 +23,10 @@ use super::{
     Backend, Selection,
 };
 
-#[derive(Clone)]
 pub struct FileSystem {
     directory: String,
     store: ListStore,
+    parent: RefCell<Box<dyn Backend>>,
     sort: Cell<Sort>,
 }
 
@@ -35,6 +35,7 @@ impl FileSystem {
         FileSystem {
             directory: directory.to_string(),
             store: Self::create_store(directory),
+            parent: RefCell::new(<dyn Backend>::none()),
             sort: Default::default(),
         }
     }
@@ -109,6 +110,10 @@ impl Backend for FileSystem {
         "FileSystem"
     }
 
+    fn is_container(&self) -> bool {
+        true
+    }
+
     fn path(&self) -> &str {
         &self.directory
     }
@@ -131,22 +136,26 @@ impl Backend for FileSystem {
     }
 
     fn leave(&self) -> (Box<dyn Backend>, Selection) {
-        let directory_c = self.directory.clone();
-        let directory_p = Path::new(&directory_c);
-        let parent = directory_p.parent();
+        let directory_p = Path::new(&self.directory);
         let current = directory_p
             .file_name()
             .unwrap_or_default()
             .to_str()
             .unwrap_or_default()
             .to_string();
-
-        match parent {
-            Some(parent) => (
-                Box::new(FileSystem::new(parent.to_str().unwrap_or("/"))),
+        if self.parent.borrow().is_none() {
+            match directory_p.parent() {
+                Some(parent) => (
+                    Box::new(FileSystem::new(parent.to_str().unwrap_or("/"))),
+                    Selection::Name(current),
+                ),
+                _ => (Box::new(FileSystem::new("/")), Selection::Name(current)),
+            }
+        } else {
+            (
+                self.parent.replace(<dyn Backend>::none()),
                 Selection::Name(current),
-            ),
-            _ => (Box::new(FileSystem::new("/")), Selection::Name(current)),
+            )
         }
     }
 
@@ -165,7 +174,7 @@ impl Backend for FileSystem {
         let re = Regex::new(r"\.([^\.]+)$").unwrap();
         let (new_filename, new_category) = if matches!(direction, Direction::Up) {
             if filename.contains(".hi.") {
-                return false;
+                return true;
             } else if filename.contains(".lo.") {
                 (filename.replace(".lo", ""), Category::Image)
             } else {
@@ -175,7 +184,7 @@ impl Backend for FileSystem {
                 )
             }
         } else if filename.contains(".lo.") {
-            return false;
+            return true;
         } else if filename.contains(".hi.") {
             (filename.replace(".hi", ""), Category::Image)
         } else {
@@ -206,7 +215,14 @@ impl Backend for FileSystem {
         )
     }
 
+    fn set_parent(&self, parent: Box<dyn Backend>) {
+        if self.parent.borrow().is_none() {
+            self.parent.replace(parent);
+        }
+    }
+
     fn set_sort(&self, sort: &Sort) {
+        // println!("fs::set_sort: {} {}", self.directory, sort);
         self.sort.set(*sort)
     }
 

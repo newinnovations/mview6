@@ -20,7 +20,7 @@ impl MViewWindowImp {
 
             if let Some((new_backend, goto)) = backend.click(&current, x, y) {
                 drop(backend);
-                self.set_backend(new_backend, goto);
+                self.set_backend(new_backend, goto, false);
             }
         }
     }

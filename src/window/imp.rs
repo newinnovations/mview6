@@ -31,9 +31,7 @@ pub struct MViewWindowImp {
     full_screen: Cell<bool>,
     skip_loading: Cell<bool>,
     thumbnail_size: Cell<i32>,
-    current_sort: Rc<Cell<Option<Sort>>>,
-    last_sort: Rc<Cell<Sort>>, // current_sort or sort before unsorted (through favorite op)
-    hop_parent_sort: Rc<Cell<Option<Sort>>>, // sort of the hop parent, or none if not in hop
+    current_sort: Rc<Cell<Sort>>,
 }
 
 #[glib::object_subclass]
@@ -62,10 +60,8 @@ impl MViewWindowImp {
 impl ObjectImpl for MViewWindowImp {
     fn constructed(&self) {
         self.parent_constructed();
-        self.full_screen.set(false);
-        self.skip_loading.set(false);
         self.thumbnail_size.set(175);
-        self.current_sort.set(Some(Sort::default()));
+        self.current_sort.set(Sort::sort_on_category());
 
         let window = self.obj();
 
@@ -172,7 +168,7 @@ impl ObjectImpl for MViewWindowImp {
         let display_size = window.display_size();
         dbg!(display_size);
 
-        self.set_backend(<dyn Backend>::current_dir(), Selection::None);
+        self.set_backend(<dyn Backend>::current_dir(), Selection::None, false);
 
         // self.widgets.get().unwrap().eog.set_offset(0, 0);
 

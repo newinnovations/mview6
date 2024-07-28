@@ -71,10 +71,6 @@ impl Cursor {
         );
     }
 
-    pub fn set_sort(&self, sort_column_id: SortColumn, order: SortType) {
-        self.store.set_sort_column_id(sort_column_id, order);
-    }
-
     pub fn set_sort_column(&self, new_column: SortColumn) {
         let current_sort = self.store.sort_column_id();
         let new_direction = match current_sort {

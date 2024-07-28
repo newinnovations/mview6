@@ -1,13 +1,13 @@
 mod model;
 pub mod processing;
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 
 use super::{Backend, Selection};
 use crate::{
     category::Category,
     draw::thumbnail_sheet,
-    filelistview::{Columns, Cursor},
+    filelistview::{Columns, Cursor, Sort},
     window::MViewWidgets,
 };
 use eog::{Image, ImageExt};
@@ -33,12 +33,7 @@ pub struct Thumbnail {
     // references
     parent: RefCell<Box<dyn Backend>>,
     parent_pos: i32,
-}
-
-impl Default for Thumbnail {
-    fn default() -> Self {
-        Self::new(800, 600, 0, 175)
-    }
+    sort: Cell<Sort>,
 }
 
 impl Thumbnail {
@@ -67,6 +62,7 @@ impl Thumbnail {
             offset_y,
             parent: RefCell::new(<dyn Backend>::none()),
             parent_pos: position,
+            sort: Default::default(),
         }
     }
 
@@ -123,6 +119,10 @@ impl Backend for Thumbnail {
         "Thumbnail"
     }
 
+    fn is_thumbnail(&self) -> bool {
+        true
+    }
+
     fn path(&self) -> &str {
         "/thumbnail"
     }
@@ -150,8 +150,7 @@ impl Backend for Thumbnail {
     }
 
     fn leave(&self) -> (Box<dyn Backend>, Selection) {
-        let parent_backend = self.parent.replace(<dyn Backend>::none());
-        (parent_backend, Selection::None)
+        (self.parent.replace(<dyn Backend>::none()), Selection::None)
     }
 
     fn image(&self, w: &MViewWidgets, cursor: &Cursor) -> Image {
@@ -184,11 +183,9 @@ impl Backend for Thumbnail {
     }
 
     fn set_parent(&self, parent: Box<dyn Backend>) {
-        self.parent.replace(parent);
-    }
-
-    fn is_thumbnail(&self) -> bool {
-        true
+        if self.parent.borrow().is_none() {
+            self.parent.replace(parent);
+        }
     }
 
     fn click(&self, current: &Cursor, x: f64, y: f64) -> Option<(Box<dyn Backend>, Selection)> {
@@ -226,5 +223,13 @@ impl Backend for Thumbnail {
         } else {
             None
         }
+    }
+
+    fn set_sort(&self, sort: &Sort) {
+        self.sort.set(*sort)
+    }
+
+    fn sort(&self) -> Sort {
+        self.sort.get()
     }
 }
