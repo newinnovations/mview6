@@ -7,7 +7,7 @@ use eog::Image;
 use gdk_pixbuf::Pixbuf;
 use gio::{prelude::FileExt, Cancellable, File, MemoryInputStream};
 use glib::{Bytes, ObjectExt};
-use image::{io::Reader, DynamicImage, GenericImageView};
+use image::{DynamicImage, GenericImageView, ImageReader};
 use std::{fs, io::Cursor, path::Path};
 
 pub struct ImageLoader {}
@@ -96,27 +96,27 @@ impl ImageLoader {
     }
 
     pub fn pixbuf_from_memory(buf: &Vec<u8>) -> MviewResult<Pixbuf> {
-        let reader = Reader::new(Cursor::new(buf));
+        let reader = ImageReader::new(Cursor::new(buf));
         let reader = reader.with_guessed_format()?;
         let dynamic_image = reader.decode()?;
         Self::image_rs_to_pixbuf(dynamic_image)
     }
 
     pub fn pixbuf_from_file(filename: &str) -> MviewResult<Pixbuf> {
-        let reader = Reader::open(filename)?;
+        let reader = ImageReader::open(filename)?;
         let reader = reader.with_guessed_format()?;
         let dynamic_image = reader.decode()?;
         Self::image_rs_to_pixbuf(dynamic_image)
     }
 
     pub fn dynimg_from_memory(buf: &Vec<u8>) -> MviewResult<DynamicImage> {
-        let reader = Reader::new(Cursor::new(buf));
+        let reader = ImageReader::new(Cursor::new(buf));
         let reader = reader.with_guessed_format()?;
         Ok(reader.decode()?)
     }
 
     pub fn dynimg_from_file(filename: &str) -> MviewResult<DynamicImage> {
-        let reader = Reader::open(filename)?;
+        let reader = ImageReader::open(filename)?;
         let reader = reader.with_guessed_format()?;
         Ok(reader.decode()?)
     }
