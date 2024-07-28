@@ -23,7 +23,9 @@ impl MViewWindowImp {
         if set_parent {
             // dbg!(new_backend.class_name(), parent_backend.class_name());
             parent_backend.set_sort(&self.current_sort.get());
-            new_backend.set_parent(parent_backend);
+            if !parent_backend.is_bookmarks() {
+                new_backend.set_parent(parent_backend);
+            }
         }
 
         let new_sort = match new_backend.sort() {

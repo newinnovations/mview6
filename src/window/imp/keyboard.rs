@@ -46,9 +46,6 @@ impl MViewWindowImp {
                     self.full_screen.set(true);
                 }
             }
-            gdk::keys::constants::i => {
-                dbg!(w.backend.borrow().sort());
-            }
             gdk::keys::constants::w
             | gdk::keys::constants::KP_7
             | gdk::keys::constants::KP_Home => {
@@ -93,6 +90,9 @@ impl MViewWindowImp {
             }
             gdk::keys::constants::BackSpace => {
                 self.dir_leave();
+                if w.backend.borrow().is_thumbnail() {
+                    self.show_files_widget(false);
+                }
             }
             gdk::keys::constants::n => {
                 if w.eog.zoom_mode() == eog::ZoomMode::Fit {

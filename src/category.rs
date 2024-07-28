@@ -66,6 +66,9 @@ impl Category {
     // https://www.svgrepo.com/svg/533010/trash-alt
     // 70% #ffbe6f
     //
+    // https://www.svgrepo.com/svg/523073/trash-bin-minimalistic
+    // 10% #f66151
+    //
     // https://www.svgrepo.com/svg/355272/status-unknown
     // 70% #c0bfbc
     //
@@ -77,7 +80,7 @@ impl Category {
             Self::Favorite => "mv6-favorite",
             Self::Image => "mv6-image",
             Self::Archive => "mv6-box",
-            Self::Trash => "mv6-trash",
+            Self::Trash => "mv6-garbage",
             Self::Unsupported => "mv6-unknown",
         }
     }
