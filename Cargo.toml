@@ -50,11 +50,6 @@ branch = "0.18"
 git = "https://github.com/gtk-rs/gtk-rs-core"
 features = ["png"]
 
-[dependencies.handy-sys]
-package = "libhandy"
-git = "https://gitlab.gnome.org/World/Rust/libhandy-rs"
-rev = "0a0f18734e5054dee3c1667f7f04bb6e93214721"
-
 [profile.dev.package.image]
 opt-level = 3
 
