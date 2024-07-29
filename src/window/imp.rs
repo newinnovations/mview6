@@ -12,9 +12,9 @@ use crate::{
         Backend,
     },
     filelistview::{FileListView, Selection, Sort},
+    image_view::ImageView,
     widget::MViewWidgetExt,
 };
-use eog::{ScrollView, ScrollViewExt};
 use gdk_pixbuf::PixbufLoader;
 use glib::{clone, once_cell::unsync::OnceCell};
 use gtk::{glib, prelude::*, subclass::prelude::*, ScrolledWindow};
@@ -91,7 +91,7 @@ impl ObjectImpl for MViewWindowImp {
         file_list_view.set_fixed_height_mode(true);
         files_widget.add(&file_list_view);
 
-        let eog = ScrollView::new();
+        let eog = ImageView::new();
         eog.add_weak_ref_notify(|| {
             println!("**eog::ScrollView disposed**");
         });

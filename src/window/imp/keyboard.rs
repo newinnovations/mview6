@@ -1,6 +1,6 @@
 use super::{MViewWidgetExt, MViewWindowImp};
 
-use eog::{ImageExt, ScrollViewExt};
+use eog::ImageExt;
 use gdk::EventKey;
 use gtk::{prelude::*, subclass::prelude::*, SortColumn};
 

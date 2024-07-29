@@ -1,6 +1,6 @@
 use std::{panic, thread, time};
 
-use eog::{ImageExt, ScrollView, ScrollViewExt};
+use eog::ImageExt;
 use image::DynamicImage;
 
 use crate::{
@@ -9,6 +9,7 @@ use crate::{
     draw::text_thumb,
     error::MviewResult,
     image::ImageLoader,
+    image_view::ImageView,
 };
 
 use super::{Message, TCommand, TMessage, TReference, TResult, TResultOption, TTask};
@@ -36,7 +37,7 @@ fn thumb_result(res: MviewResult<DynamicImage>, task: &TTask) -> TResultOption {
 
 pub fn start_thumbnail_task(
     sender: &glib::Sender<Message>,
-    eog: &ScrollView,
+    eog: &ImageView,
     command: &TCommand,
     current_task: &mut usize,
 ) {
@@ -81,7 +82,7 @@ pub fn start_thumbnail_task(
     }
 }
 
-pub fn handle_thumbnail_result(eog: &ScrollView, command: &mut TCommand, result: TResult) -> bool {
+pub fn handle_thumbnail_result(eog: &ImageView, command: &mut TCommand, result: TResult) -> bool {
     if command.id != result.id {
         return false;
     }

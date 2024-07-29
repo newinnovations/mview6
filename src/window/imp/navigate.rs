@@ -6,7 +6,6 @@ use crate::{
     backends::Backend,
     filelistview::{Direction, FileListViewExt, Filter, Selection, Sort},
 };
-use eog::ScrollViewExt;
 use gio::File;
 use gtk::{prelude::*, TreePath, TreeViewColumn};
 

@@ -2,7 +2,6 @@ mod imp;
 
 use std::cell::RefCell;
 
-use eog::ScrollView;
 use gio::File;
 use glib::subclass::types::ObjectSubclassIsExt;
 use gtk::{glib, ScrolledWindow};
@@ -11,6 +10,7 @@ use crate::{
     application::MviewApplication,
     backends::{thumbnail::Message, Backend},
     filelistview::FileListView,
+    image_view::ImageView,
 };
 
 glib::wrapper! {
@@ -24,7 +24,8 @@ pub struct MViewWidgets {
     files_widget: ScrolledWindow,
     file_list_view: FileListView,
     backend: RefCell<Box<dyn Backend>>,
-    eog: ScrollView,
+    // eog: ScrollView,
+    eog: ImageView,
     pub sender: glib::Sender<Message>,
 }
 

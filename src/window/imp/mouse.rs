@@ -1,4 +1,3 @@
-use eog::ScrollViewExt;
 use gdk::{EventButton, EventMotion};
 
 use crate::filelistview::FileListViewExt;
