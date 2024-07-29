@@ -6,7 +6,7 @@ use std::{
 };
 
 use chrono::{Local, TimeZone};
-use eog::Image;
+use super::Image;
 use gtk::{prelude::GtkListStoreExtManual, ListStore};
 use image::DynamicImage;
 use zip::result::ZipResult;

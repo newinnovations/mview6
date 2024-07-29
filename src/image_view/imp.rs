@@ -1,3 +1,4 @@
+use glib::Propagation;
 use gtk::{glib, subclass::prelude::*};
 
 use super::ImageView;
@@ -14,7 +15,18 @@ impl ObjectSubclass for ImageViewImp {
 
 impl ImageViewImp {}
 
-impl ObjectImpl for ImageViewImp {}
-impl WidgetImpl for ImageViewImp {}
+impl ObjectImpl for ImageViewImp {
+    fn constructed(&self) {
+        self.parent_constructed();
+        println!("constructed");
+    }
+
+}
+impl WidgetImpl for ImageViewImp {
+    fn draw(&self, cr: &cairo::Context) -> Propagation {
+        println!("draw");
+        self.parent_draw(cr)
+    }
+}
 impl ContainerImpl for ImageViewImp {}
 impl BinImpl for ImageViewImp {}

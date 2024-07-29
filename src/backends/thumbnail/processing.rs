@@ -1,6 +1,5 @@
 use std::{panic, thread, time};
 
-use eog::ImageExt;
 use image::DynamicImage;
 
 use crate::{

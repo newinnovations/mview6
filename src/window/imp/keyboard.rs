@@ -1,12 +1,11 @@
 use super::{MViewWidgetExt, MViewWindowImp};
 
-use eog::ImageExt;
 use gdk::EventKey;
 use gtk::{prelude::*, subclass::prelude::*, SortColumn};
 
 use crate::{
     backends::{thumbnail::Thumbnail, Backend},
-    filelistview::{Direction, FileListViewExt, Filter, Selection, Sort},
+    filelistview::{Direction, FileListViewExt, Filter, Selection, Sort}, image_view::ZoomMode,
 };
 
 impl MViewWindowImp {
@@ -95,10 +94,10 @@ impl MViewWindowImp {
                 }
             }
             gdk::keys::constants::n => {
-                if w.eog.zoom_mode() == eog::ZoomMode::Fit {
-                    w.eog.set_zoom_mode(eog::ZoomMode::None);
+                if w.eog.zoom_mode() == ZoomMode::Fit {
+                    w.eog.set_zoom_mode(ZoomMode::None);
                 } else {
-                    w.eog.set_zoom_mode(eog::ZoomMode::Fit);
+                    w.eog.set_zoom_mode(ZoomMode::Fit);
                 }
             }
             gdk::keys::constants::m | gdk::keys::constants::KP_0 => {
@@ -121,10 +120,10 @@ impl MViewWindowImp {
                     let startpage = thumbnail.startpage();
                     let new_backend = <dyn Backend>::thumbnail(thumbnail);
                     self.set_backend(new_backend, startpage, true);
-                } else if w.eog.zoom_mode() == eog::ZoomMode::Max {
-                    w.eog.set_zoom_mode(eog::ZoomMode::Fill);
+                } else if w.eog.zoom_mode() == ZoomMode::Max {
+                    w.eog.set_zoom_mode(ZoomMode::Fill);
                 } else {
-                    w.eog.set_zoom_mode(eog::ZoomMode::Max);
+                    w.eog.set_zoom_mode(ZoomMode::Max);
                 }
             }
             gdk::keys::constants::minus | gdk::keys::constants::KP_Subtract => {

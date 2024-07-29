@@ -5,12 +5,9 @@ use std::cell::{Cell, RefCell};
 
 use super::{Backend, Selection};
 use crate::{
-    category::Category,
-    draw::thumbnail_sheet,
-    filelistview::{Columns, Cursor, Sort},
-    window::MViewWidgets,
+    category::Category, draw::thumbnail_sheet, filelistview::{Columns, Cursor, Sort}, image_view::ZoomMode, window::MViewWidgets
 };
-use eog::{Image, ImageExt};
+use super::Image;
 use gdk_pixbuf::Pixbuf;
 use gtk::{
     prelude::{GtkListStoreExtManual, TreeModelExt},
@@ -170,7 +167,7 @@ impl Backend for Thumbnail {
                 .unwrap();
                 pixbuf.fill(0x202020ff);
                 let image = Image::new_pixbuf(&pixbuf);
-                image.set_zoom_mode(eog::ZoomMode::None);
+                image.set_zoom_mode(ZoomMode::None);
                 image
             }
         };

@@ -5,7 +5,7 @@ use crate::{
     filelistview::{Columns, Cursor, Sort},
     window::MViewWidgets,
 };
-use eog::Image;
+use super::Image;
 use gtk::{prelude::GtkListStoreExtManual, ListStore};
 use std::{
     cell::{Cell, RefCell},

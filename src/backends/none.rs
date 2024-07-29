@@ -1,4 +1,4 @@
-use eog::Image;
+use super::Image;
 use gtk::ListStore;
 
 use crate::{

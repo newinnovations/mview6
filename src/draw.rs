@@ -1,11 +1,10 @@
 use cairo::{Context, Format, ImageSurface};
-use eog::{Image, ImageExt};
 use gdk::pixbuf_get_from_surface;
 use gdk_pixbuf::Pixbuf;
 
 use crate::{
     backends::thumbnail::TMessage,
-    error::{AppError, MviewError, MviewResult},
+    error::{AppError, MviewError, MviewResult}, image_view::{image::Image, ZoomMode},
 };
 
 pub fn draw(text: &str) -> MviewResult<Image> {
@@ -88,7 +87,7 @@ pub fn draw(text: &str) -> MviewResult<Image> {
     // context.stroke()?;
 
     let image = Image::new_image_surface(&surface);
-    image.set_zoom_mode(eog::ZoomMode::None);
+    image.set_zoom_mode(ZoomMode::None);
 
     Ok(image)
 }
@@ -115,7 +114,7 @@ pub fn thumbnail_sheet(width: i32, height: i32, offset_x: i32, text: &str) -> Mv
     context.show_text(text)?;
 
     let image = Image::new_image_surface(&surface);
-    image.set_zoom_mode(eog::ZoomMode::None);
+    image.set_zoom_mode(ZoomMode::None);
 
     Ok(image)
 }

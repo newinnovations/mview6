@@ -8,7 +8,6 @@ version = "6.0.0"
 dependencies = [
  "cairo-rs",
  "chrono",
- "eog",
  "gdk",
  "gdk-pixbuf",
  "gio",
@@ -457,37 +456,6 @@ name = "either"
 version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "60b1af1c220855b6ceac025d3f6ecdd2b7c4894bfe9cd9bda4fbb4bc7c0d4cf0"
-
-[[package]]
-name = "eog"
-version = "0.1.0"
-dependencies = [
- "atk",
- "bitflags 2.6.0",
- "cairo-rs",
- "eog-sys",
- "gdk",
- "gdk-pixbuf",
- "gio",
- "glib",
- "gtk",
- "libc",
-]
-
-[[package]]
-name = "eog-sys"
-version = "0.0.1"
-dependencies = [
- "cairo-sys-rs",
- "gdk-pixbuf-sys",
- "gdk-sys",
- "gio-sys",
- "glib-sys",
- "gobject-sys",
- "gtk-sys",
- "libc",
- "system-deps",
-]
 
 [[package]]
 name = "equivalent"

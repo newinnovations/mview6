@@ -1,12 +1,27 @@
+pub mod image;
 mod imp;
 
-use eog::{Image, ZoomMode};
-use glib::IsA;
 use gtk::glib;
+use image::Image;
 
 glib::wrapper! {
     pub struct ImageView(ObjectSubclass<imp::ImageViewImp>)
         @extends gtk::Bin, gtk::Container, gtk::Widget, @implements gtk::Buildable;
+}
+
+impl Default for ImageView {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Clone, Copy)]
+pub enum ZoomMode {
+    Unspecified,
+    None,
+    Fit,
+    Fill,
+    Max,
 }
 
 impl ImageView {
@@ -18,11 +33,11 @@ impl ImageView {
         None
     }
 
-    pub fn set_image(&self, _image: &impl IsA<Image>) {}
+    pub fn set_image(&self, _image: Image) {}
 
     pub fn set_image_post(&self) {}
 
-    pub fn set_image_pre(&self, _image: &impl IsA<Image>) {}
+    pub fn set_image_pre(&self, _image: Image) {}
 
     pub fn zoom_mode(&self) -> ZoomMode {
         ZoomMode::None
@@ -41,9 +56,3 @@ impl ImageView {
         0
     }
 }
-
-// eog.set_scroll_wheel_zoom(true);
-// eog.set_zoom_mode(eog::ZoomMode::Fill);
-// eog.set_image_pre();
-// eog.set_image_post();
-// eog.image()

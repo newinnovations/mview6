@@ -12,7 +12,7 @@ use crate::{
         Backend,
     },
     filelistview::{FileListView, Selection, Sort},
-    image_view::ImageView,
+    image_view::{ImageView, ZoomMode},
     widget::MViewWidgetExt,
 };
 use gdk_pixbuf::PixbufLoader;
@@ -96,7 +96,7 @@ impl ObjectImpl for MViewWindowImp {
             println!("**eog::ScrollView disposed**");
         });
         eog.set_scroll_wheel_zoom(true);
-        eog.set_zoom_mode(eog::ZoomMode::Fill);
+        eog.set_zoom_mode(ZoomMode::Fill);
         hbox.add(&eog);
 
         window.connect_key_press_event(clone!(@weak self as imp => @default-panic, move |_, e| {

@@ -5,7 +5,7 @@ use crate::{
     image::{ImageLoader, ImageSaver},
     window::MViewWidgets,
 };
-use eog::Image;
+use super::Image;
 use gtk::{prelude::GtkListStoreExtManual, ListStore};
 use image::DynamicImage;
 use regex::Regex;

@@ -16,10 +16,10 @@ impl MViewWindowImp {
             if let Some(current) = w.file_list_view.current() {
                 let image = w.backend.borrow().image(w, &current);
                 if w.backend.borrow().is_thumbnail() {
-                    w.eog.set_image_pre(&image);
+                    w.eog.set_image_pre(image);
                     // w.eog.set_image_post();
                 } else {
-                    w.eog.set_image(&image);
+                    w.eog.set_image(image);
                 }
             }
         }

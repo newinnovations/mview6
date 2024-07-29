@@ -3,15 +3,13 @@ use std::env;
 use archive_rar::RarArchive;
 use archive_zip::ZipArchive;
 use bookmarks::Bookmarks;
-use eog::Image;
 use filesystem::FileSystem;
 use gtk::ListStore;
 use none::NoneBackend;
 use thumbnail::{TEntry, Thumbnail};
 
 use crate::{
-    filelistview::{Cursor, Direction, Selection, Sort},
-    window::MViewWidgets,
+    filelistview::{Cursor, Direction, Selection, Sort}, image_view::image::Image, window::MViewWidgets
 };
 
 mod archive_rar;

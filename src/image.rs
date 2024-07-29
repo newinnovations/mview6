@@ -1,12 +1,11 @@
 use crate::{
     category::Category,
     draw::draw,
-    error::{AppError, MviewError, MviewResult},
+    error::{AppError, MviewError, MviewResult}, image_view::image::Image,
 };
-use eog::Image;
 use gdk_pixbuf::Pixbuf;
 use gio::{prelude::FileExt, Cancellable, File, MemoryInputStream};
-use glib::{Bytes, ObjectExt};
+use glib::Bytes;
 use image::{DynamicImage, GenericImageView, ImageReader};
 use std::{fs, io::Cursor, path::Path};
 
@@ -28,10 +27,10 @@ impl ImageLoader {
         //     Err(e) => draw(&format!("Error: {:?}", e)).unwrap(),
         // };
 
-        let filename_c = filename.to_string();
-        image.add_weak_ref_notify(move || {
-            println!("**image [{filename_c}] disposed**");
-        });
+        // let filename_c = filename.to_string();
+        // image.add_weak_ref_notify(move || {
+        //     println!("**image [{filename_c}] disposed**");
+        // });
         image
     }
 
@@ -44,9 +43,9 @@ impl ImageLoader {
                 Err(e) => draw(&format!("Error: {:?}", e)).unwrap(),
             }
         };
-        image.add_weak_ref_notify(move || {
-            println!("**image (from memory) disposed**");
-        });
+        // image.add_weak_ref_notify(move || {
+        //     println!("**image (from memory) disposed**");
+        // });
         image
     }
 
