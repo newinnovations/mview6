@@ -1,6 +1,9 @@
-use glib::IsA;
+pub mod draw;
+pub mod io;
+pub mod view;
 
-use super::ZoomMode;
+use glib::IsA;
+use view::ZoomMode;
 
 pub struct Image {}
 

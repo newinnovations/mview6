@@ -1,11 +1,11 @@
+use super::Image;
 use crate::{
     category::Category,
     config::config,
-    draw::draw,
     filelistview::{Columns, Cursor, Sort},
+    image::draw::draw,
     window::MViewWidgets,
 };
-use super::Image;
 use gtk::{prelude::GtkListStoreExtManual, ListStore};
 use std::{
     cell::{Cell, RefCell},

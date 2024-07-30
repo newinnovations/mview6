@@ -1,11 +1,11 @@
+use super::Image;
 use crate::{
     category::Category,
     error::MviewResult,
     filelistview::{Columns, Cursor, Direction, Sort},
-    image::{ImageLoader, ImageSaver},
+    image::io::{ImageLoader, ImageSaver},
     window::MViewWidgets,
 };
-use super::Image;
 use gtk::{prelude::GtkListStoreExtManual, ListStore};
 use image::DynamicImage;
 use regex::Regex;

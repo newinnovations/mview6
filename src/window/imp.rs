@@ -12,7 +12,7 @@ use crate::{
         Backend,
     },
     filelistview::{FileListView, Selection, Sort},
-    image_view::{ImageView, ZoomMode},
+    image::view::{ImageView, ZoomMode},
     widget::MViewWidgetExt,
 };
 use gdk_pixbuf::PixbufLoader;

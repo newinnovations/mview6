@@ -5,18 +5,20 @@ use std::{
     path::Path,
 };
 
-use chrono::{Local, TimeZone};
 use super::Image;
+use chrono::{Local, TimeZone};
 use gtk::{prelude::GtkListStoreExtManual, ListStore};
 use image::DynamicImage;
 use zip::result::ZipResult;
 
 use crate::{
     category::Category,
-    draw::draw,
     error::MviewResult,
     filelistview::{Columns, Cursor, Sort},
-    image::{ImageLoader, ImageSaver},
+    image::{
+        draw::draw,
+        io::{ImageLoader, ImageSaver},
+    },
     window::MViewWidgets,
 };
 

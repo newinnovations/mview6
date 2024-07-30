@@ -1,8 +1,8 @@
-pub mod image;
 mod imp;
 
 use gtk::glib;
-use image::Image;
+
+use super::Image;
 
 glib::wrapper! {
     pub struct ImageView(ObjectSubclass<imp::ImageViewImp>)

@@ -1,7 +1,7 @@
 use crate::{
     category::Category,
-    draw::draw,
-    error::{AppError, MviewError, MviewResult}, image_view::image::Image,
+    error::{AppError, MviewError, MviewResult},
+    image::Image,
 };
 use gdk_pixbuf::Pixbuf;
 use gio::{prelude::FileExt, Cancellable, File, MemoryInputStream};
@@ -9,20 +9,22 @@ use glib::Bytes;
 use image::{DynamicImage, GenericImageView, ImageReader};
 use std::{fs, io::Cursor, path::Path};
 
+use super::draw::draw;
+
 pub struct ImageLoader {}
 
 impl ImageLoader {
     pub fn image_from_file(filename: &str) -> Image {
-        let image = if let Ok(im) = Self::image_from_file_gtk(filename) {
+        if let Ok(im) = Self::image_from_file_gtk(filename) {
             im
         } else {
             match Self::image_from_file_image_rs(filename) {
                 Ok(im) => im,
                 Err(e) => draw(&format!("Error: {:?}", e)).unwrap(),
             }
-        };
+        }
 
-        // let image = match Self::image_from_file_image_rs(filename) {
+        // match Self::image_from_file_image_rs(filename) {
         //     Ok(im) => im,
         //     Err(e) => draw(&format!("Error: {:?}", e)).unwrap(),
         // };
@@ -31,22 +33,20 @@ impl ImageLoader {
         // image.add_weak_ref_notify(move || {
         //     println!("**image [{filename_c}] disposed**");
         // });
-        image
     }
 
     pub fn image_from_memory(buf: Vec<u8>) -> Image {
-        let image = if let Ok(im) = Self::image_from_memory_gtk(&buf) {
+        if let Ok(im) = Self::image_from_memory_gtk(&buf) {
             im
         } else {
             match Self::image_from_memory_image_rs(&buf) {
                 Ok(im) => im,
                 Err(e) => draw(&format!("Error: {:?}", e)).unwrap(),
             }
-        };
+        }
         // image.add_weak_ref_notify(move || {
         //     println!("**image (from memory) disposed**");
         // });
-        image
     }
 
     pub fn image_from_file_gtk(filename: &str) -> MviewResult<Image> {

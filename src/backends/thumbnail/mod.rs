@@ -3,11 +3,15 @@ pub mod processing;
 
 use std::cell::{Cell, RefCell};
 
-use super::{Backend, Selection};
-use crate::{
-    category::Category, draw::thumbnail_sheet, filelistview::{Columns, Cursor, Sort}, image_view::ZoomMode, window::MViewWidgets
-};
 use super::Image;
+use super::{Backend, Selection};
+use crate::image::draw::thumbnail_sheet;
+use crate::{
+    category::Category,
+    filelistview::{Columns, Cursor, Sort},
+    image::view::ZoomMode,
+    window::MViewWidgets,
+};
 use gdk_pixbuf::Pixbuf;
 use gtk::{
     prelude::{GtkListStoreExtManual, TreeModelExt},

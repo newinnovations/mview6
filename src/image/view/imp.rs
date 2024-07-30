@@ -20,7 +20,6 @@ impl ObjectImpl for ImageViewImp {
         self.parent_constructed();
         println!("constructed");
     }
-
 }
 impl WidgetImpl for ImageViewImp {
     fn draw(&self, cr: &cairo::Context) -> Propagation {

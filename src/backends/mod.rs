@@ -9,7 +9,9 @@ use none::NoneBackend;
 use thumbnail::{TEntry, Thumbnail};
 
 use crate::{
-    filelistview::{Cursor, Direction, Selection, Sort}, image_view::image::Image, window::MViewWidgets
+    filelistview::{Cursor, Direction, Selection, Sort},
+    image::Image,
+    window::MViewWidgets,
 };
 
 mod archive_rar;

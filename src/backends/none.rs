@@ -2,8 +2,8 @@ use super::Image;
 use gtk::ListStore;
 
 use crate::{
-    draw::draw,
     filelistview::{Columns, Cursor, Sort},
+    image::draw::draw,
     window::MViewWidgets,
 };
 

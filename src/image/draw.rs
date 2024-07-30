@@ -4,7 +4,8 @@ use gdk_pixbuf::Pixbuf;
 
 use crate::{
     backends::thumbnail::TMessage,
-    error::{AppError, MviewError, MviewResult}, image_view::{image::Image, ZoomMode},
+    error::{AppError, MviewError, MviewResult},
+    image::{view::ZoomMode, Image},
 };
 
 pub fn draw(text: &str) -> MviewResult<Image> {

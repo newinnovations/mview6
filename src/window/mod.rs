@@ -10,7 +10,7 @@ use crate::{
     application::MviewApplication,
     backends::{thumbnail::Message, Backend},
     filelistview::FileListView,
-    image_view::ImageView,
+    image::view::ImageView,
 };
 
 glib::wrapper! {

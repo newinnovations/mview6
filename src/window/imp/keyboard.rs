@@ -5,7 +5,8 @@ use gtk::{prelude::*, subclass::prelude::*, SortColumn};
 
 use crate::{
     backends::{thumbnail::Thumbnail, Backend},
-    filelistview::{Direction, FileListViewExt, Filter, Selection, Sort}, image_view::ZoomMode,
+    filelistview::{Direction, FileListViewExt, Filter, Selection, Sort},
+    image::view::ZoomMode,
 };
 
 impl MViewWindowImp {

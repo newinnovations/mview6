@@ -5,10 +5,8 @@ use image::DynamicImage;
 use crate::{
     backends::{archive_rar::RarArchive, archive_zip::ZipArchive, filesystem::FileSystem},
     category::Category,
-    draw::text_thumb,
     error::MviewResult,
-    image::ImageLoader,
-    image_view::ImageView,
+    image::{draw::text_thumb, io::ImageLoader, view::ImageView},
 };
 
 use super::{Message, TCommand, TMessage, TReference, TResult, TResultOption, TTask};
