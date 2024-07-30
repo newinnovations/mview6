@@ -87,8 +87,7 @@ pub fn draw(text: &str) -> MviewResult<Image> {
 
     // context.stroke()?;
 
-    let image = Image::new_image_surface(&surface);
-    image.set_zoom_mode(ZoomMode::None);
+    let image = Image::new_surface(&surface, ZoomMode::NoZoom);
 
     Ok(image)
 }
@@ -114,8 +113,7 @@ pub fn thumbnail_sheet(width: i32, height: i32, offset_x: i32, text: &str) -> Mv
     context.set_source_rgb(1.0, 1.0, 1.0);
     context.show_text(text)?;
 
-    let image = Image::new_image_surface(&surface);
-    image.set_zoom_mode(ZoomMode::None);
+    let image = Image::new_surface(&surface, ZoomMode::NoZoom);
 
     Ok(image)
 }

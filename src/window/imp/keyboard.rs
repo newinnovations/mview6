@@ -74,16 +74,12 @@ impl MViewWindowImp {
                 self.full_screen.set(false);
             }
             gdk::keys::constants::r => {
-                if let Some(image) = w.eog.image() {
-                    image.rotate(270);
-                    w.eog.apply_zoom(w.eog.zoom_mode());
-                }
+                w.eog.rotate(270);
+                w.eog.apply_zoom(w.eog.zoom_mode());
             }
             gdk::keys::constants::R => {
-                if let Some(image) = w.eog.image() {
-                    image.rotate(90);
-                    w.eog.apply_zoom(w.eog.zoom_mode());
-                }
+                w.eog.rotate(90);
+                w.eog.apply_zoom(w.eog.zoom_mode());
             }
             gdk::keys::constants::Return => {
                 self.dir_enter(None);
@@ -96,7 +92,7 @@ impl MViewWindowImp {
             }
             gdk::keys::constants::n => {
                 if w.eog.zoom_mode() == ZoomMode::Fit {
-                    w.eog.set_zoom_mode(ZoomMode::None);
+                    w.eog.set_zoom_mode(ZoomMode::NoZoom);
                 } else {
                     w.eog.set_zoom_mode(ZoomMode::Fit);
                 }

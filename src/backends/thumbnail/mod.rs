@@ -170,14 +170,11 @@ impl Backend for Thumbnail {
                 )
                 .unwrap();
                 pixbuf.fill(0x202020ff);
-                let image = Image::new_pixbuf(&pixbuf);
-                image.set_zoom_mode(ZoomMode::None);
-                image
+                Image::new_pixbuf(pixbuf, ZoomMode::NoZoom)
             }
         };
-        let id = image.id();
-        let command = TCommand::new(id, self.sheet(page as i32));
 
+        let command = TCommand::new(image.id(), self.sheet(page as i32));
         let _ = w.sender.send(Message::Command(command));
 
         image

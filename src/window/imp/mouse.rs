@@ -13,7 +13,8 @@ impl MViewWindowImp {
         let w = self.widgets.get().unwrap();
         if let Some(current) = w.file_list_view.current() {
             let (x, y) = e.position();
-            let (x, y) = (x + w.eog.x_offset() as f64, y + w.eog.y_offset() as f64);
+            let (x_offset, y_offset) = w.eog.offset();
+            let (x, y) = (x + x_offset, y + y_offset);
 
             let backend = w.backend.borrow();
 
