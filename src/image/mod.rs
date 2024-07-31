@@ -7,12 +7,15 @@ use gdk::{
     ffi::gdk_pixbuf_get_from_surface,
     prelude::{PixbufAnimationExt, PixbufAnimationExtManual, PixbufLoaderExt},
 };
-use gdk_pixbuf::{Pixbuf, PixbufLoader};
+use gdk_pixbuf::{Pixbuf, PixbufAnimationIter, PixbufLoader};
 use gio::{prelude::InputStreamExt, Cancellable};
 use glib::{translate::from_glib_full, IsA};
 use view::ZoomMode;
 
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::{
+    sync::atomic::{AtomicU32, Ordering},
+    time::SystemTime,
+};
 
 static IMAGE_ID: AtomicU32 = AtomicU32::new(1);
 
@@ -25,6 +28,7 @@ fn get_image_id() -> u32 {
 pub struct Image {
     id: u32,
     pixbuf: Option<Pixbuf>,
+    animation: Option<PixbufAnimationIter>,
     zoom_mode: ZoomMode,
 }
 
@@ -43,6 +47,7 @@ impl Image {
         Image {
             id: get_image_id(),
             pixbuf,
+            animation: None,
             zoom_mode,
         }
     }
@@ -51,6 +56,7 @@ impl Image {
         Image {
             id: get_image_id(),
             pixbuf: Some(pixbuf),
+            animation: None,
             zoom_mode,
         }
     }
@@ -66,24 +72,24 @@ impl Image {
             if b.len() == 0 {
                 break;
             }
-            println!("Read {}", b.len());
             loader.write_bytes(&b)?;
         }
         loader.close()?;
         stream.close(cancellable)?;
-        let pixbuf = if let Some(animation) = loader.animation() {
+        let (pixbuf, animation) = if let Some(animation) = loader.animation() {
             if animation.is_static_image() {
-                animation.static_image()
+                (animation.static_image(), None)
             } else {
-                let iter = animation.iter(None);
-                Some(iter.pixbuf())
+                let iter = animation.iter(Some(SystemTime::now()));
+                (Some(iter.pixbuf()), Some(iter))
             }
         } else {
-            None
+            (None, None)
         };
         Ok(Image {
             id: get_image_id(),
             pixbuf,
+            animation,
             zoom_mode,
         })
     }
@@ -100,6 +106,10 @@ impl Image {
 
     pub fn zoom_mode(&self) -> ZoomMode {
         self.zoom_mode
+    }
+
+    pub fn is_movable(&self) -> bool {
+        self.zoom_mode != ZoomMode::NoZoom
     }
 
     pub fn draw_pixbuf(&self, pixbuf: &Pixbuf, dest_x: i32, dest_y: i32) {

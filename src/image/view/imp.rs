@@ -1,21 +1,21 @@
-use std::cell::RefCell;
+use std::{cell::RefCell, time::SystemTime};
 
 use cairo::Surface;
-use gdk::prelude::GdkPixbufExt;
-use glib::Propagation;
+use gdk::{prelude::GdkPixbufExt, EventMask};
+use glib::{clone, ffi::g_source_remove, result_from_gboolean, BoolError, Propagation, SourceId};
 use gtk::{
     glib,
-    prelude::{ContainerExt, WidgetExt},
+    prelude::{WidgetExt, WidgetExtManual},
     subclass::prelude::*,
-    Allocation, DrawingArea,
 };
 
 use crate::image::Image;
 
-use super::{ImageView, ZoomMode};
+use super::{ImageView, ViewCursor, ZoomMode};
 
 const MAX_ZOOM_FACTOR: f64 = 20.0;
 const MIN_ZOOM_FACTOR: f64 = 0.02;
+const ZOOM_MULTIPLIER: f64 = 1.05;
 
 #[derive(Debug, Default)]
 pub(super) struct ImageViewPrivate {
@@ -24,8 +24,9 @@ pub(super) struct ImageViewPrivate {
     pub(super) xofs: f64,
     pub(super) yofs: f64,
     surface: Option<Surface>,
-    drawing_area: Option<DrawingArea>,
+    view: Option<ImageView>,
     zoom: f64,
+    drag: Option<(f64, f64)>,
 }
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Clone, Copy)]
@@ -61,8 +62,8 @@ impl ImageViewPrivate {
     // }
 
     pub(super) fn create_surface(&mut self) {
-        if let (Some(pixbuf), Some(drawing_area)) = (&self.image.pixbuf, &self.drawing_area) {
-            self.surface = pixbuf.create_surface(1, drawing_area.window().as_ref());
+        if let (Some(pixbuf), Some(view)) = (&self.image.pixbuf, &self.view) {
+            self.surface = pixbuf.create_surface(1, view.window().as_ref());
         } else {
             self.surface = None;
         }
@@ -79,7 +80,7 @@ impl ImageViewPrivate {
         }
     }
 
-    fn eog_scroll_view_get_image_coords(&self) -> (f64, f64, f64, f64) {
+    fn image_coords(&self) -> (f64, f64, f64, f64) {
         let (scaled_width, scaled_height) = self.compute_scaled_size(self.zoom);
         (-self.xofs, -self.yofs, scaled_width, scaled_height)
     }
@@ -95,14 +96,13 @@ impl ImageViewPrivate {
     }
 
     pub fn redraw(&self) {
-        if let Some(drawing_area) = &self.drawing_area {
-            println!("redraw");
-            drawing_area.queue_draw();
+        if let Some(view) = &self.view {
+            view.queue_draw();
         }
     }
 
     pub fn apply_zoom(&mut self) {
-        if let (Some(pixbuf), Some(drawing_area)) = (&self.image.pixbuf, &self.drawing_area) {
+        if let (Some(pixbuf), Some(view)) = (&self.image.pixbuf, &self.view) {
             let zoom_mode = if self.image.zoom_mode == ZoomMode::NotSpecified {
                 if self.zoom_mode == ZoomMode::NotSpecified {
                     ZoomMode::NoZoom
@@ -113,7 +113,7 @@ impl ImageViewPrivate {
                 self.image.zoom_mode
             };
 
-            let allocation = drawing_area.allocation();
+            let allocation = view.allocation();
             let allocation_width = allocation.width() as f64;
             let allocation_height = allocation.height() as f64;
             let src_width = pixbuf.width() as f64;
@@ -130,91 +130,171 @@ impl ImageViewPrivate {
                     } else {
                         zoom2
                     }
+                } else if zoom_mode == ZoomMode::Fit
+                    && allocation_width > src_width
+                    && allocation_height > src_height
+                {
+                    1.0
+                } else if zoom1 > zoom2 {
+                    zoom2
                 } else {
-                    if zoom_mode == ZoomMode::Fit
-                        && allocation_width > src_width
-                        && allocation_height > src_height
-                    {
-                        1.0
-                    } else {
-                        if zoom1 > zoom2 {
-                            zoom2
-                        } else {
-                            zoom1
-                        }
-                    }
+                    zoom1
                 }
             };
 
-            self.zoom = if zoom > MAX_ZOOM_FACTOR {
-                MAX_ZOOM_FACTOR
-            } else if zoom < MIN_ZOOM_FACTOR {
-                MIN_ZOOM_FACTOR
-            } else {
-                zoom
-            };
+            self.zoom = zoom.clamp(MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR);
             self.xofs = ((self.zoom * src_width - allocation_width) / 2.0).round();
             self.yofs = ((self.zoom * src_height - allocation_height) / 2.0).round();
 
-            drawing_area.queue_draw();
+            view.queue_draw();
         }
+    }
+
+    fn update_zoom(&mut self, zoom: f64, anchor: (f64, f64)) {
+        let old_zoom = self.zoom;
+        let new_zoom = zoom.clamp(MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR);
+        if new_zoom == old_zoom {
+            return;
+        }
+        let (anchor_x, anchor_y) = anchor;
+        let view_cx = (self.xofs + anchor_x) / old_zoom;
+        let view_cy = (self.yofs + anchor_y) / old_zoom;
+        self.xofs = view_cx * new_zoom - anchor_x;
+        self.yofs = view_cy * new_zoom - anchor_y;
+        self.zoom = new_zoom;
+        if self.drag.is_some() {
+            self.drag = Some((anchor_x + self.xofs, anchor_y + self.yofs))
+        }
+        self.redraw();
     }
 }
 
 #[derive(Debug, Default)]
 pub struct ImageViewImp {
     pub(super) p: RefCell<ImageViewPrivate>,
+    animation_timeout_id: RefCell<Option<SourceId>>,
 }
 
 #[glib::object_subclass]
 impl ObjectSubclass for ImageViewImp {
     const NAME: &'static str = "ImageWindow";
     type Type = ImageView;
-    type ParentType = gtk::Bin;
+    type ParentType = gtk::DrawingArea;
 }
 
-impl ImageViewImp {}
+fn remove_source_id(id: SourceId) -> Result<(), BoolError> {
+    unsafe { result_from_gboolean!(g_source_remove(id.as_raw()), "Failed to remove source") }
+}
+
+impl ImageViewImp {
+    pub fn animation(&self, image: &Image) {
+        if let Some(id) = self.animation_timeout_id.replace(None) {
+            if let Err(e) = remove_source_id(id) {
+                println!("remove_source_id: {}", e);
+            }
+        }
+        if let Some(animation) = &image.animation {
+            if let Some(interval) = animation.delay_time() {
+                dbg!(interval);
+                self.animation_timeout_id
+                    .replace(Some(glib::timeout_add_local(
+                        interval,
+                        clone!(@weak self as imp => @default-panic, move || {
+                            imp.animation_cb();
+                            glib::ControlFlow::Break
+                        }),
+                    )));
+            }
+        }
+    }
+
+    fn animation_cb(&self) {
+        let mut p = self.p.borrow_mut();
+        if let Some(animation) = &p.image.animation {
+            if animation.advance(SystemTime::now()) {
+                p.image.pixbuf = Some(animation.pixbuf());
+                p.create_surface();
+                self.animation(&p.image);
+                p.redraw();
+            }
+        }
+    }
+}
 
 impl ObjectImpl for ImageViewImp {
     fn constructed(&self) {
         self.parent_constructed();
+        let view = self.obj();
+        view.set_can_focus(true);
+        view.set_expand(true);
+        view.add_events(
+            EventMask::BUTTON_PRESS_MASK
+                | EventMask::BUTTON_RELEASE_MASK
+                | EventMask::POINTER_MOTION_MASK
+                | EventMask::SCROLL_MASK,
+        );
         let mut p = self.p.borrow_mut();
         p.zoom = 1.0;
-
-        let drawing_area = DrawingArea::builder().can_focus(true).build();
-
-        // gtk_drag_source_set (priv->display, GDK_BUTTON1_MASK,
-        //     target_table, G_N_ELEMENTS (target_table),
-        //     GDK_ACTION_COPY | GDK_ACTION_MOVE |
-        //     GDK_ACTION_LINK | GDK_ACTION_ASK);
-
-        self.obj().add(&drawing_area);
-        drawing_area.set_expand(true);
-        drawing_area.connect_configure_event(move |_a, _b| {
-            println!("da: display size changed");
-            // p.apply_zoom();
-            true
-        });
-        p.drawing_area = Some(drawing_area);
-
-        println!("constructed");
+        p.view = Some(view.clone());
     }
 }
 
 impl WidgetImpl for ImageViewImp {
-    // /// Display size changed
-    // fn configure_event(&self, _event: &gdk::EventConfigure) -> Propagation {
-    //     println!("display size changed");
-    //     let mut p = self.p.borrow_mut();
-    //     p.apply_zoom();
-    //     Propagation::Proceed
-    // }
-
-    fn size_allocate(&self, allocation: &Allocation) {
-        println!("display size changed");
-        self.parent_size_allocate(allocation);
+    /// Display size changed
+    fn configure_event(&self, _event: &gdk::EventConfigure) -> Propagation {
         let mut p = self.p.borrow_mut();
         p.apply_zoom();
+        Propagation::Proceed
+    }
+
+    fn button_press_event(&self, event: &gdk::EventButton) -> Propagation {
+        let mut p = self.p.borrow_mut();
+        if p.drag.is_none() && event.button() == 1 && p.image.is_movable() {
+            let (position_x, position_y) = event.position();
+            p.drag = Some((position_x + p.xofs, position_y + p.yofs));
+            self.obj().set_cursor(ViewCursor::Drag);
+            Propagation::Stop
+        } else {
+            self.parent_button_press_event(event)
+        }
+    }
+
+    fn button_release_event(&self, event: &gdk::EventButton) -> Propagation {
+        let mut p = self.p.borrow_mut();
+        if p.drag.is_some() {
+            p.drag = None;
+            self.obj().set_cursor(ViewCursor::Normal);
+            Propagation::Stop
+        } else {
+            self.parent_button_release_event(event)
+        }
+    }
+
+    fn motion_notify_event(&self, event: &gdk::EventMotion) -> Propagation {
+        let mut p = self.p.borrow_mut();
+        if let Some((drag_x, drag_y)) = p.drag {
+            let (position_x, position_y) = event.position();
+            p.xofs = drag_x - position_x;
+            p.yofs = drag_y - position_y;
+            p.redraw();
+            Propagation::Stop
+        } else {
+            self.parent_motion_notify_event(event)
+        }
+    }
+
+    fn scroll_event(&self, event: &gdk::EventScroll) -> Propagation {
+        let mut p = self.p.borrow_mut();
+        if p.image.is_movable() {
+            let zoom = match event.direction() {
+                gdk::ScrollDirection::Up => p.zoom * ZOOM_MULTIPLIER,
+                gdk::ScrollDirection::Down => p.zoom / ZOOM_MULTIPLIER,
+                _ => p.zoom,
+            };
+            p.update_zoom(zoom, event.position());
+        }
+
+        self.parent_scroll_event(event)
     }
 
     fn draw(&self, cr: &cairo::Context) -> Propagation {
@@ -224,12 +304,12 @@ impl WidgetImpl for ImageViewImp {
         let p = self.p.borrow();
 
         // if let Some(pixbuf) = &p.pixbuf {
-        let (xofs, yofs, scaled_width, scaled_height) = p.eog_scroll_view_get_image_coords();
-        dbg!(p.zoom, xofs, yofs, scaled_width, scaled_height);
+        let (xofs, yofs, scaled_width, scaled_height) = p.image_coords();
+        // dbg!(p.zoom, xofs, yofs, scaled_width, scaled_height);
 
         /* Paint the background */
         let allocation = self.obj().allocation();
-        dbg!(allocation);
+        // dbg!(allocation);
         cr.rectangle(
             0.0,
             0.0,
@@ -290,17 +370,16 @@ impl WidgetImpl for ImageViewImp {
         // if (is_zoomed_in (view) || is_zoomed_out (view))
         // 	cairo_pattern_set_filter (cairo_get_source (cr), interp_type);
         if p.zoom_state() != ZoomState::NoZoom {
-            cr.source().set_filter(cairo::Filter::Good);
+            cr.source().set_filter(cairo::Filter::Fast);
         }
 
         let _ = cr.paint();
 
-        Propagation::Proceed
+        Propagation::Stop
         // } else {
         //     self.parent_draw(cr)
         // }
     }
 }
 
-impl ContainerImpl for ImageViewImp {}
-impl BinImpl for ImageViewImp {}
+impl DrawingAreaImpl for ImageViewImp {}

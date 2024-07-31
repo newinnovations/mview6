@@ -1,14 +1,15 @@
 mod imp;
 
+use gdk::{Cursor, CursorType};
 use gdk_pixbuf::Pixbuf;
 use glib::subclass::types::ObjectSubclassIsExt;
-use gtk::glib;
+use gtk::{glib, prelude::WidgetExt};
 
 use super::Image;
 
 glib::wrapper! {
     pub struct ImageView(ObjectSubclass<imp::ImageViewImp>)
-        @extends gtk::Bin, gtk::Container, gtk::Widget, @implements gtk::Buildable;
+        @extends gtk::DrawingArea, gtk::Widget, @implements gtk::Buildable;
 }
 
 impl Default for ImageView {
@@ -27,6 +28,12 @@ pub enum ZoomMode {
     Max,
 }
 
+pub enum ViewCursor {
+    Normal,
+    Hidden,
+    Drag,
+}
+
 impl ImageView {
     pub fn new() -> Self {
         glib::Object::builder().build()
@@ -36,7 +43,7 @@ impl ImageView {
         let mut p = self.imp().p.borrow_mut();
         p.image = image;
         p.create_surface();
-        // start_animation if needed
+        self.imp().animation(&p.image); // start/stop animation if needed
         p.apply_zoom();
     }
 
@@ -53,7 +60,8 @@ impl ImageView {
     }
 
     pub fn zoom_mode(&self) -> ZoomMode {
-        ZoomMode::NoZoom
+        let p = self.imp().p.borrow();
+        p.zoom_mode
     }
 
     pub fn set_zoom_mode(&self, mode: ZoomMode) {
@@ -65,6 +73,20 @@ impl ImageView {
     pub fn offset(&self) -> (f64, f64) {
         let p = self.imp().p.borrow();
         (p.xofs, p.yofs)
+    }
+
+    pub fn set_cursor(&self, view_cursor: ViewCursor) {
+        if let Some(toplevel) = self.toplevel() {
+            if let Some(window) = toplevel.window() {
+                let display = toplevel.display();
+                let cursor = match view_cursor {
+                    ViewCursor::Normal => None,
+                    ViewCursor::Hidden => Cursor::for_display(&display, CursorType::BlankCursor),
+                    ViewCursor::Drag => Cursor::for_display(&display, CursorType::Fleur),
+                };
+                window.set_cursor(cursor.as_ref());
+            }
+        }
     }
 
     // Operations on image
