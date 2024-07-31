@@ -36,15 +36,14 @@ impl ImageView {
         let mut p = self.imp().p.borrow_mut();
         p.image = image;
         p.create_surface();
-        drop(p);
-        self.imp().redraw();
+        // start_animation if needed
+        p.apply_zoom();
     }
 
     pub fn image_modified(&self) {
         let mut p = self.imp().p.borrow_mut();
         p.create_surface();
-        drop(p);
-        self.imp().redraw();
+        p.redraw();
     }
 
     pub fn set_image_post(&self) {}
@@ -57,11 +56,11 @@ impl ImageView {
         ZoomMode::NoZoom
     }
 
-    pub fn set_zoom_mode(&self, _mode: ZoomMode) {}
-
-    pub fn set_scroll_wheel_zoom(&self, _scroll_wheel_zoom: bool) {}
-
-    pub fn apply_zoom(&self, _zoom_mode: ZoomMode) {}
+    pub fn set_zoom_mode(&self, mode: ZoomMode) {
+        let mut p = self.imp().p.borrow_mut();
+        p.zoom_mode = mode;
+        p.apply_zoom();
+    }
 
     pub fn offset(&self) -> (f64, f64) {
         let p = self.imp().p.borrow();
@@ -81,5 +80,6 @@ impl ImageView {
 
     pub fn rotate(&self, angle: i32) {
         self.imp().p.borrow().image.rotate(angle);
+        // w.eog.apply_zoom(w.eog.zoom_mode());
     }
 }

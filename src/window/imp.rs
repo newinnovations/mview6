@@ -95,7 +95,6 @@ impl ObjectImpl for MViewWindowImp {
         eog.add_weak_ref_notify(|| {
             println!("**eog::ScrollView disposed**");
         });
-        eog.set_scroll_wheel_zoom(true);
         eog.set_zoom_mode(ZoomMode::Fill);
         hbox.add(&eog);
 

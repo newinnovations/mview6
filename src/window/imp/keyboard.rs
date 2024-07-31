@@ -75,11 +75,9 @@ impl MViewWindowImp {
             }
             gdk::keys::constants::r => {
                 w.eog.rotate(270);
-                w.eog.apply_zoom(w.eog.zoom_mode());
             }
             gdk::keys::constants::R => {
                 w.eog.rotate(90);
-                w.eog.apply_zoom(w.eog.zoom_mode());
             }
             gdk::keys::constants::Return => {
                 self.dir_enter(None);
