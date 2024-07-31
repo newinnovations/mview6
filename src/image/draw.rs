@@ -1,4 +1,4 @@
-use cairo::{Context, Format, ImageSurface};
+use cairo::{Context, Format, ImageSurface, Surface};
 use gdk::pixbuf_get_from_surface;
 use gdk_pixbuf::Pixbuf;
 
@@ -227,4 +227,39 @@ pub fn text_thumb(message: TMessage) -> MviewResult<Pixbuf> {
             "Failed to get pixbuf from surface",
         ))),
     }
+}
+
+pub fn transparency_background(window: &gdk::Window) -> MviewResult<Surface> {
+    // #define CHECK_MEDIUM 8
+    // #define CHECK_BLACK "#000000"
+    // #define CHECK_DARK "#555555"
+    // 1=#define CHECK_GRAY "#808080"
+    // 2=#define CHECK_LIGHT "#cccccc"
+    // #define CHECK_WHITE "#ffffff"
+    let check_size = 8;
+
+    let surface = window
+        .create_similar_surface(cairo::Content::ColorAlpha, check_size * 2, check_size * 2)
+        .ok_or(MviewError::App(AppError::new(
+            "could not create transparency_background",
+        )))?;
+
+    let context = Context::new(&surface)?;
+
+    /* Use source operator to make fully transparent work */
+    context.set_operator(cairo::Operator::Source);
+
+    let check_size = check_size as f64;
+
+    context.set_source_rgba(0.5, 0.5, 0.5, 1.0);
+    context.rectangle(0.0, 0.0, check_size, check_size);
+    context.rectangle(check_size, check_size, check_size, check_size);
+    context.fill()?;
+
+    context.set_source_rgba(0.8, 0.8, 0.8, 1.0);
+    context.rectangle(0.0, check_size, check_size, check_size);
+    context.rectangle(check_size, 0.0, check_size, check_size);
+    context.fill()?;
+
+    Ok(surface)
 }

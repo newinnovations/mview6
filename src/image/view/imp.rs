@@ -9,7 +9,7 @@ use gtk::{
     subclass::prelude::*,
 };
 
-use crate::image::Image;
+use crate::image::{draw::transparency_background, Image};
 
 use super::{ImageView, ViewCursor, ZoomMode};
 
@@ -24,6 +24,7 @@ pub(super) struct ImageViewPrivate {
     pub(super) xofs: f64,
     pub(super) yofs: f64,
     surface: Option<Surface>,
+    transparency_background: Option<Surface>,
     view: Option<ImageView>,
     zoom: f64,
     drag: Option<(f64, f64)>,
@@ -240,6 +241,17 @@ impl ObjectImpl for ImageViewImp {
 }
 
 impl WidgetImpl for ImageViewImp {
+    fn realize(&self) {
+        println!("realize");
+        self.parent_realize();
+        if let Some(window) = &self.obj().window() {
+            let mut p = self.p.borrow_mut();
+            p.transparency_background = transparency_background(window).ok();
+        } else {
+            println!("realize without window")
+        }
+    }
+
     /// Display size changed
     fn configure_event(&self, _event: &gdk::EventConfigure) -> Propagation {
         let mut p = self.p.borrow_mut();
@@ -321,15 +333,16 @@ impl WidgetImpl for ImageViewImp {
         cr.set_fill_rule(cairo::FillRule::EvenOdd);
         let _ = cr.fill();
 
-        // if (gdk_pixbuf_get_has_alpha (priv->pixbuf)) {
-        //     if (priv->background_surface == NULL) {
-        //         priv->background_surface = create_background_surface (view);
-        //     }
-        //     cairo_set_source_surface (cr, priv->background_surface, xofs, yofs);
-        //     cairo_pattern_set_extend (cairo_get_source (cr), CAIRO_EXTEND_REPEAT);
-        //     cairo_rectangle (cr, xofs, yofs, scaled_width, scaled_height);
-        //     cairo_fill (cr);
-        // }
+        if let (Some(pixbuf), Some(transparency_background)) =
+            (&p.image.pixbuf, &p.transparency_background)
+        {
+            if pixbuf.has_alpha() {
+                let _ = cr.set_source_surface(transparency_background, xofs, yofs);
+                cr.source().set_extend(cairo::Extend::Repeat);
+                cr.rectangle(xofs, yofs, scaled_width, scaled_height);
+                let _ = cr.fill();
+            }
+        }
 
         /* Make sure the image is only drawn as large as needed.
          * This is especially necessary for SVGs where there might
