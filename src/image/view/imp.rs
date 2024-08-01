@@ -23,6 +23,7 @@ pub(super) struct ImageViewPrivate {
     pub(super) zoom_mode: ZoomMode,
     pub(super) xofs: f64,
     pub(super) yofs: f64,
+    pub(super) rotation: i32,
     surface: Option<Surface>,
     transparency_background: Option<Surface>,
     view: Option<ImageView>,
@@ -102,48 +103,50 @@ impl ImageViewPrivate {
         }
     }
 
-    pub fn apply_zoom(&mut self) {
+    pub fn apply_zoom(&mut self, update_zoom: bool) {
         if let (Some(pixbuf), Some(view)) = (&self.image.pixbuf, &self.view) {
-            let zoom_mode = if self.image.zoom_mode == ZoomMode::NotSpecified {
-                if self.zoom_mode == ZoomMode::NotSpecified {
-                    ZoomMode::NoZoom
-                } else {
-                    self.zoom_mode
-                }
-            } else {
-                self.image.zoom_mode
-            };
-
             let allocation = view.allocation();
             let allocation_width = allocation.width() as f64;
             let allocation_height = allocation.height() as f64;
             let src_width = pixbuf.width() as f64;
             let src_height = pixbuf.height() as f64;
 
-            let zoom = if zoom_mode == ZoomMode::NoZoom {
-                1.0
-            } else {
-                let zoom1 = allocation_width / src_width;
-                let zoom2 = allocation_height / src_height;
-                if zoom_mode == ZoomMode::Max {
-                    if zoom1 > zoom2 {
-                        zoom1
+            if update_zoom {
+                let zoom_mode = if self.image.zoom_mode == ZoomMode::NotSpecified {
+                    if self.zoom_mode == ZoomMode::NotSpecified {
+                        ZoomMode::NoZoom
                     } else {
-                        zoom2
+                        self.zoom_mode
                     }
-                } else if zoom_mode == ZoomMode::Fit
-                    && allocation_width > src_width
-                    && allocation_height > src_height
-                {
-                    1.0
-                } else if zoom1 > zoom2 {
-                    zoom2
                 } else {
-                    zoom1
-                }
-            };
+                    self.image.zoom_mode
+                };
 
-            self.zoom = zoom.clamp(MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR);
+                let zoom = if zoom_mode == ZoomMode::NoZoom {
+                    1.0
+                } else {
+                    let zoom1 = allocation_width / src_width;
+                    let zoom2 = allocation_height / src_height;
+                    if zoom_mode == ZoomMode::Max {
+                        if zoom1 > zoom2 {
+                            zoom1
+                        } else {
+                            zoom2
+                        }
+                    } else if zoom_mode == ZoomMode::Fit
+                        && allocation_width > src_width
+                        && allocation_height > src_height
+                    {
+                        1.0
+                    } else if zoom1 > zoom2 {
+                        zoom2
+                    } else {
+                        zoom1
+                    }
+                };
+                self.zoom = zoom.clamp(MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR);
+            }
+
             self.xofs = ((self.zoom * src_width - allocation_width) / 2.0).round();
             self.yofs = ((self.zoom * src_height - allocation_height) / 2.0).round();
 
@@ -213,7 +216,9 @@ impl ImageViewImp {
         let mut p = self.p.borrow_mut();
         if let Some(animation) = &p.image.animation {
             if animation.advance(SystemTime::now()) {
+                let rotation = p.rotation;
                 p.image.pixbuf = Some(animation.pixbuf());
+                p.image.rotate(rotation);
                 p.create_surface();
                 self.animation(&p.image);
                 p.redraw();
@@ -255,7 +260,7 @@ impl WidgetImpl for ImageViewImp {
     /// Display size changed
     fn configure_event(&self, _event: &gdk::EventConfigure) -> Propagation {
         let mut p = self.p.borrow_mut();
-        p.apply_zoom();
+        p.apply_zoom(true);
         Propagation::Proceed
     }
 

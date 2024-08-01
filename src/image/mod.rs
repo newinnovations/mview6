@@ -7,7 +7,7 @@ use gdk::{
     ffi::gdk_pixbuf_get_from_surface,
     prelude::{PixbufAnimationExt, PixbufAnimationExtManual, PixbufLoaderExt},
 };
-use gdk_pixbuf::{Pixbuf, PixbufAnimationIter, PixbufLoader};
+use gdk_pixbuf::{Pixbuf, PixbufAnimationIter, PixbufLoader, PixbufRotation};
 use gio::{prelude::InputStreamExt, Cancellable};
 use glib::{translate::from_glib_full, IsA};
 use view::ZoomMode;
@@ -102,7 +102,19 @@ impl Image {
         self.pixbuf.clone()
     }
 
-    pub fn rotate(&self, angle: i32) {}
+    pub fn rotate(&mut self, angle: i32) {
+        let rotation = match angle {
+            90 => PixbufRotation::Counterclockwise,
+            180 => PixbufRotation::Upsidedown,
+            270 => PixbufRotation::Clockwise,
+            _ => {
+                return;
+            }
+        };
+        if let Some(pixbuf) = &self.pixbuf {
+            self.pixbuf = pixbuf.rotate_simple(rotation);
+        }
+    }
 
     pub fn zoom_mode(&self) -> ZoomMode {
         self.zoom_mode
