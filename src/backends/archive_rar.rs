@@ -124,7 +124,7 @@ impl Backend for RarArchive {
         let sel = cursor.name();
         match extract_rar(&self.filename, &sel) {
             Ok(bytes) => ImageLoader::image_from_memory(bytes),
-            Err(error) => draw(&format!("Error {}", error)).unwrap(),
+            Err(error) => draw(&format!("Error {}", error)),
         }
     }
 

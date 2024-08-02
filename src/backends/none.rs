@@ -46,7 +46,7 @@ impl Backend for NoneBackend {
     }
 
     fn image(&self, _w: &MViewWidgets, _cursor: &Cursor) -> Image {
-        draw("invalid").unwrap()
+        draw("invalid")
     }
 
     fn set_sort(&self, _sort: &Sort) {}

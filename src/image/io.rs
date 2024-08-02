@@ -20,19 +20,14 @@ impl ImageLoader {
         } else {
             match Self::image_from_file_image_rs(filename) {
                 Ok(im) => im,
-                Err(e) => draw(&format!("Error: {:?}", e)).unwrap(),
+                Err(e) => draw(&format!("Error: {:?}", e)),
             }
         }
 
         // match Self::image_from_file_image_rs(filename) {
         //     Ok(im) => im,
-        //     Err(e) => draw(&format!("Error: {:?}", e)).unwrap(),
+        //     Err(e) => draw(&format!("Error: {:?}", e)),
         // };
-
-        // let filename_c = filename.to_string();
-        // image.add_weak_ref_notify(move || {
-        //     println!("**image [{filename_c}] disposed**");
-        // });
     }
 
     pub fn image_from_memory(buf: Vec<u8>) -> Image {
@@ -41,12 +36,9 @@ impl ImageLoader {
         } else {
             match Self::image_from_memory_image_rs(&buf) {
                 Ok(im) => im,
-                Err(e) => draw(&format!("Error: {:?}", e)).unwrap(),
+                Err(e) => draw(&format!("Error: {:?}", e)),
             }
         }
-        // image.add_weak_ref_notify(move || {
-        //     println!("**image (from memory) disposed**");
-        // });
     }
 
     pub fn image_from_file_gtk(filename: &str) -> MviewResult<Image> {
@@ -65,7 +57,7 @@ impl ImageLoader {
                     .to_str()
                     .unwrap_or_default();
                 let d = draw(name);
-                return d;
+                return Ok(d);
             }
             _ => (),
         };

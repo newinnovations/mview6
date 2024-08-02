@@ -98,10 +98,6 @@ impl Image {
         self.id
     }
 
-    pub fn pixbuf(&self) -> Option<Pixbuf> {
-        self.pixbuf.clone()
-    }
-
     pub fn rotate(&mut self, angle: i32) {
         let rotation = match angle {
             90 => PixbufRotation::Counterclockwise,
@@ -136,5 +132,28 @@ impl Image {
                 dest_y,
             );
         }
+    }
+
+    // Aninmation abstraction
+    pub fn is_animation(&self) -> bool {
+        self.animation.is_some()
+    }
+
+    pub fn animation_delay_time(&self) -> Option<std::time::Duration> {
+        if let Some(animation) = &self.animation {
+            animation.delay_time()
+        } else {
+            None
+        }
+    }
+
+    pub fn animation_advance(&mut self, current_time: SystemTime) -> bool {
+        if let Some(animation) = &self.animation {
+            if animation.advance(current_time) {
+                self.pixbuf = Some(animation.pixbuf());
+                return true;
+            }
+        }
+        false
     }
 }

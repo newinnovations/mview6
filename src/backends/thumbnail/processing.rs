@@ -34,13 +34,13 @@ fn thumb_result(res: MviewResult<DynamicImage>, task: &TTask) -> TResultOption {
 
 pub fn start_thumbnail_task(
     sender: &glib::Sender<Message>,
-    eog: &ImageView,
+    image_view: &ImageView,
     command: &TCommand,
     current_task: &mut usize,
 ) {
     // let elapsed = command.elapsed();
     // println!("ThumbnailTask: {:7.3}", elapsed);
-    let id = eog.image_id();
+    let id = image_view.image_id();
     if command.id == id {
         // println!("-- command id is ok: {id}");
         let sender_clone = sender.clone();
@@ -77,7 +77,11 @@ pub fn start_thumbnail_task(
     }
 }
 
-pub fn handle_thumbnail_result(eog: &ImageView, command: &mut TCommand, result: TResult) -> bool {
+pub fn handle_thumbnail_result(
+    image_view: &ImageView,
+    command: &mut TCommand,
+    result: TResult,
+) -> bool {
     if command.id != result.id {
         return false;
     }
@@ -85,7 +89,7 @@ pub fn handle_thumbnail_result(eog: &ImageView, command: &mut TCommand, result: 
     let elapsed = command.elapsed();
     command.todo -= 1;
     // println!("{tid:3}: ready {:7.3} todo={}", elapsed, command.todo);
-    if result.id == eog.image_id() {
+    if result.id == image_view.image_id() {
         // println!("{tid:3}: -- result id is ok: {id}");
 
         let pixbuf = match result.result {
@@ -98,18 +102,19 @@ pub fn handle_thumbnail_result(eog: &ImageView, command: &mut TCommand, result: 
                 let size = result.task.size as i32;
 
                 let thumb_pb = if thumb_pb.width() > size || thumb_pb.height() > size {
-                    ImageLoader::pixbuf_scale(thumb_pb, size).unwrap()
+                    ImageLoader::pixbuf_scale(thumb_pb, size)
                 } else {
-                    thumb_pb
+                    Some(thumb_pb)
                 };
 
-                let (x, y) = result.task.position;
-
-                eog.draw_pixbuf(
-                    &thumb_pb,
-                    x + (size - thumb_pb.width()) / 2,
-                    y + (size - thumb_pb.height()) / 2,
-                );
+                if let Some(thumb_pb) = thumb_pb {
+                    let (x, y) = result.task.position;
+                    image_view.draw_pixbuf(
+                        &thumb_pb,
+                        x + (size - thumb_pb.width()) / 2,
+                        y + (size - thumb_pb.height()) / 2,
+                    );
+                }
             }
             Err(error) => {
                 println!("Thumbnail: failed to convert to pixbuf {:?}", error);
@@ -117,9 +122,9 @@ pub fn handle_thumbnail_result(eog: &ImageView, command: &mut TCommand, result: 
         }
         if command.todo == 0 || (elapsed - command.last_update) > 0.3 {
             if command.last_update == 0.0 {
-                eog.set_image_post();
+                image_view.set_image_post();
             }
-            eog.image_modified();
+            image_view.image_modified();
             command.last_update = elapsed;
         }
         return command.todo != 0;

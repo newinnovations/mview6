@@ -1,4 +1,4 @@
-use std::{cell::Cell, fmt::Display, rc::Rc};
+use std::{cell::Cell, fmt::Display};
 
 use gtk::{prelude::TreeSortableExtManual, ListStore, SortColumn, SortType};
 
@@ -29,7 +29,7 @@ impl Sort {
         Sort::new(SortColumn::Index(Columns::Cat as u32), SortType::Ascending)
     }
 
-    pub fn on_sort_column_changed(model: &ListStore, current_sort: &Rc<Cell<Sort>>) {
+    pub fn on_sort_column_changed(model: &ListStore, current_sort: &Cell<Sort>) {
         let previous_sort = current_sort.get();
         if let Some((new_column, new_order)) = model.sort_column_id() {
             current_sort.set(Sort::new(new_column, new_order));

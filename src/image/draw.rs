@@ -8,7 +8,7 @@ use crate::{
     image::{view::ZoomMode, Image},
 };
 
-pub fn draw(text: &str) -> MviewResult<Image> {
+fn draw_text(text: &str) -> MviewResult<Image> {
     let surface = ImageSurface::create(Format::ARgb32, 600, 600)?;
     let context = Context::new(&surface)?;
 
@@ -90,6 +90,16 @@ pub fn draw(text: &str) -> MviewResult<Image> {
     let image = Image::new_surface(&surface, ZoomMode::NoZoom);
 
     Ok(image)
+}
+
+pub fn draw(text: &str) -> Image {
+    match draw_text(text) {
+        Ok(image) => image,
+        Err(e) => {
+            println!("Failed to draw text: {:?}", e);
+            Image::default()
+        }
+    }
 }
 
 pub fn thumbnail_sheet(width: i32, height: i32, offset_x: i32, text: &str) -> MviewResult<Image> {

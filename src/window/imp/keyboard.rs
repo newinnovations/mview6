@@ -11,20 +11,20 @@ use crate::{
 
 impl MViewWindowImp {
     pub(super) fn on_key_press(&self, e: &EventKey) {
-        let w = self.widgets.get().unwrap();
+        let w = self.widgets();
         w.file_list_view.set_has_focus(true);
         match e.keyval() {
             gdk::keys::constants::q => {
                 self.obj().close();
             }
             gdk::keys::constants::d => {
-                if !w.backend.borrow().is_bookmarks() {
+                if !self.backend.borrow().is_bookmarks() {
                     self.show_files_widget(true);
                     self.set_backend(<dyn Backend>::bookmarks(), Selection::None, true);
                 }
             }
             gdk::keys::constants::t => {
-                if w.backend.borrow().is_container() {
+                if self.backend.borrow().is_container() {
                     let position = if let Some(cursor) = w.file_list_view.current() {
                         cursor.position()
                     } else {
@@ -44,6 +44,7 @@ impl MViewWindowImp {
                     self.show_files_widget(false);
                     self.obj().fullscreen();
                     self.full_screen.set(true);
+                    w.image_view.grab_focus();
                 }
             }
             gdk::keys::constants::w
@@ -68,35 +69,37 @@ impl MViewWindowImp {
                     self.obj().fullscreen();
                     self.full_screen.set(true);
                 }
+                w.image_view.grab_focus();
             }
             gdk::keys::constants::Escape => {
                 self.obj().unfullscreen();
                 self.full_screen.set(false);
+                w.image_view.grab_focus();
             }
             gdk::keys::constants::r => {
-                w.eog.rotate(270);
+                w.image_view.rotate(270);
             }
             gdk::keys::constants::R => {
-                w.eog.rotate(90);
+                w.image_view.rotate(90);
             }
             gdk::keys::constants::Return => {
                 self.dir_enter(None);
             }
             gdk::keys::constants::BackSpace => {
                 self.dir_leave();
-                if w.backend.borrow().is_thumbnail() {
+                if self.backend.borrow().is_thumbnail() {
                     self.show_files_widget(false);
                 }
             }
             gdk::keys::constants::n => {
-                if w.eog.zoom_mode() == ZoomMode::Fit {
-                    w.eog.set_zoom_mode(ZoomMode::NoZoom);
+                if w.image_view.zoom_mode() == ZoomMode::Fit {
+                    w.image_view.set_zoom_mode(ZoomMode::NoZoom);
                 } else {
-                    w.eog.set_zoom_mode(ZoomMode::Fit);
+                    w.image_view.set_zoom_mode(ZoomMode::Fit);
                 }
             }
             gdk::keys::constants::m | gdk::keys::constants::KP_0 => {
-                let backend = w.backend.borrow();
+                let backend = self.backend.borrow();
                 if backend.is_thumbnail() {
                     let new_size = match self.thumbnail_size.get() {
                         175 => 140,
@@ -108,23 +111,23 @@ impl MViewWindowImp {
                     self.thumbnail_size.set(new_size);
                     let (parent_backend, _selection) = backend.leave();
                     drop(backend);
-                    w.backend.replace(parent_backend);
+                    self.backend.replace(parent_backend);
                     let display_size = self.obj().display_size();
                     let thumbnail =
                         Thumbnail::new(display_size.width(), display_size.height(), 0, new_size);
                     let startpage = thumbnail.startpage();
                     let new_backend = <dyn Backend>::thumbnail(thumbnail);
                     self.set_backend(new_backend, startpage, true);
-                } else if w.eog.zoom_mode() == ZoomMode::Max {
-                    w.eog.set_zoom_mode(ZoomMode::Fill);
+                } else if w.image_view.zoom_mode() == ZoomMode::Max {
+                    w.image_view.set_zoom_mode(ZoomMode::Fill);
                 } else {
-                    w.eog.set_zoom_mode(ZoomMode::Max);
+                    w.image_view.set_zoom_mode(ZoomMode::Max);
                 }
             }
             gdk::keys::constants::minus | gdk::keys::constants::KP_Subtract => {
                 w.file_list_view.set_unsorted();
                 if let Some(current) = w.file_list_view.current() {
-                    if w.backend.borrow().favorite(&current, Direction::Down) {
+                    if self.backend.borrow().favorite(&current, Direction::Down) {
                         w.file_list_view.navigate(Direction::Down, Filter::Image, 1);
                     }
                 }
@@ -132,7 +135,7 @@ impl MViewWindowImp {
             gdk::keys::constants::equal | gdk::keys::constants::KP_Add => {
                 w.file_list_view.set_unsorted();
                 if let Some(current) = w.file_list_view.current() {
-                    if w.backend.borrow().favorite(&current, Direction::Up) {
+                    if self.backend.borrow().favorite(&current, Direction::Up) {
                         w.file_list_view.navigate(Direction::Down, Filter::Image, 1);
                     }
                 }
@@ -206,7 +209,7 @@ impl MViewWindowImp {
                 }
             }
             gdk::keys::constants::_2 => {
-                if !w.backend.borrow().is_thumbnail() {
+                if !self.backend.borrow().is_thumbnail() {
                     if let Some(current) = w.file_list_view.current() {
                         current.set_sort_column(SortColumn::Index(2));
                         w.file_list_view.goto(&Selection::None);
@@ -214,7 +217,7 @@ impl MViewWindowImp {
                 }
             }
             gdk::keys::constants::_3 => {
-                if !w.backend.borrow().is_thumbnail() {
+                if !self.backend.borrow().is_thumbnail() {
                     if let Some(current) = w.file_list_view.current() {
                         current.set_sort_column(SortColumn::Index(3));
                         w.file_list_view.goto(&Selection::None);
@@ -222,7 +225,7 @@ impl MViewWindowImp {
                 }
             }
             gdk::keys::constants::_4 => {
-                if !w.backend.borrow().is_thumbnail() {
+                if !self.backend.borrow().is_thumbnail() {
                     if let Some(current) = w.file_list_view.current() {
                         current.set_sort_column(SortColumn::Index(4));
                         w.file_list_view.goto(&Selection::None);

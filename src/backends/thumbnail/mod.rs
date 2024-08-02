@@ -9,10 +9,8 @@ use crate::image::draw::thumbnail_sheet;
 use crate::{
     category::Category,
     filelistview::{Columns, Cursor, Sort},
-    image::view::ZoomMode,
     window::MViewWidgets,
 };
-use gdk_pixbuf::Pixbuf;
 use gtk::{
     prelude::{GtkListStoreExtManual, TreeModelExt},
     ListStore,
@@ -161,16 +159,8 @@ impl Backend for Thumbnail {
         let image = match thumbnail_sheet(self.width, self.height, self.offset_x, &caption) {
             Ok(image) => image,
             Err(_) => {
-                let pixbuf = Pixbuf::new(
-                    gdk_pixbuf::Colorspace::Rgb,
-                    true,
-                    8,
-                    self.width,
-                    self.height,
-                )
-                .unwrap();
-                pixbuf.fill(0x202020ff);
-                Image::new_pixbuf(pixbuf, ZoomMode::NoZoom)
+                println!("Failed to create thumbnail_sheet: should not happen");
+                Default::default()
             }
         };
 

@@ -60,7 +60,11 @@ impl FileSystem {
             };
 
             let modified = metadata.modified().unwrap_or(UNIX_EPOCH);
-            let modified = modified.duration_since(UNIX_EPOCH).unwrap().as_secs();
+            let modified = if let Ok(duration) = modified.duration_since(UNIX_EPOCH) {
+                duration.as_secs()
+            } else {
+                0
+            };
             let file_size = metadata.len();
 
             let cat = Category::determine(filename, metadata.is_dir());

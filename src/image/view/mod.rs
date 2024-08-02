@@ -1,5 +1,7 @@
+mod data;
 mod imp;
 
+use data::QUALITY_HIGH;
 use gdk::{Cursor, CursorType};
 use gdk_pixbuf::Pixbuf;
 use glib::subclass::types::ObjectSubclassIsExt;
@@ -40,7 +42,7 @@ impl ImageView {
     }
 
     pub fn set_image(&self, image: Image) {
-        let mut p = self.imp().p.borrow_mut();
+        let mut p = self.imp().data.borrow_mut();
         p.rotation = 0;
         p.image = image;
         p.create_surface();
@@ -49,9 +51,9 @@ impl ImageView {
     }
 
     pub fn image_modified(&self) {
-        let mut p = self.imp().p.borrow_mut();
+        let mut p = self.imp().data.borrow_mut();
         p.create_surface();
-        p.redraw();
+        p.redraw(QUALITY_HIGH);
     }
 
     pub fn set_image_post(&self) {}
@@ -61,18 +63,18 @@ impl ImageView {
     }
 
     pub fn zoom_mode(&self) -> ZoomMode {
-        let p = self.imp().p.borrow();
+        let p = self.imp().data.borrow();
         p.zoom_mode
     }
 
     pub fn set_zoom_mode(&self, mode: ZoomMode) {
-        let mut p = self.imp().p.borrow_mut();
+        let mut p = self.imp().data.borrow_mut();
         p.zoom_mode = mode;
         p.apply_zoom(true);
     }
 
     pub fn offset(&self) -> (f64, f64) {
-        let p = self.imp().p.borrow();
+        let p = self.imp().data.borrow();
         (p.xofs, p.yofs)
     }
 
@@ -93,20 +95,20 @@ impl ImageView {
     // Operations on image
 
     pub fn image_id(&self) -> u32 {
-        self.imp().p.borrow().image.id()
+        self.imp().data.borrow().image.id()
     }
 
     pub fn draw_pixbuf(&self, pixbuf: &Pixbuf, dest_x: i32, dest_y: i32) {
-        let p = self.imp().p.borrow();
+        let p = self.imp().data.borrow();
         p.image.draw_pixbuf(pixbuf, dest_x, dest_y);
     }
 
     pub fn rotate(&self, angle: i32) {
-        let mut p=self.imp().p.borrow_mut();
+        let mut p = self.imp().data.borrow_mut();
         p.rotation = (p.rotation + angle).rem_euclid(360);
         p.image.rotate(angle);
         p.create_surface();
         p.apply_zoom(false);
-        p.redraw();
+        p.redraw(QUALITY_HIGH);
     }
 }

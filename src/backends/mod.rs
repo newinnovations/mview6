@@ -63,6 +63,12 @@ impl std::fmt::Debug for dyn Backend {
     }
 }
 
+impl Default for Box<dyn Backend> {
+    fn default() -> Self {
+        Box::new(NoneBackend::new())
+    }
+}
+
 impl dyn Backend {
     pub fn new(filename: &str) -> Box<dyn Backend> {
         if filename.ends_with(".zip") {

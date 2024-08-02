@@ -120,7 +120,7 @@ impl Backend for ZipArchive {
     fn image(&self, _w: &MViewWidgets, cursor: &Cursor) -> Image {
         match extract_zip(&self.filename, cursor.index() as usize) {
             Ok(bytes) => ImageLoader::image_from_memory(bytes),
-            Err(error) => draw(&format!("Error {}", error)).unwrap(),
+            Err(error) => draw(&format!("Error {}", error)),
         }
     }
 
