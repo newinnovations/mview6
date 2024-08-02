@@ -34,16 +34,20 @@ fn remove_source_id(id: SourceId) -> Result<(), BoolError> {
 }
 
 impl ImageViewImp {
-    pub fn animation(&self, image: &Image) {
+
+    pub fn cancel_animation(&self) {
         if let Some(id) = self.animation_timeout_id.replace(None) {
             if let Err(e) = remove_source_id(id) {
                 println!("remove_source_id: {}", e);
             }
         }
+    }
+
+    pub fn schedule_animation(&self, image: &Image) {
         if image.is_animation() {
             if let Some(interval) = image.animation_delay_time() {
                 dbg!(interval);
-                self.animation_timeout_id
+                let current = self.animation_timeout_id
                     .replace(Some(glib::timeout_add_local(
                         interval,
                         clone!(@weak self as imp => @default-return ControlFlow::Break, move || {
@@ -51,17 +55,19 @@ impl ImageViewImp {
                             ControlFlow::Break
                         }),
                     )));
+                assert!(current.is_none())
             }
         }
     }
 
     fn animation_cb(&self) {
+        self.animation_timeout_id.replace(None);
         let mut p = self.data.borrow_mut();
         if p.image.animation_advance(SystemTime::now()) {
             let rotation = p.rotation;
             p.image.rotate(rotation);
             p.create_surface();
-            self.animation(&p.image);
+            self.schedule_animation(&p.image);
             p.redraw(QUALITY_HIGH);
         }
     }

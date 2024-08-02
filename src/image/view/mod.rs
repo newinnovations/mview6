@@ -42,11 +42,21 @@ impl ImageView {
     }
 
     pub fn set_image(&self, image: Image) {
+        self.set_image_pre(image);
+        self.set_image_post();
+    }
+
+    pub fn set_image_pre(&self, image: Image) {
         let mut p = self.imp().data.borrow_mut();
-        p.rotation = 0;
+        self.imp().cancel_animation();
         p.image = image;
+        p.rotation = 0;
+    }
+
+    pub fn set_image_post(&self) {
+        let mut p = self.imp().data.borrow_mut();
         p.create_surface();
-        self.imp().animation(&p.image); // start/stop animation if needed
+        self.imp().schedule_animation(&p.image);
         p.apply_zoom(true);
     }
 
@@ -54,12 +64,6 @@ impl ImageView {
         let mut p = self.imp().data.borrow_mut();
         p.create_surface();
         p.redraw(QUALITY_HIGH);
-    }
-
-    pub fn set_image_post(&self) {}
-
-    pub fn set_image_pre(&self, image: Image) {
-        self.set_image(image);
     }
 
     pub fn zoom_mode(&self) -> ZoomMode {
