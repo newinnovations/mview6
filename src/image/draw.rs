@@ -1,14 +1,14 @@
-use cairo::{Context, Format, ImageSurface};
-use eog::{Image, ImageExt};
+use cairo::{Context, Format, ImageSurface, Surface};
 use gdk::pixbuf_get_from_surface;
 use gdk_pixbuf::Pixbuf;
 
 use crate::{
     backends::thumbnail::TMessage,
     error::{AppError, MviewError, MviewResult},
+    image::{view::ZoomMode, Image},
 };
 
-pub fn draw(text: &str) -> MviewResult<Image> {
+fn draw_text(text: &str) -> MviewResult<Image> {
     let surface = ImageSurface::create(Format::ARgb32, 600, 600)?;
     let context = Context::new(&surface)?;
 
@@ -87,10 +87,19 @@ pub fn draw(text: &str) -> MviewResult<Image> {
 
     // context.stroke()?;
 
-    let image = Image::new_image_surface(&surface);
-    image.set_zoom_mode(eog::ZoomMode::None);
+    let image = Image::new_surface(&surface, ZoomMode::NoZoom);
 
     Ok(image)
+}
+
+pub fn draw(text: &str) -> Image {
+    match draw_text(text) {
+        Ok(image) => image,
+        Err(e) => {
+            println!("Failed to draw text: {:?}", e);
+            Image::default()
+        }
+    }
 }
 
 pub fn thumbnail_sheet(width: i32, height: i32, offset_x: i32, text: &str) -> MviewResult<Image> {
@@ -114,8 +123,7 @@ pub fn thumbnail_sheet(width: i32, height: i32, offset_x: i32, text: &str) -> Mv
     context.set_source_rgb(1.0, 1.0, 1.0);
     context.show_text(text)?;
 
-    let image = Image::new_image_surface(&surface);
-    image.set_zoom_mode(eog::ZoomMode::None);
+    let image = Image::new_surface(&surface, ZoomMode::NoZoom);
 
     Ok(image)
 }
@@ -229,4 +237,39 @@ pub fn text_thumb(message: TMessage) -> MviewResult<Pixbuf> {
             "Failed to get pixbuf from surface",
         ))),
     }
+}
+
+pub fn transparency_background(window: &gdk::Window) -> MviewResult<Surface> {
+    // #define CHECK_MEDIUM 8
+    // #define CHECK_BLACK "#000000"
+    // #define CHECK_DARK "#555555"
+    // 1=#define CHECK_GRAY "#808080"
+    // 2=#define CHECK_LIGHT "#cccccc"
+    // #define CHECK_WHITE "#ffffff"
+    let check_size = 8;
+
+    let surface = window
+        .create_similar_surface(cairo::Content::ColorAlpha, check_size * 2, check_size * 2)
+        .ok_or(MviewError::App(AppError::new(
+            "could not create transparency_background",
+        )))?;
+
+    let context = Context::new(&surface)?;
+
+    /* Use source operator to make fully transparent work */
+    context.set_operator(cairo::Operator::Source);
+
+    let check_size = check_size as f64;
+
+    context.set_source_rgba(0.5, 0.5, 0.5, 1.0);
+    context.rectangle(0.0, 0.0, check_size, check_size);
+    context.rectangle(check_size, check_size, check_size, check_size);
+    context.fill()?;
+
+    context.set_source_rgba(0.8, 0.8, 0.8, 1.0);
+    context.rectangle(0.0, check_size, check_size, check_size);
+    context.rectangle(check_size, 0.0, check_size, check_size);
+    context.fill()?;
+
+    Ok(surface)
 }

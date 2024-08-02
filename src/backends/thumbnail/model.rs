@@ -46,7 +46,7 @@ impl Default for TEntry {
 
 #[derive(Debug, Clone)]
 pub struct TCommand {
-    pub id: i32,
+    pub id: u32,
     pub start: SystemTime,
     pub tasks: Vec<TTask>,
     pub todo: usize,
@@ -66,7 +66,7 @@ impl Default for TCommand {
 }
 
 impl TCommand {
-    pub fn new(id: i32, tasks: Vec<TTask>) -> Self {
+    pub fn new(id: u32, tasks: Vec<TTask>) -> Self {
         let todo = tasks.len();
         TCommand {
             id,
@@ -139,13 +139,13 @@ pub enum TResultOption {
 
 #[derive(Debug, Clone)]
 pub struct TResult {
-    pub id: i32,
+    pub id: u32,
     pub task: TTask,
     pub result: TResultOption,
 }
 
 impl TResult {
-    pub fn new(id: i32, task: TTask, result: TResultOption) -> Self {
+    pub fn new(id: u32, task: TTask, result: TResultOption) -> Self {
         TResult { id, task, result }
     }
 }

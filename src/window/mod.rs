@@ -1,31 +1,14 @@
 mod imp;
 
-use std::cell::RefCell;
-
-use eog::ScrollView;
+use crate::application::MviewApplication;
 use gio::File;
 use glib::subclass::types::ObjectSubclassIsExt;
-use gtk::{glib, ScrolledWindow};
-
-use crate::{
-    application::MviewApplication,
-    backends::{thumbnail::Message, Backend},
-    filelistview::FileListView,
-};
+use gtk::glib;
+pub use imp::MViewWidgets;
 
 glib::wrapper! {
     pub struct MViewWindow(ObjectSubclass<imp::MViewWindowImp>)
         @extends gtk::Widget, gtk::Container, gtk::Bin, gtk::Window, gtk::ApplicationWindow;
-}
-
-#[derive(Debug)]
-pub struct MViewWidgets {
-    hbox: gtk::Box,
-    files_widget: ScrolledWindow,
-    file_list_view: FileListView,
-    backend: RefCell<Box<dyn Backend>>,
-    eog: ScrollView,
-    pub sender: glib::Sender<Message>,
 }
 
 impl MViewWindow {

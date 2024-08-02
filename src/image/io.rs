@@ -1,53 +1,44 @@
 use crate::{
     category::Category,
-    draw::draw,
     error::{AppError, MviewError, MviewResult},
+    image::Image,
 };
-use eog::Image;
 use gdk_pixbuf::Pixbuf;
 use gio::{prelude::FileExt, Cancellable, File, MemoryInputStream};
-use glib::{Bytes, ObjectExt};
+use glib::Bytes;
 use image::{DynamicImage, GenericImageView, ImageReader};
 use std::{fs, io::Cursor, path::Path};
+
+use super::{draw::draw, view::ZoomMode};
 
 pub struct ImageLoader {}
 
 impl ImageLoader {
     pub fn image_from_file(filename: &str) -> Image {
-        let image = if let Ok(im) = Self::image_from_file_gtk(filename) {
+        if let Ok(im) = Self::image_from_file_gtk(filename) {
             im
         } else {
             match Self::image_from_file_image_rs(filename) {
                 Ok(im) => im,
-                Err(e) => draw(&format!("Error: {:?}", e)).unwrap(),
+                Err(e) => draw(&format!("Error: {:?}", e)),
             }
-        };
+        }
 
-        // let image = match Self::image_from_file_image_rs(filename) {
+        // match Self::image_from_file_image_rs(filename) {
         //     Ok(im) => im,
-        //     Err(e) => draw(&format!("Error: {:?}", e)).unwrap(),
+        //     Err(e) => draw(&format!("Error: {:?}", e)),
         // };
-
-        let filename_c = filename.to_string();
-        image.add_weak_ref_notify(move || {
-            println!("**image [{filename_c}] disposed**");
-        });
-        image
     }
 
     pub fn image_from_memory(buf: Vec<u8>) -> Image {
-        let image = if let Ok(im) = Self::image_from_memory_gtk(&buf) {
+        if let Ok(im) = Self::image_from_memory_gtk(&buf) {
             im
         } else {
             match Self::image_from_memory_image_rs(&buf) {
                 Ok(im) => im,
-                Err(e) => draw(&format!("Error: {:?}", e)).unwrap(),
+                Err(e) => draw(&format!("Error: {:?}", e)),
             }
-        };
-        image.add_weak_ref_notify(move || {
-            println!("**image (from memory) disposed**");
-        });
-        image
+        }
     }
 
     pub fn image_from_file_gtk(filename: &str) -> MviewResult<Image> {
@@ -66,14 +57,14 @@ impl ImageLoader {
                     .to_str()
                     .unwrap_or_default();
                 let d = draw(name);
-                return d;
+                return Ok(d);
             }
             _ => (),
         };
 
         let file = File::for_parse_name(filename);
         let stream = file.read(Cancellable::NONE)?;
-        let image = Image::new_stream(&stream)?;
+        let image = Image::new_stream(&stream, ZoomMode::NotSpecified)?;
 
         Ok(image)
     }
@@ -81,18 +72,18 @@ impl ImageLoader {
     pub fn image_from_memory_gtk(buf: &Vec<u8>) -> MviewResult<Image> {
         let bytes = Bytes::from(buf);
         let stream = MemoryInputStream::from_bytes(&bytes);
-        let image = Image::new_stream(&stream)?;
+        let image = Image::new_stream(&stream, ZoomMode::NotSpecified)?;
         Ok(image)
     }
 
     pub fn image_from_memory_image_rs(buf: &Vec<u8>) -> MviewResult<Image> {
         let pixbuf = Self::pixbuf_from_memory(buf)?;
-        Ok(Image::new_pixbuf(&pixbuf))
+        Ok(Image::new_pixbuf(pixbuf, ZoomMode::NotSpecified))
     }
 
     pub fn image_from_file_image_rs(filename: &str) -> MviewResult<Image> {
         let pixbuf = Self::pixbuf_from_file(filename)?;
-        Ok(Image::new_pixbuf(&pixbuf))
+        Ok(Image::new_pixbuf(pixbuf, ZoomMode::NotSpecified))
     }
 
     pub fn pixbuf_from_memory(buf: &Vec<u8>) -> MviewResult<Pixbuf> {

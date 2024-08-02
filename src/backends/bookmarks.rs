@@ -1,11 +1,11 @@
+use super::Image;
 use crate::{
     category::Category,
     config::config,
-    draw::draw,
     filelistview::{Columns, Cursor, Sort},
+    image::draw::draw,
     window::MViewWidgets,
 };
-use eog::Image;
 use gtk::{prelude::GtkListStoreExtManual, ListStore};
 use std::{
     cell::{Cell, RefCell},
@@ -41,7 +41,11 @@ impl Bookmarks {
                 }
             };
             let modified = metadata.modified().unwrap_or(UNIX_EPOCH);
-            let modified = modified.duration_since(UNIX_EPOCH).unwrap().as_secs();
+            let modified = if let Ok(duration) = modified.duration_since(UNIX_EPOCH) {
+                duration.as_secs()
+            } else {
+                0
+            };
             let file_size = metadata.len();
             let cat = Category::Direcory;
             store.insert_with_values(
@@ -97,7 +101,7 @@ impl Backend for Bookmarks {
     }
 
     fn image(&self, _w: &MViewWidgets, cursor: &Cursor) -> Image {
-        draw(&cursor.folder()).unwrap()
+        draw(&cursor.folder())
     }
 
     fn set_parent(&self, parent: Box<dyn Backend>) {

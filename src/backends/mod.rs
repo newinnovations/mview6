@@ -3,7 +3,6 @@ use std::env;
 use archive_rar::RarArchive;
 use archive_zip::ZipArchive;
 use bookmarks::Bookmarks;
-use eog::Image;
 use filesystem::FileSystem;
 use gtk::ListStore;
 use none::NoneBackend;
@@ -11,6 +10,7 @@ use thumbnail::{TEntry, Thumbnail};
 
 use crate::{
     filelistview::{Cursor, Direction, Selection, Sort},
+    image::Image,
     window::MViewWidgets,
 };
 
@@ -60,6 +60,12 @@ pub trait Backend {
 impl std::fmt::Debug for dyn Backend {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "Backend({})", self.class_name())
+    }
+}
+
+impl Default for Box<dyn Backend> {
+    fn default() -> Self {
+        Box::new(NoneBackend::new())
     }
 }
 

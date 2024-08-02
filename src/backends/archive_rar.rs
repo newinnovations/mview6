@@ -3,8 +3,8 @@ use std::{
     path::Path,
 };
 
+use super::Image;
 use chrono::{Local, TimeZone};
-use eog::Image;
 use gtk::{prelude::GtkListStoreExtManual, ListStore};
 use image::DynamicImage;
 use sha2::{Digest, Sha256};
@@ -12,10 +12,12 @@ use unrar::{error::UnrarError, Archive, UnrarResult};
 
 use crate::{
     category::Category,
-    draw::draw,
     error::MviewResult,
     filelistview::{Columns, Cursor, Sort},
-    image::{ImageLoader, ImageSaver},
+    image::{
+        draw::draw,
+        io::{ImageLoader, ImageSaver},
+    },
     window::MViewWidgets,
 };
 
@@ -122,7 +124,7 @@ impl Backend for RarArchive {
         let sel = cursor.name();
         match extract_rar(&self.filename, &sel) {
             Ok(bytes) => ImageLoader::image_from_memory(bytes),
-            Err(error) => draw(&format!("Error {}", error)).unwrap(),
+            Err(error) => draw(&format!("Error {}", error)),
         }
     }
 

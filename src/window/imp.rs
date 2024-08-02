@@ -12,26 +12,36 @@ use crate::{
         Backend,
     },
     filelistview::{FileListView, Selection, Sort},
+    image::view::{ImageView, ZoomMode},
     widget::MViewWidgetExt,
 };
-use eog::{ScrollView, ScrollViewExt};
 use gdk_pixbuf::PixbufLoader;
 use glib::{clone, once_cell::unsync::OnceCell};
-use gtk::{glib, prelude::*, subclass::prelude::*, ScrolledWindow};
-use std::{
-    cell::{Cell, RefCell},
-    rc::Rc,
+use gtk::{
+    glib::{self, Propagation},
+    prelude::*,
+    subclass::prelude::*,
+    ScrolledWindow,
 };
+use std::cell::{Cell, RefCell};
 
-use super::MViewWidgets;
+#[derive(Debug)]
+pub struct MViewWidgets {
+    hbox: gtk::Box,
+    files_widget: ScrolledWindow,
+    file_list_view: FileListView,
+    image_view: ImageView,
+    pub sender: glib::Sender<Message>,
+}
 
 #[derive(Debug, Default)]
 pub struct MViewWindowImp {
-    widgets: OnceCell<MViewWidgets>,
+    widget_cell: OnceCell<MViewWidgets>,
+    backend: RefCell<Box<dyn Backend>>,
     full_screen: Cell<bool>,
     skip_loading: Cell<bool>,
     thumbnail_size: Cell<i32>,
-    current_sort: Rc<Cell<Sort>>,
+    current_sort: Cell<Sort>,
 }
 
 #[glib::object_subclass]
@@ -42,8 +52,12 @@ impl ObjectSubclass for MViewWindowImp {
 }
 
 impl MViewWindowImp {
+    fn widgets(&self) -> &MViewWidgets {
+        self.widget_cell.get().unwrap()
+    }
+
     pub fn show_files_widget(&self, show: bool) {
-        let w = self.widgets.get().unwrap();
+        let w = self.widgets();
         if w.files_widget.is_visible() != show {
             w.files_widget.set_visible(show);
             if show {
@@ -91,53 +105,55 @@ impl ObjectImpl for MViewWindowImp {
         file_list_view.set_fixed_height_mode(true);
         files_widget.add(&file_list_view);
 
-        let eog = ScrollView::new();
-        eog.add_weak_ref_notify(|| {
-            println!("**eog::ScrollView disposed**");
-        });
-        eog.set_scroll_wheel_zoom(true);
-        eog.set_zoom_mode(eog::ZoomMode::Fill);
-        hbox.add(&eog);
+        let image_view = ImageView::new();
+        image_view.set_zoom_mode(ZoomMode::Fill);
+        hbox.add(&image_view);
 
-        window.connect_key_press_event(clone!(@weak self as imp => @default-panic, move |_, e| {
-            imp.on_key_press(e);
-            glib::Propagation::Stop
+        window.connect_key_press_event(
+            clone!(@weak self as this => @default-return Propagation::Stop, move |_, e| {
+                this.on_key_press(e);
+                Propagation::Stop
+            }),
+        );
+
+        image_view.connect_motion_notify_event(
+            clone!(@weak self as this => @default-return Propagation::Stop, move |_, e| {
+                this.on_mouse_move(e);
+                Propagation::Proceed
+            }),
+        );
+
+        image_view.connect_button_press_event(
+            clone!(@weak self as this => @default-return Propagation::Stop, move |_, e| {
+                this.on_mouse_press(e);
+                Propagation::Proceed
+            }),
+        );
+
+        file_list_view.connect_cursor_changed(clone!(@weak self as this => move |_| {
+            this.on_cursor_changed();
         }));
 
-        eog.connect_motion_notify_event(clone!(@weak self as imp => @default-panic, move |_, e| {
-            imp.on_mouse_move(e);
-            glib::Propagation::Proceed
+        file_list_view.connect_row_activated(clone!(@weak self as this => move |_, path, column| {
+            this.on_row_activated(path, column);
         }));
 
-        eog.connect_button_press_event(clone!(@weak self as imp => @default-panic, move |_, e| {
-            imp.on_mouse_press(e);
-            glib::Propagation::Proceed
-        }));
-
-        file_list_view.connect_cursor_changed(clone!(@weak self as imp => move |_| {
-            imp.on_cursor_changed();
-        }));
-
-        file_list_view.connect_row_activated(clone!(@weak self as imp => move |_, path, column| {
-            imp.on_row_activated(path, column);
-        }));
-
+        // TODO: refactor to https://gtk-rs.org/gtk4-rs/stable/latest/book/main_event_loop.html
         #[allow(deprecated)]
         let (sender, receiver) = glib::MainContext::channel::<Message>(glib::Priority::DEFAULT);
 
-        self.widgets
+        self.widget_cell
             .set(MViewWidgets {
                 hbox,
-                backend: RefCell::new(<dyn Backend>::none()),
                 file_list_view,
                 files_widget,
-                eog,
+                image_view,
                 sender,
             })
             .expect("Failed to initialize MView window");
 
-        let w = self.widgets.get().unwrap();
-        let eog = w.eog.clone();
+        let w = self.widgets();
+        let image_view = w.image_view.clone();
         let sender = w.sender.clone();
         let mut current_task = 0;
         let mut command = TCommand::default();
@@ -147,16 +163,16 @@ impl ObjectImpl for MViewWindowImp {
                     command = cmd;
                     current_task = 0;
                     if command.needs_work() {
-                        start_thumbnail_task(&sender, &eog, &command, &mut current_task);
-                        start_thumbnail_task(&sender, &eog, &command, &mut current_task);
-                        start_thumbnail_task(&sender, &eog, &command, &mut current_task);
+                        start_thumbnail_task(&sender, &image_view, &command, &mut current_task);
+                        start_thumbnail_task(&sender, &image_view, &command, &mut current_task);
+                        start_thumbnail_task(&sender, &image_view, &command, &mut current_task);
                     } else {
-                        eog.set_image_post();
+                        image_view.set_image_post();
                     }
                 }
                 Message::Result(res) => {
-                    if handle_thumbnail_result(&eog, &mut command, res) {
-                        start_thumbnail_task(&sender, &eog, &command, &mut current_task);
+                    if handle_thumbnail_result(&image_view, &mut command, res) {
+                        start_thumbnail_task(&sender, &image_view, &command, &mut current_task);
                     }
                 }
             }
@@ -169,8 +185,6 @@ impl ObjectImpl for MViewWindowImp {
         dbg!(display_size);
 
         self.set_backend(<dyn Backend>::current_dir(), Selection::None, false);
-
-        // self.widgets.get().unwrap().eog.set_offset(0, 0);
 
         println!("MViewWindowSub: constructed done");
     }

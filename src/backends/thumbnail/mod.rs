@@ -3,15 +3,14 @@ pub mod processing;
 
 use std::cell::{Cell, RefCell};
 
+use super::Image;
 use super::{Backend, Selection};
+use crate::image::draw::thumbnail_sheet;
 use crate::{
     category::Category,
-    draw::thumbnail_sheet,
     filelistview::{Columns, Cursor, Sort},
     window::MViewWidgets,
 };
-use eog::{Image, ImageExt};
-use gdk_pixbuf::Pixbuf;
 use gtk::{
     prelude::{GtkListStoreExtManual, TreeModelExt},
     ListStore,
@@ -160,23 +159,12 @@ impl Backend for Thumbnail {
         let image = match thumbnail_sheet(self.width, self.height, self.offset_x, &caption) {
             Ok(image) => image,
             Err(_) => {
-                let pixbuf = Pixbuf::new(
-                    gdk_pixbuf::Colorspace::Rgb,
-                    true,
-                    8,
-                    self.width,
-                    self.height,
-                )
-                .unwrap();
-                pixbuf.fill(0x202020ff);
-                let image = Image::new_pixbuf(&pixbuf);
-                image.set_zoom_mode(eog::ZoomMode::None);
-                image
+                println!("Failed to create thumbnail_sheet: should not happen");
+                Default::default()
             }
         };
-        let id = image.id();
-        let command = TCommand::new(id, self.sheet(page as i32));
 
+        let command = TCommand::new(image.id(), self.sheet(page as i32));
         let _ = w.sender.send(Message::Command(command));
 
         image

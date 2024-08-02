@@ -1,5 +1,6 @@
 use crate::filelistview;
-use chrono::{DateTime, Local, TimeZone};
+use chrono::offset::LocalResult;
+use chrono::{Local, TimeZone};
 use glib::ObjectExt;
 use gtk::glib;
 use gtk::prelude::{TreeModelExt, TreeViewColumnExt, TreeViewExt};
@@ -9,10 +10,7 @@ use human_bytes::human_bytes;
 use super::Columns;
 
 #[derive(Debug, Default)]
-pub struct FileListViewImp {
-    // widgets: OnceCell<WindowWidgets>,
-    // counter: Cell<u64>,
-}
+pub struct FileListViewImp {}
 
 #[glib::object_subclass]
 impl ObjectSubclass for FileListViewImp {
@@ -92,8 +90,11 @@ impl ObjectImpl for FileListViewImp {
                 let modified = model.value(iter, Columns::Modified as i32);
                 let modified = modified.get::<u64>().unwrap_or(0);
                 let modified_text = if modified > 0 {
-                    let dt: DateTime<Local> = Local.timestamp_opt(modified as i64, 0).unwrap();
-                    dt.format("%d-%m-%Y %H:%M:%S").to_string()
+                    if let LocalResult::Single(dt) = Local.timestamp_opt(modified as i64, 0) {
+                        dt.format("%d-%m-%Y %H:%M:%S").to_string()
+                    } else {
+                        String::default()
+                    }
                 } else {
                     String::default()
                 };

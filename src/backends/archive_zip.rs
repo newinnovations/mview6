@@ -5,18 +5,20 @@ use std::{
     path::Path,
 };
 
+use super::Image;
 use chrono::{Local, TimeZone};
-use eog::Image;
 use gtk::{prelude::GtkListStoreExtManual, ListStore};
 use image::DynamicImage;
 use zip::result::ZipResult;
 
 use crate::{
     category::Category,
-    draw::draw,
     error::MviewResult,
     filelistview::{Columns, Cursor, Sort},
-    image::{ImageLoader, ImageSaver},
+    image::{
+        draw::draw,
+        io::{ImageLoader, ImageSaver},
+    },
     window::MViewWidgets,
 };
 
@@ -118,7 +120,7 @@ impl Backend for ZipArchive {
     fn image(&self, _w: &MViewWidgets, cursor: &Cursor) -> Image {
         match extract_zip(&self.filename, cursor.index() as usize) {
             Ok(bytes) => ImageLoader::image_from_memory(bytes),
-            Err(error) => draw(&format!("Error {}", error)).unwrap(),
+            Err(error) => draw(&format!("Error {}", error)),
         }
     }
 

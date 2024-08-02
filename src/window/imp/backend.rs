@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use glib::subclass::types::ObjectSubclassExt;
+use glib::{clone, subclass::types::ObjectSubclassExt};
 use gtk::prelude::{GtkWindowExt, TreeSortableExt, TreeSortableExtManual, TreeViewExt};
 
 use crate::{
@@ -16,9 +16,9 @@ impl MViewWindowImp {
         let skip_loading = self.skip_loading.get();
         self.skip_loading.set(true);
 
-        let w = self.widgets.get().unwrap();
-        let parent_backend = w.backend.replace(new_backend);
-        let new_backend = w.backend.borrow();
+        let w = self.widgets();
+        let parent_backend = self.backend.replace(new_backend);
+        let new_backend = self.backend.borrow();
 
         if set_parent {
             // dbg!(new_backend.class_name(), parent_backend.class_name());
@@ -47,10 +47,17 @@ impl MViewWindowImp {
             Sort::Unsorted => (),
         };
 
-        let current_sort = self.current_sort.clone();
-        new_store.connect_sort_column_changed(move |model| {
-            Sort::on_sort_column_changed(model, &current_sort);
-        });
+        // file_list_view.connect_cursor_changed(clone!(@weak self as this => move |_| {
+        //     this.on_cursor_changed();
+        // }));
+
+        // let current_sort = self.current_sort.clone();
+        new_store.connect_sort_column_changed(clone!(@weak self as this =>
+
+
+            move |model| {
+            Sort::on_sort_column_changed(model, &this.current_sort);
+        }));
 
         let path = Path::new(new_backend.path());
         let filename = path

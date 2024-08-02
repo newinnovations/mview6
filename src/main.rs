@@ -2,7 +2,6 @@ mod application;
 mod backends;
 mod category;
 mod config;
-mod draw;
 mod error;
 mod filelistview;
 mod image;
