@@ -1,6 +1,6 @@
 use std::{
     fs::File,
-    io::{BufRead, BufReader, Seek},
+    io::{BufRead, BufReader, Cursor, Seek},
 };
 
 use gdk_pixbuf::Pixbuf;
@@ -11,22 +11,42 @@ use image_webp::WebPDecoder;
 use crate::{
     error::MviewResult,
     image::{
-        animation::{AnimationFrame, AnimationFrames},
+        animation::{AnimationFrame, WebPAnimation},
         view::ZoomMode,
         Image,
     },
 };
 
-pub struct WebPImage {}
+pub struct WebP {}
 
-impl WebPImage {
-    pub fn image(reader: BufReader<File>) -> MviewResult<Image> {
-        let mut decoder: WebPDecoder<BufReader<File>> = image_webp::WebPDecoder::new(reader)?;
+impl WebP {
+    pub fn image_from_file(reader: BufReader<File>) -> MviewResult<Image> {
+        let mut decoder = WebPDecoder::new(reader)?;
         dbg!(decoder.num_frames());
         if decoder.is_animated() {
             let (pixbuf, delay_ms) = Self::read_frame(&mut decoder)?;
-            Ok(Image::new_animation_frames(
-                AnimationFrames {
+            Ok(Image::new_file_animation(
+                WebPAnimation::<BufReader<File>> {
+                    decoder,
+                    index: 0,
+                    first_run: true,
+                    frames: vec![AnimationFrame { delay_ms, pixbuf }],
+                },
+                ZoomMode::NotSpecified,
+            ))
+        } else {
+            let pixbuf = Self::read_image(&mut decoder)?;
+            Ok(Image::new_pixbuf(pixbuf, ZoomMode::NotSpecified))
+        }
+    }
+
+    pub fn image_from_memory(reader: Cursor<Vec<u8>>) -> MviewResult<Image> {
+        let mut decoder = WebPDecoder::new(reader)?;
+        dbg!(decoder.num_frames());
+        if decoder.is_animated() {
+            let (pixbuf, delay_ms) = Self::read_frame(&mut decoder)?;
+            Ok(Image::new_memory_animation(
+                WebPAnimation::<Cursor<Vec<u8>>> {
                     decoder,
                     index: 0,
                     first_run: true,

@@ -18,7 +18,7 @@ use super::{
     ImageView, ViewCursor,
 };
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct ImageViewImp {
     pub(super) data: RefCell<ImageViewData>,
     animation_timeout_id: RefCell<Option<SourceId>>,

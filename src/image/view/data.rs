@@ -12,7 +12,6 @@ pub const ZOOM_MULTIPLIER: f64 = 1.05;
 pub const QUALITY_HIGH: Filter = Filter::Bilinear;
 pub const QUALITY_LOW: Filter = Filter::Nearest;
 
-#[derive(Debug)]
 pub struct ImageViewData {
     pub image: Image,
     pub zoom_mode: ZoomMode,

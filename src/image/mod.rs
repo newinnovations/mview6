@@ -3,7 +3,7 @@ pub mod draw;
 pub mod provider;
 pub mod view;
 
-use animation::{Animation, AnimationFrames};
+use animation::{Animation, WebPAnimation};
 use cairo::ImageSurface;
 use gdk::{
     ffi::gdk_pixbuf_get_from_surface,
@@ -15,6 +15,8 @@ use glib::{translate::from_glib_full, IsA};
 use view::ZoomMode;
 
 use std::{
+    fs::File,
+    io::{BufReader, Cursor},
     sync::atomic::{AtomicU32, Ordering},
     time::SystemTime,
 };
@@ -26,7 +28,7 @@ fn get_image_id() -> u32 {
     IMAGE_ID.load(Ordering::SeqCst)
 }
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub struct Image {
     id: u32,
     pixbuf: Option<Pixbuf>,
@@ -62,11 +64,26 @@ impl Image {
         }
     }
 
-    pub fn new_animation_frames(animation_frames: AnimationFrames, zoom_mode: ZoomMode) -> Self {
+    pub fn new_file_animation(
+        animation: WebPAnimation<BufReader<File>>,
+        zoom_mode: ZoomMode,
+    ) -> Self {
         Image {
             id: get_image_id(),
-            pixbuf: animation_frames.pixbuf_get(0),
-            animation: Animation::WebP(Box::new(animation_frames)),
+            pixbuf: animation.pixbuf_get(0),
+            animation: Animation::WebPFile(Box::new(animation)),
+            zoom_mode,
+        }
+    }
+
+    pub fn new_memory_animation(
+        animation: WebPAnimation<Cursor<Vec<u8>>>,
+        zoom_mode: ZoomMode,
+    ) -> Self {
+        Image {
+            id: get_image_id(),
+            pixbuf: animation.pixbuf_get(0),
+            animation: Animation::WebPMemory(Box::new(animation)),
             zoom_mode,
         }
     }

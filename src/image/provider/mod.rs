@@ -33,7 +33,7 @@ impl ImageLoader {
         if let Ok(im) = GdkImageLoader::image_from_memory(&buf) {
             im
         } else {
-            match RsImageLoader::image_from_memory(&buf) {
+            match RsImageLoader::image_from_memory(buf) {
                 Ok(im) => im,
                 Err(e) => draw(&format!("Error: {:?}", e)),
             }

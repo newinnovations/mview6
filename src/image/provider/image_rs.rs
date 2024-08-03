@@ -9,14 +9,14 @@ use crate::{
     image::{view::ZoomMode, Image},
 };
 
-use super::webp::WebPImage;
+use super::webp::WebP;
 
 pub struct RsImageLoader {}
 
 impl RsImageLoader {
-    pub fn image_from_memory(buffer: &Vec<u8>) -> MviewResult<Image> {
-        Self::image(ImageReader::new(Cursor::new(buffer)))
-    }
+    // pub fn image_from_memory(buffer: &Vec<u8>) -> MviewResult<Image> {
+    //     Self::image(ImageReader::new(Cursor::new(buffer)))
+    // }
 
     pub fn dynimg_from_memory(buffer: &Vec<u8>) -> MviewResult<DynamicImage> {
         Self::dynimg(ImageReader::new(Cursor::new(buffer)))
@@ -33,7 +33,22 @@ impl RsImageLoader {
         let reader = reader.with_guessed_format()?;
         if let Some(format) = reader.format() {
             match format {
-                image::ImageFormat::WebP => WebPImage::image(reader.into_inner()),
+                image::ImageFormat::WebP => WebP::image_from_file(reader.into_inner()),
+                _ => Self::image(reader),
+            }
+        } else {
+            Ok(Image::default())
+        }
+    }
+
+    // ImageReader<Cursor<&Vec<u8>>
+
+    pub fn image_from_memory(buffer: Vec<u8>) -> MviewResult<Image> {
+        let reader = ImageReader::new(Cursor::new(buffer));
+        let reader = reader.with_guessed_format()?;
+        if let Some(format) = reader.format() {
+            match format {
+                image::ImageFormat::WebP => WebP::image_from_memory(reader.into_inner()),
                 _ => Self::image(reader),
             }
         } else {

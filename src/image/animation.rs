@@ -1,43 +1,33 @@
 use std::{
     fs::File,
-    io::BufReader,
+    io::{BufRead, BufReader, Cursor, Seek},
     time::{Duration, SystemTime},
 };
 
 use gdk_pixbuf::{Pixbuf, PixbufAnimationIter};
 use image_webp::WebPDecoder;
 
-use super::{provider::webp::WebPImage, Image};
+use super::{provider::webp::WebP, Image};
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub enum Animation {
     #[default]
     None,
     Gdk(PixbufAnimationIter),
-    WebP(Box<AnimationFrames>),
+    WebPFile(Box<WebPAnimation<BufReader<File>>>),
+    WebPMemory(Box<WebPAnimation<Cursor<Vec<u8>>>>),
 }
 
-#[derive(Debug)]
 pub(super) struct AnimationFrame {
     pub(super) delay_ms: u32,
     pub(super) pixbuf: Pixbuf,
 }
 
-// #[derive(Default, Debug)]
-pub struct AnimationFrames {
-    pub(super) decoder: WebPDecoder<BufReader<File>>,
+pub struct WebPAnimation<T> {
+    pub(super) decoder: WebPDecoder<T>,
     pub(super) index: u32,
     pub(super) first_run: bool,
     pub(super) frames: Vec<AnimationFrame>,
-}
-
-impl std::fmt::Debug for AnimationFrames {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("AnimationFrames")
-            .field("index", &self.index)
-            .field("frames", &self.frames)
-            .finish()
-    }
 }
 
 impl Image {
@@ -49,7 +39,8 @@ impl Image {
         match &self.animation {
             Animation::None => None,
             Animation::Gdk(animation) => animation.delay_time(),
-            Animation::WebP(animation) => animation.delay_time(ts_previous_cb),
+            Animation::WebPFile(animation) => animation.delay_time(ts_previous_cb),
+            Animation::WebPMemory(animation) => animation.delay_time(ts_previous_cb),
         }
     }
 
@@ -64,7 +55,14 @@ impl Image {
                     false
                 }
             }
-            Animation::WebP(animation) => match animation.advance(current_time) {
+            Animation::WebPFile(animation) => match animation.advance(current_time) {
+                Some(pixbuf) => {
+                    self.pixbuf = Some(pixbuf);
+                    true
+                }
+                None => false,
+            },
+            Animation::WebPMemory(animation) => match animation.advance(current_time) {
                 Some(pixbuf) => {
                     self.pixbuf = Some(pixbuf);
                     true
@@ -75,7 +73,7 @@ impl Image {
     }
 }
 
-impl AnimationFrames {
+impl<T: BufRead + Seek> WebPAnimation<T> {
     fn delay_time(&self, ts_previous_cb: SystemTime) -> Option<Duration> {
         if let Some(frame) = self.frames.get(self.index as usize) {
             let interval = Duration::from_millis(frame.delay_ms as u64);
@@ -99,10 +97,9 @@ impl AnimationFrames {
         if self.index >= self.decoder.num_frames() {
             self.index = 0;
             self.first_run = false;
-            // self.decoder.reset_animation();
         }
         if self.first_run {
-            if let Ok((pixbuf, delay_ms)) = WebPImage::read_frame(&mut self.decoder) {
+            if let Ok((pixbuf, delay_ms)) = WebP::read_frame(&mut self.decoder) {
                 self.frames.push(AnimationFrame {
                     delay_ms,
                     pixbuf: pixbuf.clone(),
