@@ -1,4 +1,7 @@
-use std::{cell::RefCell, time::{Duration, SystemTime}};
+use std::{
+    cell::RefCell,
+    time::{Duration, SystemTime},
+};
 
 use gdk::EventMask;
 use glib::{clone, ffi::g_source_remove, result_from_gboolean, BoolError, Propagation, SourceId};
@@ -11,7 +14,7 @@ use gtk::{
 use crate::image::{draw::transparency_background, Image};
 
 use super::{
-    data::{ImageViewData, ZoomState, QUALITY_LOW, QUALITY_HIGH, ZOOM_MULTIPLIER},
+    data::{ImageViewData, ZoomState, QUALITY_HIGH, QUALITY_LOW, ZOOM_MULTIPLIER},
     ImageView, ViewCursor,
 };
 
@@ -34,7 +37,6 @@ fn remove_source_id(id: SourceId) -> Result<(), BoolError> {
 }
 
 impl ImageViewImp {
-
     pub fn cancel_animation(&self) {
         if let Some(id) = self.animation_timeout_id.replace(None) {
             if let Err(e) = remove_source_id(id) {
@@ -43,11 +45,12 @@ impl ImageViewImp {
         }
     }
 
-    pub fn schedule_animation(&self, image: &Image) {
+    pub fn schedule_animation(&self, image: &Image, ts_previous_cb: SystemTime) {
         if image.is_animation() {
-            if let Some(interval) = image.animation_delay_time() {
-                dbg!(interval);
-                let current = self.animation_timeout_id
+            if let Some(interval) = image.animation_delay_time(ts_previous_cb) {
+                // dbg!(interval);
+                let current = self
+                    .animation_timeout_id
                     .replace(Some(glib::timeout_add_local(
                         interval,
                         clone!(@weak self as imp => @default-return ControlFlow::Break, move || {
@@ -61,14 +64,15 @@ impl ImageViewImp {
     }
 
     fn animation_cb(&self) {
+        let start = SystemTime::now();
         self.animation_timeout_id.replace(None);
         let mut p = self.data.borrow_mut();
         if p.image.animation_advance(SystemTime::now()) {
             let rotation = p.rotation;
             p.image.rotate(rotation);
             p.create_surface();
-            self.schedule_animation(&p.image);
-            p.redraw(QUALITY_HIGH);
+            self.schedule_animation(&p.image, start);
+            p.redraw(QUALITY_LOW);
         }
     }
 
@@ -82,15 +86,15 @@ impl ImageViewImp {
 
     fn schedule_hq_redraw(&self) {
         self.hq_redraw_timeout_id
-        .replace(Some(glib::timeout_add_local(
-            Duration::from_millis(100),
-            clone!(@weak self as imp => @default-return ControlFlow::Break, move || {
-                imp.hq_redraw_timeout_id.replace(None);
-                let mut p = imp.data.borrow_mut();
-                p.redraw(QUALITY_HIGH);
-                ControlFlow::Break
-            }),
-        )));
+            .replace(Some(glib::timeout_add_local(
+                Duration::from_millis(100),
+                clone!(@weak self as imp => @default-return ControlFlow::Break, move || {
+                    imp.hq_redraw_timeout_id.replace(None);
+                    let mut p = imp.data.borrow_mut();
+                    p.redraw(QUALITY_HIGH);
+                    ControlFlow::Break
+                }),
+            )));
     }
 }
 

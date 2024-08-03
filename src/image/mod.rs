@@ -1,13 +1,15 @@
+pub mod animation;
 pub mod draw;
-pub mod io;
+pub mod provider;
 pub mod view;
 
+use animation::{Animation, AnimationFrames};
 use cairo::ImageSurface;
 use gdk::{
     ffi::gdk_pixbuf_get_from_surface,
     prelude::{PixbufAnimationExt, PixbufAnimationExtManual, PixbufLoaderExt},
 };
-use gdk_pixbuf::{Pixbuf, PixbufAnimationIter, PixbufLoader, PixbufRotation};
+use gdk_pixbuf::{Pixbuf, PixbufLoader, PixbufRotation};
 use gio::{prelude::InputStreamExt, Cancellable};
 use glib::{translate::from_glib_full, IsA};
 use view::ZoomMode;
@@ -28,11 +30,10 @@ fn get_image_id() -> u32 {
 pub struct Image {
     id: u32,
     pixbuf: Option<Pixbuf>,
-    animation: Option<PixbufAnimationIter>,
+    animation: Animation,
     zoom_mode: ZoomMode,
 }
 
-#[allow(unused_variables)]
 impl Image {
     pub fn new_surface(surface: &ImageSurface, zoom_mode: ZoomMode) -> Self {
         let pixbuf: Option<Pixbuf> = unsafe {
@@ -47,7 +48,7 @@ impl Image {
         Image {
             id: get_image_id(),
             pixbuf,
-            animation: None,
+            animation: Animation::None,
             zoom_mode,
         }
     }
@@ -56,7 +57,16 @@ impl Image {
         Image {
             id: get_image_id(),
             pixbuf: Some(pixbuf),
-            animation: None,
+            animation: Animation::None,
+            zoom_mode,
+        }
+    }
+
+    pub fn new_animation_frames(animation_frames: AnimationFrames, zoom_mode: ZoomMode) -> Self {
+        Image {
+            id: get_image_id(),
+            pixbuf: animation_frames.pixbuf_get(0),
+            animation: Animation::WebP(Box::new(animation_frames)),
             zoom_mode,
         }
     }
@@ -78,13 +88,13 @@ impl Image {
         stream.close(cancellable)?;
         let (pixbuf, animation) = if let Some(animation) = loader.animation() {
             if animation.is_static_image() {
-                (animation.static_image(), None)
+                (animation.static_image(), Animation::None)
             } else {
                 let iter = animation.iter(Some(SystemTime::now()));
-                (Some(iter.pixbuf()), Some(iter))
+                (Some(iter.pixbuf()), Animation::Gdk(iter))
             }
         } else {
-            (None, None)
+            (None, Animation::None)
         };
         Ok(Image {
             id: get_image_id(),
@@ -132,28 +142,5 @@ impl Image {
                 dest_y,
             );
         }
-    }
-
-    // Aninmation abstraction
-    pub fn is_animation(&self) -> bool {
-        self.animation.is_some()
-    }
-
-    pub fn animation_delay_time(&self) -> Option<std::time::Duration> {
-        if let Some(animation) = &self.animation {
-            animation.delay_time()
-        } else {
-            None
-        }
-    }
-
-    pub fn animation_advance(&mut self, current_time: SystemTime) -> bool {
-        if let Some(animation) = &self.animation {
-            if animation.advance(current_time) {
-                self.pixbuf = Some(animation.pixbuf());
-                return true;
-            }
-        }
-        false
     }
 }

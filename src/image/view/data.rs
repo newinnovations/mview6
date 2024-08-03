@@ -147,9 +147,8 @@ impl ImageViewData {
 
             self.xofs = ((self.zoom * src_width - allocation_width) / 2.0).round();
             self.yofs = ((self.zoom * src_height - allocation_height) / 2.0).round();
-
-            self.redraw(QUALITY_HIGH);
         }
+        self.redraw(QUALITY_HIGH);
     }
 
     pub fn update_zoom(&mut self, zoom: f64, anchor: (f64, f64)) {

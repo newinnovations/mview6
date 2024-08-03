@@ -23,6 +23,9 @@ impl MViewWindowImp {
                     self.set_backend(<dyn Backend>::bookmarks(), Selection::None, true);
                 }
             }
+            // gdk::keys::constants::i => {
+            //     ImageLoader::test();
+            // }
             gdk::keys::constants::t => {
                 if self.backend.borrow().is_container() {
                     let position = if let Some(cursor) = w.file_list_view.current() {

@@ -39,6 +39,8 @@ pub enum MviewError {
 
     Image(image::ImageError),
 
+    WebP(image_webp::DecodingError),
+
     Cairo(cairo::Error),
 
     Io(std::io::Error),
@@ -48,6 +50,25 @@ pub enum MviewError {
     Rar(UnrarError),
 
     Glib(glib::Error),
+}
+
+impl MviewError {
+    pub fn from_webp_decode(e: image_webp::DecodingError) -> Self {
+        match e {
+            image_webp::DecodingError::IoError(e) => {
+                MviewError::Image(image::ImageError::IoError(e))
+            }
+            _ => MviewError::Image(image::ImageError::Decoding(
+                image::error::DecodingError::new(image::ImageFormat::WebP.into(), e),
+            )),
+        }
+    }
+}
+
+impl From<&str> for MviewError {
+    fn from(msg: &str) -> Self {
+        MviewError::App(AppError::new(msg))
+    }
 }
 
 impl From<std::io::Error> for MviewError {
@@ -80,6 +101,12 @@ impl From<image::ImageError> for MviewError {
     }
 }
 
+impl From<image_webp::DecodingError> for MviewError {
+    fn from(err: image_webp::DecodingError) -> Self {
+        MviewError::WebP(err)
+    }
+}
+
 impl From<glib::Error> for MviewError {
     fn from(err: glib::Error) -> MviewError {
         MviewError::Glib(err)
@@ -95,6 +122,7 @@ impl fmt::Display for MviewError {
             MviewError::Rar(err) => err.fmt(fmt),
             MviewError::Cairo(err) => err.fmt(fmt),
             MviewError::Image(err) => err.fmt(fmt),
+            MviewError::WebP(err) => err.fmt(fmt),
             MviewError::Glib(err) => err.fmt(fmt),
         }
     }

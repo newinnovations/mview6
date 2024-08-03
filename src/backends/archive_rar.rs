@@ -16,7 +16,7 @@ use crate::{
     filelistview::{Columns, Cursor, Sort},
     image::{
         draw::draw,
-        io::{ImageLoader, ImageSaver},
+        provider::{image_rs::RsImageLoader, ImageLoader, ImageSaver},
     },
     window::MViewWidgets,
 };
@@ -78,10 +78,10 @@ impl RarArchive {
         let thumb_path = format!("{}/.mview/{}", src.directory, thumb_filename);
 
         if Path::new(&thumb_path).exists() {
-            ImageLoader::dynimg_from_file(&thumb_path)
+            RsImageLoader::dynimg_from_file(&thumb_path)
         } else {
             let bytes = extract_rar(&src.filename, &src.selection)?;
-            let image = ImageLoader::dynimg_from_memory(&bytes)?;
+            let image = RsImageLoader::dynimg_from_memory(&bytes)?;
             let image = image.resize(175, 175, image::imageops::FilterType::Lanczos3);
             ImageSaver::save_thumbnail(&src.directory, &thumb_filename, &image);
             Ok(image)

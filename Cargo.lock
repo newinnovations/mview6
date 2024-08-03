@@ -16,6 +16,7 @@ dependencies = [
  "gtk",
  "human_bytes",
  "image",
+ "image-webp",
  "rand",
  "regex",
  "serde",

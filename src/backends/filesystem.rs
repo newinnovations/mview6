@@ -3,7 +3,7 @@ use crate::{
     category::Category,
     error::MviewResult,
     filelistview::{Columns, Cursor, Direction, Sort},
-    image::io::{ImageLoader, ImageSaver},
+    image::provider::{image_rs::RsImageLoader, ImageLoader, ImageSaver},
     window::MViewWidgets,
 };
 use gtk::{prelude::GtkListStoreExtManual, ListStore};
@@ -98,10 +98,10 @@ impl FileSystem {
         let thumb_filename = src.filename.replace(".lo.", ".").replace(".hi.", ".") + ".mthumb";
         let thumb_path = format!("{}/.mview/{}", src.directory, thumb_filename);
         if Path::new(&thumb_path).exists() {
-            ImageLoader::dynimg_from_file(&thumb_path)
+            RsImageLoader::dynimg_from_file(&thumb_path)
         } else {
             let path = format!("{}/{}", src.directory, src.filename);
-            let image = ImageLoader::dynimg_from_file(&path)?;
+            let image = RsImageLoader::dynimg_from_file(&path)?;
             let image = image.resize(175, 175, image::imageops::FilterType::Lanczos3);
             ImageSaver::save_thumbnail(&src.directory, &thumb_filename, &image);
             Ok(image)

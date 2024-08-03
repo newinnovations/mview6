@@ -1,6 +1,8 @@
 mod data;
 mod imp;
 
+use std::time::SystemTime;
+
 use data::QUALITY_HIGH;
 use gdk::{Cursor, CursorType};
 use gdk_pixbuf::Pixbuf;
@@ -56,7 +58,7 @@ impl ImageView {
     pub fn set_image_post(&self) {
         let mut p = self.imp().data.borrow_mut();
         p.create_surface();
-        self.imp().schedule_animation(&p.image);
+        self.imp().schedule_animation(&p.image, SystemTime::now());
         p.apply_zoom(true);
     }
 

@@ -6,7 +6,7 @@ use crate::{
     backends::{archive_rar::RarArchive, archive_zip::ZipArchive, filesystem::FileSystem},
     category::Category,
     error::MviewResult,
-    image::{draw::text_thumb, io::ImageLoader, view::ImageView},
+    image::{draw::text_thumb, provider::image_rs::RsImageLoader, view::ImageView},
 };
 
 use super::{Message, TCommand, TMessage, TReference, TResult, TResultOption, TTask};
@@ -93,7 +93,7 @@ pub fn handle_thumbnail_result(
         // println!("{tid:3}: -- result id is ok: {id}");
 
         let pixbuf = match result.result {
-            TResultOption::Image(image) => ImageLoader::image_rs_to_pixbuf(image),
+            TResultOption::Image(image) => RsImageLoader::dynimg_to_pixbuf(image),
             TResultOption::Message(message) => text_thumb(message),
         };
 
@@ -102,7 +102,7 @@ pub fn handle_thumbnail_result(
                 let size = result.task.size as i32;
 
                 let thumb_pb = if thumb_pb.width() > size || thumb_pb.height() > size {
-                    ImageLoader::pixbuf_scale(thumb_pb, size)
+                    RsImageLoader::pixbuf_scale(thumb_pb, size)
                 } else {
                     Some(thumb_pb)
                 };
