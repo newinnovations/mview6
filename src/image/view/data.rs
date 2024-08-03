@@ -69,13 +69,22 @@ impl ImageViewData {
 
     fn compute_scaled_size(&self, zoom: f64) -> (f64, f64) {
         if let Some(pixbuf) = &self.image.pixbuf {
-            (
-                (pixbuf.width() as f64 * zoom).round(), // Remove round() ??
-                (pixbuf.height() as f64 * zoom).round(),
-            )
+            (pixbuf.width() as f64 * zoom, pixbuf.height() as f64 * zoom)
         } else {
             (0.0, 0.0)
         }
+    }
+
+    pub fn center(&self) -> (f64, f64) {
+        let (w, h) = self.compute_scaled_size(self.zoom);
+        (w / 2.0 - self.xofs, h / 2.0 - self.yofs)
+    }
+
+    pub fn move_center_to(&mut self, center: (f64, f64)) {
+        let (cx, cy) = center;
+        let (w, h) = self.compute_scaled_size(self.zoom);
+        self.xofs = w / 2.0 - cx;
+        self.yofs = h / 2.0 - cy;
     }
 
     pub fn image_coords(&self) -> (f64, f64, f64, f64) {
@@ -100,7 +109,7 @@ impl ImageViewData {
         }
     }
 
-    pub fn apply_zoom(&mut self, update_zoom: bool) {
+    pub fn apply_zoom(&mut self) {
         if let (Some(pixbuf), Some(view)) = (&self.image.pixbuf, &self.view) {
             let allocation = view.allocation();
             let allocation_width = allocation.width() as f64;
@@ -108,41 +117,39 @@ impl ImageViewData {
             let src_width = pixbuf.width() as f64;
             let src_height = pixbuf.height() as f64;
 
-            if update_zoom {
-                let zoom_mode = if self.image.zoom_mode == ZoomMode::NotSpecified {
-                    if self.zoom_mode == ZoomMode::NotSpecified {
-                        ZoomMode::NoZoom
-                    } else {
-                        self.zoom_mode
-                    }
+            let zoom_mode = if self.image.zoom_mode == ZoomMode::NotSpecified {
+                if self.zoom_mode == ZoomMode::NotSpecified {
+                    ZoomMode::NoZoom
                 } else {
-                    self.image.zoom_mode
-                };
+                    self.zoom_mode
+                }
+            } else {
+                self.image.zoom_mode
+            };
 
-                let zoom = if zoom_mode == ZoomMode::NoZoom {
-                    1.0
-                } else {
-                    let zoom1 = allocation_width / src_width;
-                    let zoom2 = allocation_height / src_height;
-                    if zoom_mode == ZoomMode::Max {
-                        if zoom1 > zoom2 {
-                            zoom1
-                        } else {
-                            zoom2
-                        }
-                    } else if zoom_mode == ZoomMode::Fit
-                        && allocation_width > src_width
-                        && allocation_height > src_height
-                    {
-                        1.0
-                    } else if zoom1 > zoom2 {
-                        zoom2
-                    } else {
+            let zoom = if zoom_mode == ZoomMode::NoZoom {
+                1.0
+            } else {
+                let zoom1 = allocation_width / src_width;
+                let zoom2 = allocation_height / src_height;
+                if zoom_mode == ZoomMode::Max {
+                    if zoom1 > zoom2 {
                         zoom1
+                    } else {
+                        zoom2
                     }
-                };
-                self.zoom = zoom.clamp(MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR);
-            }
+                } else if zoom_mode == ZoomMode::Fit
+                    && allocation_width > src_width
+                    && allocation_height > src_height
+                {
+                    1.0
+                } else if zoom1 > zoom2 {
+                    zoom2
+                } else {
+                    zoom1
+                }
+            };
+            self.zoom = zoom.clamp(MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR);
 
             self.xofs = ((self.zoom * src_width - allocation_width) / 2.0).round();
             self.yofs = ((self.zoom * src_height - allocation_height) / 2.0).round();

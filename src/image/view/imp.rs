@@ -23,6 +23,7 @@ pub struct ImageViewImp {
     pub(super) data: RefCell<ImageViewData>,
     animation_timeout_id: RefCell<Option<SourceId>>,
     hq_redraw_timeout_id: RefCell<Option<SourceId>>,
+    resize_notify_timeout_id: RefCell<Option<SourceId>>,
 }
 
 #[glib::object_subclass]
@@ -96,6 +97,28 @@ impl ImageViewImp {
                 }),
             )));
     }
+
+    fn cancel_resize_notify(&self) {
+        if let Some(id) = self.resize_notify_timeout_id.replace(None) {
+            if let Err(e) = remove_source_id(id) {
+                println!("remove_source_id: {}", e);
+            }
+        }
+    }
+
+    fn schedule_resize_notify(&self) {
+        self.resize_notify_timeout_id
+            .replace(Some(glib::timeout_add_local(
+                Duration::from_millis(300),
+                clone!(@weak self as imp => @default-return ControlFlow::Break, move || {
+                    imp.resize_notify_timeout_id.replace(None);
+                    println!("Notify of resize");
+                    // let mut p = imp.data.borrow_mut();
+                    // p.redraw(QUALITY_HIGH);
+                    ControlFlow::Break
+                }),
+            )));
+    }
 }
 
 impl ObjectImpl for ImageViewImp {
@@ -125,8 +148,10 @@ impl WidgetImpl for ImageViewImp {
 
     /// Display size changed
     fn configure_event(&self, _event: &gdk::EventConfigure) -> Propagation {
+        self.cancel_resize_notify();
         let mut p = self.data.borrow_mut();
-        p.apply_zoom(true);
+        p.apply_zoom();
+        self.schedule_resize_notify();
         Propagation::Proceed
     }
 
