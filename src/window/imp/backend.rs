@@ -51,11 +51,7 @@ impl MViewWindowImp {
         //     this.on_cursor_changed();
         // }));
 
-        // let current_sort = self.current_sort.clone();
-        new_store.connect_sort_column_changed(clone!(@weak self as this =>
-
-
-            move |model| {
+        new_store.connect_sort_column_changed(clone!(@weak self as this => move |model| {
             Sort::on_sort_column_changed(model, &this.current_sort);
         }));
 

@@ -3,12 +3,11 @@ pub mod processing;
 
 use std::cell::{Cell, RefCell};
 
-use super::Image;
-use super::{Backend, Selection};
-use crate::image::draw::thumbnail_sheet;
+use super::{Backend, Image, Selection};
 use crate::{
     category::Category,
     filelistview::{Columns, Cursor, Sort},
+    image::draw::thumbnail_sheet,
     window::MViewWidgets,
 };
 use gdk::Rectangle;
@@ -178,7 +177,7 @@ impl Backend for Thumbnail {
         };
 
         let command = TCommand::new(image.id(), self.sheet(page as i32));
-        let _ = w.sender.send(Message::Command(command));
+        let _ = w.sender.send_blocking(Message::Command(command));
 
         image
     }

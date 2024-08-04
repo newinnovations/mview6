@@ -15,6 +15,7 @@ use crate::{
     image::view::{ImageView, ZoomMode, SIGNAL_VIEW_RESIZED},
     widget::MViewWidgetExt,
 };
+use async_channel::Sender;
 use gdk_pixbuf::PixbufLoader;
 use glib::{clone, closure_local, once_cell::unsync::OnceCell};
 use gtk::{
@@ -31,7 +32,7 @@ pub struct MViewWidgets {
     files_widget: ScrolledWindow,
     file_list_view: FileListView,
     image_view: ImageView,
-    pub sender: glib::Sender<Message>,
+    pub sender: Sender<Message>,
 }
 
 #[derive(Debug, Default)]
@@ -149,9 +150,7 @@ impl ObjectImpl for MViewWindowImp {
             this.on_row_activated(path, column);
         }));
 
-        // TODO: refactor to https://gtk-rs.org/gtk4-rs/stable/latest/book/main_event_loop.html
-        #[allow(deprecated)]
-        let (sender, receiver) = glib::MainContext::channel::<Message>(glib::Priority::DEFAULT);
+        let (sender, receiver) = async_channel::unbounded::<Message>();
 
         self.widget_cell
             .set(MViewWidgets {
@@ -164,31 +163,32 @@ impl ObjectImpl for MViewWindowImp {
             .expect("Failed to initialize MView window");
 
         let w = self.widgets();
-        let image_view = w.image_view.clone();
-        let sender = w.sender.clone();
-        let mut current_task = 0;
-        let mut command = TCommand::default();
-        receiver.attach(None, move |msg| {
-            match msg {
-                Message::Command(cmd) => {
-                    command = cmd;
-                    current_task = 0;
-                    if command.needs_work() {
-                        start_thumbnail_task(&sender, &image_view, &command, &mut current_task);
-                        start_thumbnail_task(&sender, &image_view, &command, &mut current_task);
-                        start_thumbnail_task(&sender, &image_view, &command, &mut current_task);
-                    } else {
-                        image_view.set_image_post();
+        glib::spawn_future_local(
+            clone!(@strong w.image_view as image_view, @strong w.sender as sender => async move {
+                let mut current_task = 0;
+                let mut command = TCommand::default();
+                while let Ok(msg) = receiver.recv().await {
+                    match msg {
+                        Message::Command(cmd) => {
+                            command = cmd;
+                            current_task = 0;
+                            if command.needs_work() {
+                                start_thumbnail_task(&sender, &image_view, &command, &mut current_task);
+                                start_thumbnail_task(&sender, &image_view, &command, &mut current_task);
+                                start_thumbnail_task(&sender, &image_view, &command, &mut current_task);
+                            } else {
+                                image_view.set_image_post();
+                            }
+                        }
+                        Message::Result(res) => {
+                            if handle_thumbnail_result(&image_view, &mut command, res) {
+                                start_thumbnail_task(&sender, &image_view, &command, &mut current_task);
+                            }
+                        }
                     }
                 }
-                Message::Result(res) => {
-                    if handle_thumbnail_result(&image_view, &mut command, res) {
-                        start_thumbnail_task(&sender, &image_view, &command, &mut current_task);
-                    }
-                }
-            }
-            glib::ControlFlow::Continue
-        });
+            }),
+        );
 
         window.show_all();
 

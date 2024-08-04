@@ -1,5 +1,6 @@
 use std::{panic, thread, time};
 
+use async_channel::Sender;
 use image::DynamicImage;
 
 use crate::{
@@ -33,7 +34,7 @@ fn thumb_result(res: MviewResult<DynamicImage>, task: &TTask) -> TResultOption {
 }
 
 pub fn start_thumbnail_task(
-    sender: &glib::Sender<Message>,
+    sender: &Sender<Message>,
     image_view: &ImageView,
     command: &TCommand,
     current_task: &mut usize,
@@ -69,7 +70,7 @@ pub fn start_thumbnail_task(
                     Ok(image) => image,
                     Err(_) => TResultOption::Message(TMessage::new("panic", &task.source.name)),
                 };
-                let _ = sender_clone.send(Message::Result(TResult::new(id, task, result)));
+                let _ = sender_clone.send_blocking(Message::Result(TResult::new(id, task, result)));
             });
         }
     } else {
