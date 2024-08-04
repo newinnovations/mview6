@@ -1,22 +1,27 @@
 use std::{
     cell::RefCell,
+    sync::OnceLock,
     time::{Duration, SystemTime},
 };
 
+use crate::image::{draw::transparency_background, Image};
 use gdk::EventMask;
-use glib::{clone, ffi::g_source_remove, result_from_gboolean, BoolError, Propagation, SourceId};
+use glib::{
+    clone, ffi::g_source_remove, result_from_gboolean, subclass::Signal, BoolError, ObjectExt,
+    Propagation, SourceId, StaticType,
+};
 use gtk::{
     glib::{self, ControlFlow},
     prelude::{WidgetExt, WidgetExtManual},
     subclass::prelude::*,
 };
 
-use crate::image::{draw::transparency_background, Image};
-
 use super::{
     data::{ImageViewData, ZoomState, QUALITY_HIGH, QUALITY_LOW, ZOOM_MULTIPLIER},
     ImageView, ViewCursor,
 };
+
+pub const SIGNAL_VIEW_RESIZED: &str = "view-resized";
 
 #[derive(Default)]
 pub struct ImageViewImp {
@@ -113,6 +118,9 @@ impl ImageViewImp {
                 clone!(@weak self as imp => @default-return ControlFlow::Break, move || {
                     imp.resize_notify_timeout_id.replace(None);
                     println!("Notify of resize");
+                    let obj = imp.obj();
+                    let allocation = obj.allocation();
+                    obj.emit_by_name::<()>(SIGNAL_VIEW_RESIZED, &[&allocation.width(), &allocation.height()]);
                     // let mut p = imp.data.borrow_mut();
                     // p.redraw(QUALITY_HIGH);
                     ControlFlow::Break
@@ -122,6 +130,15 @@ impl ImageViewImp {
 }
 
 impl ObjectImpl for ImageViewImp {
+    fn signals() -> &'static [Signal] {
+        static SIGNALS: OnceLock<Vec<Signal>> = OnceLock::new();
+        SIGNALS.get_or_init(|| {
+            vec![Signal::builder(SIGNAL_VIEW_RESIZED)
+                .param_types([i32::static_type(), i32::static_type()])
+                .build()]
+        })
+    }
+
     fn constructed(&self) {
         self.parent_constructed();
         let view = self.obj();

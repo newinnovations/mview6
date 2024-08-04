@@ -1,10 +1,10 @@
 use std::path::Path;
 
 use glib::{clone, subclass::types::ObjectSubclassExt};
-use gtk::prelude::{GtkWindowExt, TreeSortableExt, TreeSortableExtManual, TreeViewExt};
+use gtk::prelude::{GtkWindowExt, TreeSortableExt, TreeSortableExtManual, TreeViewExt, WidgetExt};
 
 use crate::{
-    backends::Backend,
+    backends::{thumbnail::Thumbnail, Backend},
     filelistview::{FileListViewExt, Selection},
     window::imp::Sort,
 };
@@ -70,5 +70,22 @@ impl MViewWindowImp {
         w.file_list_view.set_model(Some(&new_store));
         self.skip_loading.set(skip_loading);
         w.file_list_view.goto(&goto);
+    }
+
+    pub fn update_thumbnail_backend(&self) {
+        let w = self.widgets();
+        let backend = self.backend.borrow();
+        if backend.is_thumbnail() {
+            if let Some(thumbnail) =
+                Thumbnail::new(w.image_view.allocation(), 0, self.thumbnail_size.get())
+            {
+                let (parent_backend, _selection) = backend.leave();
+                drop(backend);
+                self.backend.replace(parent_backend);
+                let startpage = thumbnail.startpage();
+                let new_backend = <dyn Backend>::thumbnail(thumbnail);
+                self.set_backend(new_backend, startpage, true);
+            }
+        }
     }
 }

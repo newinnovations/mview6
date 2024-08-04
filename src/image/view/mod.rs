@@ -10,6 +10,7 @@ use glib::subclass::types::ObjectSubclassIsExt;
 use gtk::{glib, prelude::WidgetExt};
 
 use super::Image;
+pub use imp::SIGNAL_VIEW_RESIZED;
 
 glib::wrapper! {
     pub struct ImageView(ObjectSubclass<imp::ImageViewImp>)

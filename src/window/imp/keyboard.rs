@@ -1,4 +1,4 @@
-use super::{MViewWidgetExt, MViewWindowImp};
+use super::MViewWindowImp;
 
 use gdk::EventKey;
 use gtk::{prelude::*, subclass::prelude::*, SortColumn};
@@ -33,21 +33,20 @@ impl MViewWindowImp {
                     } else {
                         0
                     };
-                    let display_size = self.obj().display_size();
-                    let thumbnail = Thumbnail::new(
-                        display_size.width(),
-                        display_size.height(),
+                    if let Some(thumbnail) = Thumbnail::new(
+                        w.image_view.allocation(),
                         position,
                         self.thumbnail_size.get(),
-                    );
-                    let startpage = thumbnail.startpage();
-                    let new_backend = <dyn Backend>::thumbnail(thumbnail);
-                    new_backend.set_sort(&Sort::sort_on_category());
-                    self.set_backend(new_backend, startpage, true);
-                    self.show_files_widget(false);
-                    self.obj().fullscreen();
-                    self.full_screen.set(true);
-                    w.image_view.grab_focus();
+                    ) {
+                        let startpage = thumbnail.startpage();
+                        let new_backend = <dyn Backend>::thumbnail(thumbnail);
+                        new_backend.set_sort(&Sort::sort_on_category());
+                        self.set_backend(new_backend, startpage, true);
+                        // self.show_files_widget(false);
+                        // self.obj().fullscreen();
+                        // self.full_screen.set(true);
+                        // w.image_view.grab_focus();
+                    }
                 }
             }
             gdk::keys::constants::w
@@ -112,15 +111,8 @@ impl MViewWindowImp {
                         _ => 175,
                     };
                     self.thumbnail_size.set(new_size);
-                    let (parent_backend, _selection) = backend.leave();
                     drop(backend);
-                    self.backend.replace(parent_backend);
-                    let display_size = self.obj().display_size();
-                    let thumbnail =
-                        Thumbnail::new(display_size.width(), display_size.height(), 0, new_size);
-                    let startpage = thumbnail.startpage();
-                    let new_backend = <dyn Backend>::thumbnail(thumbnail);
-                    self.set_backend(new_backend, startpage, true);
+                    self.update_thumbnail_backend()
                 } else if w.image_view.zoom_mode() == ZoomMode::Max {
                     w.image_view.set_zoom_mode(ZoomMode::Fill);
                 } else {

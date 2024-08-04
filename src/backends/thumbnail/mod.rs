@@ -11,11 +11,16 @@ use crate::{
     filelistview::{Columns, Cursor, Sort},
     window::MViewWidgets,
 };
+use gdk::Rectangle;
 use gtk::{
     prelude::{GtkListStoreExtManual, TreeModelExt},
     ListStore,
 };
 pub use model::{Message, TCommand, TEntry, TMessage, TReference, TResult, TResultOption, TTask};
+
+const FOOTER: i32 = 50;
+const MARGIN: i32 = 15;
+const MIN_SEPARATOR: i32 = 5;
 
 #[derive(Debug)]
 pub struct Thumbnail {
@@ -36,20 +41,29 @@ pub struct Thumbnail {
 }
 
 impl Thumbnail {
-    pub fn new(width: i32, height: i32, position: i32, size: i32) -> Self {
-        let footer = 50;
-        let min_separator = 5;
+    pub fn new(sheet_size: Rectangle, position: i32, size: i32) -> Option<Self> {
+        let width = sheet_size.width();
+        let height = sheet_size.height();
 
-        let capacity_x = (width + min_separator) / (size + min_separator);
-        let capacity_y = (height - footer + min_separator) / (size + min_separator);
+        let usable_width = (width - 2 * MARGIN).clamp(0, i32::MAX);
+        let usable_height = (height - MARGIN - FOOTER).clamp(0, i32::MAX);
 
-        let separator_x = (width - capacity_x * size) / capacity_x;
-        let separator_y = (height - footer - capacity_y * size) / capacity_y;
+        let capacity_x = (usable_width + MIN_SEPARATOR) / (size + MIN_SEPARATOR);
+        let capacity_y = (usable_height + MIN_SEPARATOR) / (size + MIN_SEPARATOR);
 
-        let offset_x = (width - capacity_x * (size + separator_x) + separator_x) / 2;
-        let offset_y = (height - footer - capacity_y * (size + separator_y) + separator_y) / 2;
+        if capacity_x == 0 || capacity_y == 0 {
+            return None;
+        }
 
-        Thumbnail {
+        let separator_x = (usable_width - capacity_x * size) / capacity_x;
+        let separator_y = (usable_height - capacity_y * size) / capacity_y;
+
+        let offset_x =
+            MARGIN + (usable_width - capacity_x * (size + separator_x) + separator_x) / 2;
+        let offset_y =
+            MARGIN + (usable_height - capacity_y * (size + separator_y) + separator_y) / 2;
+
+        Some(Thumbnail {
             size,
             width,
             height,
@@ -62,7 +76,7 @@ impl Thumbnail {
             parent: RefCell::new(<dyn Backend>::none()),
             parent_pos: position,
             sort: Default::default(),
-        }
+        })
     }
 
     pub fn capacity(&self) -> i32 {
@@ -154,9 +168,8 @@ impl Backend for Thumbnail {
 
     fn image(&self, w: &MViewWidgets, cursor: &Cursor) -> Image {
         let page = cursor.index();
-        let caption = format!("sheet {} of {}", page + 1, cursor.store_size());
-
-        let image = match thumbnail_sheet(self.width, self.height, self.offset_x, &caption) {
+        let caption = format!("{} of {}", page + 1, cursor.store_size());
+        let image = match thumbnail_sheet(self.width, self.height, MARGIN, &caption) {
             Ok(image) => image,
             Err(_) => {
                 println!("Failed to create thumbnail_sheet: should not happen");

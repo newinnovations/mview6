@@ -12,11 +12,11 @@ use crate::{
         Backend,
     },
     filelistview::{FileListView, Selection, Sort},
-    image::view::{ImageView, ZoomMode},
+    image::view::{ImageView, ZoomMode, SIGNAL_VIEW_RESIZED},
     widget::MViewWidgetExt,
 };
 use gdk_pixbuf::PixbufLoader;
-use glib::{clone, once_cell::unsync::OnceCell};
+use glib::{clone, closure_local, once_cell::unsync::OnceCell};
 use gtk::{
     glib::{self, Propagation},
     prelude::*,
@@ -127,6 +127,17 @@ impl ObjectImpl for MViewWindowImp {
             clone!(@weak self as this => @default-return Propagation::Stop, move |_, e| {
                 this.on_mouse_press(e);
                 Propagation::Proceed
+            }),
+        );
+
+        image_view.connect_closure(
+            SIGNAL_VIEW_RESIZED,
+            false,
+            closure_local!(@weak-allow-none self as this => move |_view: ImageView, width: i32, height: i32| {
+                if let Some(this) = this {
+                    println!("View was resized to {width} {height}");
+                    this.update_thumbnail_backend();
+                }
             }),
         );
 

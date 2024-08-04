@@ -71,7 +71,7 @@ fn draw_text(text: &str) -> MviewResult<Image> {
 
     context.stroke()?;
 
-    logo(&context, 595, 598, 25.0)?;
+    logo(&context, 595, 598, 25.0, true)?;
 
     // context.select_font_face(
     //     "Liberation Sans",
@@ -102,15 +102,13 @@ pub fn draw(text: &str) -> Image {
     }
 }
 
-pub fn thumbnail_sheet(width: i32, height: i32, offset_x: i32, text: &str) -> MviewResult<Image> {
+pub fn thumbnail_sheet(width: i32, height: i32, margin: i32, text: &str) -> MviewResult<Image> {
     let surface: ImageSurface = ImageSurface::create(Format::ARgb32, width, height)?;
     let context = Context::new(&surface)?;
-
-    // context.set_source_rgb(1.0, 0.2, 0.4);
     context.set_source_rgb(0.0, 0.0, 0.0);
     context.paint()?;
 
-    logo(&context, width - offset_x, height - 15, 30.0)?;
+    let mut logo_width = margin + logo(&context, 0, 0, 30.0, false)? as i32;
 
     context.select_font_face(
         "Liberation Sans",
@@ -118,17 +116,29 @@ pub fn thumbnail_sheet(width: i32, height: i32, offset_x: i32, text: &str) -> Mv
         cairo::FontWeight::Normal,
     );
     context.set_font_size(20.0);
-    let extends = context.text_extents(text)?;
-    context.move_to(width as f64 / 2.0 - extends.width(), height as f64 - 18.0);
-    context.set_source_rgb(1.0, 1.0, 1.0);
-    context.show_text(text)?;
+    let caption_width = context.text_extents(text)?.width() as i32;
 
-    let image = Image::new_surface(&surface, ZoomMode::NoZoom);
+    if caption_width + logo_width + margin > width {
+        logo_width = 0;
+    }
 
-    Ok(image)
+    if caption_width < width {
+        context.move_to(
+            (width - caption_width - logo_width) as f64 / 2.0,
+            (height - margin - 3) as f64,
+        );
+        context.set_source_rgb(1.0, 1.0, 1.0);
+        context.show_text(text)?;
+    }
+
+    if logo_width != 0 {
+        logo(&context, width - margin, height - margin, 30.0, true)?;
+    }
+
+    Ok(Image::new_surface(&surface, ZoomMode::NoZoom))
 }
 
-fn logo(context: &Context, x: i32, y: i32, size: f64) -> MviewResult<()> {
+fn logo(context: &Context, x_right: i32, y: i32, size: f64, draw: bool) -> MviewResult<f64> {
     context.select_font_face(
         "Liberation Sans",
         cairo::FontSlant::Normal,
@@ -136,13 +146,15 @@ fn logo(context: &Context, x: i32, y: i32, size: f64) -> MviewResult<()> {
     );
     context.set_font_size(size);
     let extends = context.text_extents("MView6")?;
-    context.move_to(x as f64 - extends.width(), y as f64);
-    context.set_source_rgb(1.0, 0.0, 0.0);
-    context.show_text("M")?;
-    context.set_source_rgb(1.0, 1.0, 1.0);
-    context.show_text("View6")?;
-    context.stroke()?;
-    Ok(())
+    if draw {
+        context.move_to(x_right as f64 - extends.width(), y as f64);
+        context.set_source_rgb(1.0, 0.0, 0.0);
+        context.show_text("M")?;
+        context.set_source_rgb(1.0, 1.0, 1.0);
+        context.show_text("View6")?;
+        context.stroke()?;
+    }
+    Ok(extends.width())
 }
 
 pub fn text_thumb(message: TMessage) -> MviewResult<Pixbuf> {
