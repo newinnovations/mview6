@@ -7,6 +7,8 @@ use std::{
 use gdk_pixbuf::{Pixbuf, PixbufAnimationIter};
 use image_webp::WebPDecoder;
 
+use crate::error::MviewResult;
+
 use super::{provider::webp::WebP, Image};
 
 #[derive(Default)]
@@ -74,6 +76,16 @@ impl Image {
 }
 
 impl<T: BufRead + Seek> WebPAnimation<T> {
+    pub fn new(mut decoder: WebPDecoder<T>) -> MviewResult<Self> {
+        let (pixbuf, delay_ms) = WebP::read_frame(&mut decoder)?;
+        Ok(Self {
+            decoder,
+            index: 0,
+            first_run: true,
+            frames: vec![AnimationFrame { delay_ms, pixbuf }],
+        })
+    }
+
     fn delay_time(&self, ts_previous_cb: SystemTime) -> Option<Duration> {
         if let Some(frame) = self.frames.get(self.index as usize) {
             let interval = Duration::from_millis(frame.delay_ms as u64);

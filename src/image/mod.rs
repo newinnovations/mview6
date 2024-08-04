@@ -3,23 +3,13 @@ pub mod draw;
 pub mod provider;
 pub mod view;
 
-use animation::{Animation, WebPAnimation};
+use animation::Animation;
 use cairo::ImageSurface;
-use gdk::{
-    ffi::gdk_pixbuf_get_from_surface,
-    prelude::{PixbufAnimationExt, PixbufAnimationExtManual, PixbufLoaderExt},
-};
-use gdk_pixbuf::{Pixbuf, PixbufLoader, PixbufRotation};
-use gio::{prelude::InputStreamExt, Cancellable};
-use glib::{translate::from_glib_full, IsA};
+use gdk::ffi::gdk_pixbuf_get_from_surface;
+use gdk_pixbuf::{Pixbuf, PixbufRotation};
+use glib::translate::from_glib_full;
+use std::sync::atomic::{AtomicU32, Ordering};
 use view::ZoomMode;
-
-use std::{
-    fs::File,
-    io::{BufReader, Cursor},
-    sync::atomic::{AtomicU32, Ordering},
-    time::SystemTime,
-};
 
 static IMAGE_ID: AtomicU32 = AtomicU32::new(1);
 
@@ -55,70 +45,28 @@ impl Image {
         }
     }
 
-    pub fn new_pixbuf(pixbuf: Pixbuf, zoom_mode: ZoomMode) -> Self {
+    pub fn new_pixbuf(pixbuf: Option<Pixbuf>) -> Self {
         Image {
             id: get_image_id(),
-            pixbuf: Some(pixbuf),
+            pixbuf,
             animation: Animation::None,
-            zoom_mode,
+            zoom_mode: ZoomMode::NotSpecified,
         }
     }
 
-    pub fn new_file_animation(
-        animation: WebPAnimation<BufReader<File>>,
-        zoom_mode: ZoomMode,
-    ) -> Self {
-        Image {
-            id: get_image_id(),
-            pixbuf: animation.pixbuf_get(0),
-            animation: Animation::WebPFile(Box::new(animation)),
-            zoom_mode,
-        }
-    }
-
-    pub fn new_memory_animation(
-        animation: WebPAnimation<Cursor<Vec<u8>>>,
-        zoom_mode: ZoomMode,
-    ) -> Self {
-        Image {
-            id: get_image_id(),
-            pixbuf: animation.pixbuf_get(0),
-            animation: Animation::WebPMemory(Box::new(animation)),
-            zoom_mode,
-        }
-    }
-
-    pub fn new_stream(
-        stream: &impl IsA<gio::InputStream>,
-        zoom_mode: ZoomMode,
-    ) -> Result<Self, glib::Error> {
-        let cancellable = Option::<Cancellable>::None.as_ref();
-        let loader = PixbufLoader::new();
-        loop {
-            let b = stream.read_bytes(65536, cancellable)?;
-            if b.len() == 0 {
-                break;
-            }
-            loader.write_bytes(&b)?;
-        }
-        loader.close()?;
-        stream.close(cancellable)?;
-        let (pixbuf, animation) = if let Some(animation) = loader.animation() {
-            if animation.is_static_image() {
-                (animation.static_image(), Animation::None)
-            } else {
-                let iter = animation.iter(Some(SystemTime::now()));
-                (Some(iter.pixbuf()), Animation::Gdk(iter))
-            }
-        } else {
-            (None, Animation::None)
+    pub fn new_animation(animation: Animation) -> Self {
+        let pixbuf = match &animation {
+            Animation::None => None,
+            Animation::Gdk(a) => Some(a.pixbuf()),
+            Animation::WebPFile(a) => a.pixbuf_get(0),
+            Animation::WebPMemory(a) => a.pixbuf_get(0),
         };
-        Ok(Image {
+        Image {
             id: get_image_id(),
             pixbuf,
             animation,
-            zoom_mode,
-        })
+            zoom_mode: ZoomMode::NotSpecified,
+        }
     }
 
     pub fn id(&self) -> u32 {

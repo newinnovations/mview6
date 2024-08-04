@@ -71,6 +71,12 @@ impl From<&str> for MviewError {
     }
 }
 
+impl From<String> for MviewError {
+    fn from(msg: String) -> Self {
+        MviewError::App(AppError::new(&msg))
+    }
+}
+
 impl From<std::io::Error> for MviewError {
     fn from(err: std::io::Error) -> MviewError {
         MviewError::Io(err)

@@ -1,13 +1,17 @@
-use std::{fs, path::Path};
-
-use gio::{prelude::FileExt, Cancellable, File, MemoryInputStream};
-use glib::Bytes;
+use std::{fs, path::Path, time::SystemTime};
 
 use crate::{
     category::Category,
     error::MviewResult,
-    image::{draw::draw, view::ZoomMode, Image},
+    image::{animation::Animation, draw::draw, Image},
 };
+use gdk::prelude::{PixbufAnimationExt, PixbufAnimationExtManual, PixbufLoaderExt};
+use gdk_pixbuf::PixbufLoader;
+use gio::{
+    prelude::{FileExt, InputStreamExt},
+    Cancellable, File, MemoryInputStream,
+};
+use glib::{Bytes, IsA};
 
 pub struct GdkImageLoader {}
 
@@ -34,14 +38,36 @@ impl GdkImageLoader {
 
         let file = File::for_parse_name(filename);
         let stream = file.read(Cancellable::NONE)?;
-        let image = Image::new_stream(&stream, ZoomMode::NotSpecified)?;
-        Ok(image)
+        Self::image_from_stream(&stream)
     }
 
     pub fn image_from_memory(buf: &Vec<u8>) -> MviewResult<Image> {
         let bytes = Bytes::from(buf);
         let stream = MemoryInputStream::from_bytes(&bytes);
-        let image = Image::new_stream(&stream, ZoomMode::NotSpecified)?;
-        Ok(image)
+        Self::image_from_stream(&stream)
+    }
+
+    pub fn image_from_stream(stream: &impl IsA<gio::InputStream>) -> MviewResult<Image> {
+        let cancellable = Option::<Cancellable>::None.as_ref();
+        let loader = PixbufLoader::new();
+        loop {
+            let b = stream.read_bytes(65536, cancellable)?;
+            if b.len() == 0 {
+                break;
+            }
+            loader.write_bytes(&b)?;
+        }
+        loader.close()?;
+        stream.close(cancellable)?;
+        if let Some(animation) = loader.animation() {
+            if animation.is_static_image() {
+                Ok(Image::new_pixbuf(animation.static_image()))
+            } else {
+                let iter = animation.iter(Some(SystemTime::now()));
+                Ok(Image::new_animation(Animation::Gdk(iter)))
+            }
+        } else {
+            Err("No image data".into())
+        }
     }
 }

@@ -4,10 +4,7 @@ use gdk_pixbuf::Pixbuf;
 use glib::Bytes;
 use image::{DynamicImage, GenericImageView, ImageReader};
 
-use crate::{
-    error::{AppError, MviewError, MviewResult},
-    image::{view::ZoomMode, Image},
-};
+use crate::{error::MviewResult, image::Image};
 
 use super::webp::WebP;
 
@@ -37,11 +34,9 @@ impl RsImageLoader {
                 _ => Self::image(reader),
             }
         } else {
-            Ok(Image::default())
+            Err("Unrecognized image format".into())
         }
     }
-
-    // ImageReader<Cursor<&Vec<u8>>
 
     pub fn image_from_memory(buffer: Vec<u8>) -> MviewResult<Image> {
         let reader = ImageReader::new(Cursor::new(buffer));
@@ -52,18 +47,16 @@ impl RsImageLoader {
                 _ => Self::image(reader),
             }
         } else {
-            Ok(Image::default())
+            Err("Unrecognized image format".into())
         }
     }
 }
 
 impl RsImageLoader {
     pub fn image<T: BufRead + Seek>(reader: ImageReader<T>) -> MviewResult<Image> {
-        Ok(Image::new_pixbuf(
-            Self::pixbuf(reader)?,
-            ZoomMode::NotSpecified,
-        ))
+        Ok(Image::new_pixbuf(Some(Self::pixbuf(reader)?)))
     }
+
     pub fn pixbuf<T: BufRead + Seek>(reader: ImageReader<T>) -> MviewResult<Pixbuf> {
         let reader = reader.with_guessed_format()?;
         let dynamic_image = reader.decode()?;
@@ -110,10 +103,7 @@ impl RsImageLoader {
                 rowstride = 4 * width;
             }
             _ => {
-                return Err(MviewError::App(AppError::new(&format!(
-                    "Unsupported color space {:?}",
-                    image.color()
-                ))));
+                return Err(format!("Unsupported color space {:?}", image.color()).into());
             }
         }
         // println!(

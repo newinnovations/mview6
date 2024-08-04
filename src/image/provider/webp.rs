@@ -11,8 +11,7 @@ use image_webp::WebPDecoder;
 use crate::{
     error::MviewResult,
     image::{
-        animation::{AnimationFrame, WebPAnimation},
-        view::ZoomMode,
+        animation::{Animation, WebPAnimation},
         Image,
     },
 };
@@ -22,41 +21,23 @@ pub struct WebP {}
 impl WebP {
     pub fn image_from_file(reader: BufReader<File>) -> MviewResult<Image> {
         let mut decoder = WebPDecoder::new(reader)?;
-        dbg!(decoder.num_frames());
         if decoder.is_animated() {
-            let (pixbuf, delay_ms) = Self::read_frame(&mut decoder)?;
-            Ok(Image::new_file_animation(
-                WebPAnimation::<BufReader<File>> {
-                    decoder,
-                    index: 0,
-                    first_run: true,
-                    frames: vec![AnimationFrame { delay_ms, pixbuf }],
-                },
-                ZoomMode::NotSpecified,
-            ))
+            Ok(Image::new_animation(Animation::WebPFile(Box::new(
+                WebPAnimation::<BufReader<File>>::new(decoder)?,
+            ))))
         } else {
-            let pixbuf = Self::read_image(&mut decoder)?;
-            Ok(Image::new_pixbuf(pixbuf, ZoomMode::NotSpecified))
+            Ok(Image::new_pixbuf(Some(Self::read_image(&mut decoder)?)))
         }
     }
 
     pub fn image_from_memory(reader: Cursor<Vec<u8>>) -> MviewResult<Image> {
         let mut decoder = WebPDecoder::new(reader)?;
-        dbg!(decoder.num_frames());
         if decoder.is_animated() {
-            let (pixbuf, delay_ms) = Self::read_frame(&mut decoder)?;
-            Ok(Image::new_memory_animation(
-                WebPAnimation::<Cursor<Vec<u8>>> {
-                    decoder,
-                    index: 0,
-                    first_run: true,
-                    frames: vec![AnimationFrame { delay_ms, pixbuf }],
-                },
-                ZoomMode::NotSpecified,
-            ))
+            Ok(Image::new_animation(Animation::WebPMemory(Box::new(
+                WebPAnimation::<Cursor<Vec<u8>>>::new(decoder)?,
+            ))))
         } else {
-            let pixbuf = Self::read_image(&mut decoder)?;
-            Ok(Image::new_pixbuf(pixbuf, ZoomMode::NotSpecified))
+            Ok(Image::new_pixbuf(Some(Self::read_image(&mut decoder)?)))
         }
     }
 

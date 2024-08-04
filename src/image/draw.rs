@@ -4,7 +4,7 @@ use gdk_pixbuf::Pixbuf;
 
 use crate::{
     backends::thumbnail::TMessage,
-    error::{AppError, MviewError, MviewResult},
+    error::{MviewError, MviewResult},
     image::{view::ZoomMode, Image},
 };
 
@@ -233,9 +233,7 @@ pub fn text_thumb(message: TMessage) -> MviewResult<Pixbuf> {
 
     match pixbuf_get_from_surface(&surface, 0, 0, 175, 175) {
         Some(pixbuf) => Ok(pixbuf),
-        None => Err(MviewError::App(AppError::new(
-            "Failed to get pixbuf from surface",
-        ))),
+        None => Err("Failed to get pixbuf from surface".into()),
     }
 }
 
@@ -250,9 +248,7 @@ pub fn transparency_background(window: &gdk::Window) -> MviewResult<Surface> {
 
     let surface = window
         .create_similar_surface(cairo::Content::ColorAlpha, check_size * 2, check_size * 2)
-        .ok_or(MviewError::App(AppError::new(
-            "could not create transparency_background",
-        )))?;
+        .ok_or(MviewError::from("could not create transparency_background"))?;
 
     let context = Context::new(&surface)?;
 
