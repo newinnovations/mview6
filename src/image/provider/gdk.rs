@@ -3,7 +3,7 @@ use std::{fs, path::Path, time::SystemTime};
 use crate::{
     category::Category,
     error::MviewResult,
-    image::{animation::Animation, draw::draw, Image},
+    image::{animation::Animation, draw::draw_text, Image},
 };
 use gdk::prelude::{PixbufAnimationExt, PixbufAnimationExtManual, PixbufLoaderExt};
 use gdk_pixbuf::PixbufLoader;
@@ -25,13 +25,13 @@ impl GdkImageLoader {
         };
 
         match cat {
-            Category::Direcory | Category::Archive | Category::Unsupported => {
+            Category::Folder | Category::Archive | Category::Unsupported => {
                 let name = path
                     .file_name()
                     .unwrap_or_default()
                     .to_str()
                     .unwrap_or_default();
-                return Ok(draw(name));
+                return Ok(draw_text(&cat.name(), name, cat.colors()));
             }
             _ => (),
         };

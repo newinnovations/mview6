@@ -7,6 +7,7 @@ use crate::{
         archive_rar::TRarReference, archive_zip::TZipReference, filesystem::TFileReference,
     },
     category::Category,
+    image::colors::Color,
 };
 
 #[derive(Debug, Clone)]
@@ -114,13 +115,22 @@ impl TTask {
 pub struct TMessage {
     pub title: String,
     pub message: String,
+    pub colors: (Color, Color, Color),
 }
 
 impl TMessage {
-    pub fn new(title: &str, message: &str) -> Self {
+    pub fn new(title: &str, message: &str, colors: (Color, Color, Color)) -> Self {
         TMessage {
             title: title.to_string(),
             message: message.to_string(),
+            colors,
+        }
+    }
+    pub fn error(title: &str, message: &str) -> Self {
+        TMessage {
+            title: title.to_string(),
+            message: message.to_string(),
+            colors: (Color::ErrorBack, Color::ErrorTitle, Color::ErrorMsg),
         }
     }
     pub fn title(&self) -> &str {

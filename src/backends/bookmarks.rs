@@ -3,7 +3,7 @@ use crate::{
     category::Category,
     config::config,
     filelistview::{Columns, Cursor, Sort},
-    image::draw::draw,
+    image::draw::draw_text,
     window::MViewWidgets,
 };
 use gtk::{prelude::GtkListStoreExtManual, ListStore};
@@ -47,7 +47,7 @@ impl Bookmarks {
                 0
             };
             let file_size = metadata.len();
-            let cat = Category::Direcory;
+            let cat = Category::Folder;
             store.insert_with_values(
                 None,
                 &[
@@ -101,7 +101,14 @@ impl Backend for Bookmarks {
     }
 
     fn image(&self, _w: &MViewWidgets, cursor: &Cursor) -> Image {
-        draw(&cursor.folder())
+        let folder = cursor.folder();
+        let folder_lower = folder.to_lowercase();
+        let cat = if folder_lower.ends_with(".zip") || folder_lower.ends_with(".rar") {
+            Category::Archive
+        } else {
+            Category::Folder
+        };
+        draw_text(&cat.name(), &folder, cat.colors())
     }
 
     fn set_parent(&self, parent: Box<dyn Backend>) {

@@ -19,16 +19,22 @@ fn thumb_result(res: MviewResult<DynamicImage>, task: &TTask) -> TResultOption {
             TResultOption::Image(image)
         }
         Err(_error) => match task.source.category {
-            Category::Direcory => {
-                TResultOption::Message(TMessage::new("directory", &task.source.name))
-            }
-            Category::Archive => {
-                TResultOption::Message(TMessage::new("archive", &task.source.name))
-            }
-            Category::Unsupported => {
-                TResultOption::Message(TMessage::new("unsupported", &task.source.name))
-            }
-            _ => TResultOption::Message(TMessage::new("error", &task.source.name)),
+            Category::Folder => TResultOption::Message(TMessage::new(
+                &task.source.category.name(),
+                &task.source.name,
+                task.source.category.colors(),
+            )),
+            Category::Archive => TResultOption::Message(TMessage::new(
+                &task.source.category.name(),
+                &task.source.name,
+                task.source.category.colors(),
+            )),
+            Category::Unsupported => TResultOption::Message(TMessage::new(
+                &task.source.category.name(),
+                &task.source.name,
+                task.source.category.colors(),
+            )),
+            _ => TResultOption::Message(TMessage::error("error", &task.source.name)),
         },
     }
 }
@@ -64,11 +70,11 @@ pub fn start_thumbnail_task(
                         thumb_result(RarArchive::get_thumbnail(src), &task)
                     }
                     TReference::None => {
-                        TResultOption::Message(TMessage::new("none", "TEntry::None"))
+                        TResultOption::Message(TMessage::error("none", "TEntry::None"))
                     }
                 }) {
                     Ok(image) => image,
-                    Err(_) => TResultOption::Message(TMessage::new("panic", &task.source.name)),
+                    Err(_) => TResultOption::Message(TMessage::error("panic", &task.source.name)),
                 };
                 let _ = sender_clone.send_blocking(Message::Result(TResult::new(id, task, result)));
             });

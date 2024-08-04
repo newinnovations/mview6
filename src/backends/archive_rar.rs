@@ -15,7 +15,7 @@ use crate::{
     error::MviewResult,
     filelistview::{Columns, Cursor, Sort},
     image::{
-        draw::draw,
+        draw::draw_error,
         provider::{image_rs::RsImageLoader, ImageLoader, ImageSaver},
     },
     window::MViewWidgets,
@@ -124,7 +124,7 @@ impl Backend for RarArchive {
         let sel = cursor.name();
         match extract_rar(&self.filename, &sel) {
             Ok(bytes) => ImageLoader::image_from_memory(bytes),
-            Err(error) => draw(&format!("Error {}", error)),
+            Err(error) => draw_error(error.into()),
         }
     }
 

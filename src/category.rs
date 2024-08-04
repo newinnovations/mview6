@@ -1,7 +1,9 @@
+use crate::image::colors::Color;
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 #[repr(u32)]
 pub enum Category {
-    Direcory = 0,
+    Folder = 0,
     Favorite = 1,
     Image = 2,
     Archive = 3,
@@ -12,7 +14,7 @@ pub enum Category {
 impl Category {
     pub fn determine(filename: &str, is_dir: bool) -> Self {
         if is_dir {
-            return Self::Direcory;
+            return Self::Folder;
         }
 
         let filename_lower = filename.to_lowercase();
@@ -76,7 +78,7 @@ impl Category {
 
     pub fn icon(&self) -> &str {
         match self {
-            Self::Direcory => "mv6-folder",
+            Self::Folder => "mv6-folder",
             Self::Favorite => "mv6-favorite",
             Self::Image => "mv6-image",
             Self::Archive => "mv6-box",
@@ -84,12 +86,37 @@ impl Category {
             Self::Unsupported => "mv6-unknown",
         }
     }
+
+    pub fn colors(&self) -> (Color, Color, Color) {
+        match self {
+            Self::Folder => (Color::FolderBack, Color::FolderTitle, Color::FolderMsg),
+            Self::Archive => (Color::ArchiveBack, Color::ArchiveTitle, Color::ArchiveMsg),
+            Self::Unsupported => (
+                Color::UnsupportedBack,
+                Color::UnsupportedTitle,
+                Color::UnsupportedMsg,
+            ),
+            _ => (Color::Black, Color::Silver, Color::White),
+        }
+    }
+
+    pub fn name(&self) -> String {
+        match self {
+            Category::Folder => "folder",
+            Category::Favorite => "favorite",
+            Category::Image => "image",
+            Category::Archive => "archive",
+            Category::Trash => "trash",
+            Category::Unsupported => "not supported",
+        }
+        .into()
+    }
 }
 
 impl From<u32> for Category {
     fn from(value: u32) -> Self {
         match value {
-            0 => Self::Direcory,
+            0 => Self::Folder,
             1 => Self::Favorite,
             2 => Self::Image,
             3 => Self::Archive,

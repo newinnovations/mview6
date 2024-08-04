@@ -8,7 +8,7 @@ use image::DynamicImage;
 use image_rs::RsImageLoader;
 use std::{fs, path::Path};
 
-use super::draw::draw;
+use super::draw::draw_error;
 
 pub struct ImageLoader {}
 
@@ -19,13 +19,13 @@ impl ImageLoader {
         } else {
             match RsImageLoader::image_from_file(filename) {
                 Ok(im) => im,
-                Err(e) => draw(&format!("Error: {:?}", e)),
+                Err(e) => draw_error(e),
             }
         }
 
         // match Self::image_from_file_image_rs(filename) {
         //     Ok(im) => im,
-        //     Err(e) => draw(&format!("Error: {:?}", e)),
+        //     Err(e) => draw_error(e),
         // };
     }
 
@@ -35,7 +35,7 @@ impl ImageLoader {
         } else {
             match RsImageLoader::image_from_memory(buf) {
                 Ok(im) => im,
-                Err(e) => draw(&format!("Error: {:?}", e)),
+                Err(e) => draw_error(e),
             }
         }
     }

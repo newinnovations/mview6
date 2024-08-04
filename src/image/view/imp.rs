@@ -4,7 +4,11 @@ use std::{
     time::{Duration, SystemTime},
 };
 
-use crate::image::{draw::transparency_background, Image};
+use crate::image::{
+    colors::{CairoColorExt, Color},
+    draw::transparency_background,
+    Image,
+};
 use gdk::EventMask;
 use glib::{
     clone, ffi::g_source_remove, result_from_gboolean, subclass::Signal, BoolError, ObjectExt,
@@ -239,7 +243,8 @@ impl WidgetImpl for ImageViewImp {
             allocation.height() as f64,
         );
 
-        cr.set_source_rgba(0.0, 0.0, 0.0, 1.0);
+        // cr.set_source_rgba(0.0, 0.0, 0.0, 1.0);
+        cr.color(Color::Black);
         cr.set_fill_rule(cairo::FillRule::EvenOdd);
         let _ = cr.fill();
 

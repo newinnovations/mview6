@@ -16,7 +16,7 @@ use crate::{
     error::MviewResult,
     filelistview::{Columns, Cursor, Sort},
     image::{
-        draw::draw,
+        draw::draw_error,
         provider::{image_rs::RsImageLoader, ImageLoader, ImageSaver},
     },
     window::MViewWidgets,
@@ -120,7 +120,7 @@ impl Backend for ZipArchive {
     fn image(&self, _w: &MViewWidgets, cursor: &Cursor) -> Image {
         match extract_zip(&self.filename, cursor.index() as usize) {
             Ok(bytes) => ImageLoader::image_from_memory(bytes),
-            Err(error) => draw(&format!("Error {}", error)),
+            Err(error) => draw_error(error.into()),
         }
     }
 

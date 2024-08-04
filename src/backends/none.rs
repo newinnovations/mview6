@@ -3,7 +3,6 @@ use gtk::ListStore;
 
 use crate::{
     filelistview::{Columns, Cursor, Sort},
-    image::draw::draw,
     window::MViewWidgets,
 };
 
@@ -46,7 +45,7 @@ impl Backend for NoneBackend {
     }
 
     fn image(&self, _w: &MViewWidgets, _cursor: &Cursor) -> Image {
-        draw("invalid")
+        Image::default()
     }
 
     fn set_sort(&self, _sort: &Sort) {}
