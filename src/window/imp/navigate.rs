@@ -53,7 +53,7 @@ impl MViewWindowImp {
         self.set_backend(new_backend, selection, false);
     }
 
-    pub fn navigate_to(&self, file: &File) {
+    pub fn navigate_to(&self, file: &File, set_parent:bool) {
         let path = file.path().unwrap_or_default().clone();
         let filename = path
             .file_name()
@@ -67,7 +67,7 @@ impl MViewWindowImp {
             .unwrap_or("/");
         dbg!(filename, directory);
         let new_backend = <dyn Backend>::new(directory);
-        self.set_backend(new_backend, Selection::Name(filename.to_string()), true);
+        self.set_backend(new_backend, Selection::Name(filename.to_string()), set_parent);
     }
 
     pub fn hop(&self, direction: Direction) {

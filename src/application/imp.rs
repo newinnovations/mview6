@@ -50,7 +50,7 @@ impl ApplicationImpl for MviewApplicationImp {
             let file = &files[0];
             let window = self.window.get().expect("failed to get window");
             // window.load(file);
-            window.navigate_to(file);
+            window.navigate_to(file, false);
         }
     }
 }
