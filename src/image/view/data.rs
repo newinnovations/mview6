@@ -2,7 +2,7 @@ use cairo::{Filter, Surface};
 use gdk::prelude::GdkPixbufExt;
 use gtk::prelude::WidgetExt;
 
-use crate::image::Image;
+use crate::image::{Image, MAX_IMAGE_SIZE};
 
 use super::{ImageView, ZoomMode};
 
@@ -52,16 +52,14 @@ pub enum ZoomState {
 }
 
 impl ImageViewData {
-    //     if (w > MAX_IMAGE_SIZE || h > MAX_IMAGE_SIZE) {
-    //         g_warning ("Image dimensions too large to process");
-    //         w = 50;
-    //         h = 50;
-    //         surface = gdk_window_create_similar_image_surface (
-    //                 gtk_widget_get_window (view->priv->display),
-    //                 CAIRO_FORMAT_ARGB32, w, h, 1.0);
     pub(super) fn create_surface(&mut self) {
         if let (Some(pixbuf), Some(view)) = (&self.image.pixbuf, &self.view) {
-            self.surface = pixbuf.create_surface(1, view.window().as_ref());
+            if pixbuf.width() > MAX_IMAGE_SIZE || pixbuf.height() > MAX_IMAGE_SIZE {
+                println!("Image dimensions too large to process");
+                self.surface = None;
+            } else {
+                self.surface = pixbuf.create_surface(1, view.window().as_ref());
+            }
         } else {
             self.surface = None;
         }

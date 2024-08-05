@@ -53,6 +53,7 @@ impl ImageView {
         let mut p = self.imp().data.borrow_mut();
         self.imp().cancel_animation();
         p.image = image;
+        // p.image.crop_to_max_size();
         p.rotation = 0;
     }
 

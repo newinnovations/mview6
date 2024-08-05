@@ -9,9 +9,13 @@ use cairo::ImageSurface;
 use gdk::ffi::gdk_pixbuf_get_from_surface;
 use gdk_pixbuf::{Pixbuf, PixbufRotation};
 use glib::translate::from_glib_full;
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::{
+    cmp::min,
+    sync::atomic::{AtomicU32, Ordering},
+};
 use view::ZoomMode;
 
+pub const MAX_IMAGE_SIZE: i32 = 32767;
 static IMAGE_ID: AtomicU32 = AtomicU32::new(1);
 
 fn get_image_id() -> u32 {
@@ -107,6 +111,27 @@ impl Image {
                 dest_x,
                 dest_y,
             );
+        }
+    }
+
+    pub fn crop_to_max_size(&mut self) {
+        if let Some(pixbuf) = &self.pixbuf {
+            if pixbuf.width() > MAX_IMAGE_SIZE || pixbuf.height() > MAX_IMAGE_SIZE {
+                let new_width = min(pixbuf.width(), MAX_IMAGE_SIZE);
+                let new_height = min(pixbuf.height(), MAX_IMAGE_SIZE);
+                let new_pixpuf = Pixbuf::new(
+                    pixbuf.colorspace(),
+                    pixbuf.has_alpha(),
+                    pixbuf.bits_per_sample(),
+                    new_width,
+                    new_height,
+                );
+                if let Some(new_pixbuf) = &new_pixpuf {
+                    pixbuf.copy_area(0, 0, new_width, new_height, new_pixbuf, 0, 0);
+                }
+                self.pixbuf = new_pixpuf;
+                self.animation = Animation::None;
+            }
         }
     }
 }

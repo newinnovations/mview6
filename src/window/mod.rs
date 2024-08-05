@@ -16,7 +16,7 @@ impl MViewWindow {
         glib::Object::builder().property("application", app).build()
     }
 
-    pub fn navigate_to(&self, file: &File, set_parent:bool) {
+    pub fn navigate_to(&self, file: &File, set_parent: bool) {
         self.imp().navigate_to(file, set_parent);
     }
 }
