@@ -4,7 +4,7 @@ use archive_rar::RarArchive;
 use archive_zip::ZipArchive;
 use bookmarks::Bookmarks;
 use filesystem::FileSystem;
-use gtk::ListStore;
+use gtk4::ListStore;
 use none::NoneBackend;
 use thumbnail::{TEntry, Thumbnail};
 

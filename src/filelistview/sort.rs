@@ -1,6 +1,6 @@
 use std::{cell::Cell, fmt::Display};
 
-use gtk::{prelude::TreeSortableExtManual, ListStore, SortColumn, SortType};
+use gtk4::{prelude::TreeSortableExtManual, ListStore, SortColumn, SortType};
 
 use super::Columns;
 

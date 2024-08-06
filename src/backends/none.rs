@@ -1,5 +1,5 @@
 use super::Image;
-use gtk::ListStore;
+use gtk4::ListStore;
 
 use crate::{
     filelistview::{Columns, Cursor, Sort},

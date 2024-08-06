@@ -1,14 +1,14 @@
+use super::Image;
+use chrono::{Local, TimeZone};
+use gtk4::ListStore;
+use human_bytes::human_bytes;
+use image::DynamicImage;
 use std::{
     cell::{Cell, RefCell},
     fs,
     io::{BufReader, Read},
     path::Path,
 };
-
-use super::Image;
-use chrono::{Local, TimeZone};
-use gtk::{prelude::GtkListStoreExtManual, ListStore};
-use image::DynamicImage;
 use zip::result::ZipResult;
 
 use crate::{
@@ -19,6 +19,7 @@ use crate::{
         draw::draw_error,
         provider::{image_rs::RsImageLoader, ImageLoader, ImageSaver},
     },
+    performance::Performance,
     window::MViewWidgets,
 };
 
@@ -148,6 +149,7 @@ impl Backend for ZipArchive {
 }
 
 fn extract_zip(filename: &str, index: usize) -> ZipResult<Vec<u8>> {
+    let duration = Performance::start();
     let fname = std::path::Path::new(filename);
     let file = fs::File::open(fname)?;
     let reader = BufReader::new(file);
@@ -155,7 +157,7 @@ fn extract_zip(filename: &str, index: usize) -> ZipResult<Vec<u8>> {
     let mut file = archive.by_index(index)?;
     let mut buf = Vec::<u8>::new();
     let size = file.read_to_end(&mut buf)?;
-    println!("extract_zip_to_memory::size={}", size);
+    duration.elapsed_suffix("extract (zip)", &format!("({})", &human_bytes(size as f64)));
     Ok(buf)
 }
 

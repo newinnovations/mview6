@@ -2,7 +2,7 @@ pub mod gdk;
 pub mod image_rs;
 pub mod webp;
 
-use crate::image::Image;
+use crate::{image::Image, performance::Performance};
 use gdk::GdkImageLoader;
 use image::DynamicImage;
 use image_rs::RsImageLoader;
@@ -14,30 +14,42 @@ pub struct ImageLoader {}
 
 impl ImageLoader {
     pub fn image_from_file(filename: &str) -> Image {
-        if let Ok(im) = GdkImageLoader::image_from_file(filename) {
+        let duration = Performance::start();
+
+        let image = if let Ok(im) = GdkImageLoader::image_from_file(filename) {
             im
         } else {
             match RsImageLoader::image_from_file(filename) {
                 Ok(im) => im,
                 Err(e) => draw_error(e),
             }
-        }
+        };
 
         // match Self::image_from_file_image_rs(filename) {
         //     Ok(im) => im,
         //     Err(e) => draw_error(e),
         // };
+
+        duration.elapsed("decode (file)");
+
+        image
     }
 
     pub fn image_from_memory(buf: Vec<u8>) -> Image {
-        if let Ok(im) = GdkImageLoader::image_from_memory(&buf) {
+        let duration = Performance::start();
+
+        let image = if let Ok(im) = GdkImageLoader::image_from_memory(&buf) {
             im
         } else {
             match RsImageLoader::image_from_memory(buf) {
                 Ok(im) => im,
                 Err(e) => draw_error(e),
             }
-        }
+        };
+
+        duration.elapsed("decode (mem)");
+
+        image
     }
 }
 
