@@ -1,11 +1,13 @@
 mod imp;
 
-use gio::ApplicationFlags;
-use gtk::{gio, glib, prelude::GtkSettingsExt, Settings};
+use gtk4::{
+    gio::{self, ApplicationFlags},
+    glib, Settings,
+};
 
 glib::wrapper! {
     pub struct MviewApplication(ObjectSubclass<imp::MviewApplicationImp>)
-        @extends gio::Application, gtk::Application;
+        @extends gio::Application, gtk4::Application;
 }
 
 impl MviewApplication {

@@ -1,13 +1,13 @@
+use super::Image;
+use chrono::{Local, TimeZone};
+use gtk4::ListStore;
+use human_bytes::human_bytes;
+use image::DynamicImage;
+use sha2::{Digest, Sha256};
 use std::{
     cell::{Cell, RefCell},
     path::Path,
 };
-
-use super::Image;
-use chrono::{Local, TimeZone};
-use gtk::{prelude::GtkListStoreExtManual, ListStore};
-use image::DynamicImage;
-use sha2::{Digest, Sha256};
 use unrar::{error::UnrarError, Archive, UnrarResult};
 
 use crate::{
@@ -18,6 +18,7 @@ use crate::{
         draw::draw_error,
         provider::{image_rs::RsImageLoader, ImageLoader, ImageSaver},
     },
+    performance::Performance,
     window::MViewWidgets,
 };
 
@@ -60,10 +61,9 @@ impl RarArchive {
     }
 
     fn create_store(filename: &str) -> ListStore {
-        println!("create_store RarArchive {}", &filename);
         let store = Columns::store();
         match list_rar(filename, &store) {
-            Ok(()) => println!("OK"),
+            Ok(()) => (),
             Err(e) => println!("ERROR {:?}", e),
         };
         store
@@ -152,12 +152,17 @@ impl Backend for RarArchive {
 }
 
 fn extract_rar(filename: &str, sel: &str) -> UnrarResult<Vec<u8>> {
+    let duration = Performance::start();
     let mut archive = Archive::new(filename).open_for_processing()?;
     while let Some(header) = archive.read_header()? {
         let e_filename = header.entry().filename.as_os_str().to_str().unwrap_or("-");
         archive = if header.entry().is_file() {
             if e_filename == sel {
                 let (bytes, _) = header.read()?;
+                duration.elapsed_suffix(
+                    "extract (rar)",
+                    &format!("({})", &human_bytes(bytes.len() as f64)),
+                );
                 return Ok(bytes);
             } else {
                 header.skip()?

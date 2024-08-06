@@ -11,24 +11,22 @@ use crate::{
         },
         Backend,
     },
-    filelistview::{FileListView, Selection, Sort},
+    filelistview::{FileListView, Filter, Selection, Sort},
     image::view::{ImageView, ZoomMode, SIGNAL_VIEW_RESIZED},
-    widget::MViewWidgetExt,
 };
 use async_channel::Sender;
-use gdk_pixbuf::PixbufLoader;
-use glib::{clone, closure_local, once_cell::unsync::OnceCell};
-use gtk::{
+use glib::{clone, closure_local};
+use gtk4::{
     glib::{self, Propagation},
     prelude::*,
     subclass::prelude::*,
-    ScrolledWindow,
+    EventControllerKey, ScrolledWindow,
 };
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, OnceCell, RefCell};
 
 #[derive(Debug)]
 pub struct MViewWidgets {
-    hbox: gtk::Box,
+    hbox: gtk4::Box,
     files_widget: ScrolledWindow,
     file_list_view: FileListView,
     image_view: ImageView,
@@ -49,7 +47,7 @@ pub struct MViewWindowImp {
 impl ObjectSubclass for MViewWindowImp {
     const NAME: &'static str = "MViewWindow";
     type Type = super::MViewWindow;
-    type ParentType = gtk::ApplicationWindow;
+    type ParentType = gtk4::ApplicationWindow;
 }
 
 impl MViewWindowImp {
@@ -57,17 +55,18 @@ impl MViewWindowImp {
         self.widget_cell.get().unwrap()
     }
 
-    pub fn show_files_widget(&self, show: bool) {
+    pub fn show_files_widget(&self, show: bool, force: bool) {
         let w = self.widgets();
-        if w.files_widget.is_visible() != show {
+        if w.files_widget.is_visible() != show || force {
             w.files_widget.set_visible(show);
-            if show {
-                w.hbox.set_spacing(8);
-                self.obj().set_border_width(10);
-            } else {
-                w.hbox.set_spacing(0);
-                self.obj().set_border_width(0);
-            }
+            let border = if show { 8 } else { 0 };
+            w.hbox.set_spacing(border);
+            w.file_list_view.set_margin_start(border);
+            w.file_list_view.set_margin_top(border);
+            w.file_list_view.set_margin_bottom(border);
+            w.image_view.set_margin_end(border);
+            w.image_view.set_margin_top(border);
+            w.image_view.set_margin_bottom(border);
         }
     }
 }
@@ -80,75 +79,76 @@ impl ObjectImpl for MViewWindowImp {
 
         let window = self.obj();
 
-        window.set_title("MView6");
-        window.set_border_width(10);
-        window.set_position(gtk::WindowPosition::Center);
+        window.set_title(Some("MView6"));
+        // window.set_position(gtk4::WindowPosition::Center); TODO
         window.set_default_size(1280, 720);
 
-        let loader = PixbufLoader::with_type("svg").unwrap();
-        loader
-            .write(include_bytes!("../../resources/icon.svg"))
-            .unwrap();
-        loader.close().unwrap();
-        window.set_icon(Some(&loader.pixbuf().unwrap()));
+        let hbox = gtk4::Box::new(gtk4::Orientation::Horizontal, 8);
 
-        let hbox = gtk::Box::new(gtk::Orientation::Horizontal, 8);
-
-        window.add(&hbox);
-
-        let files_widget = ScrolledWindow::new(None::<&gtk::Adjustment>, None::<&gtk::Adjustment>);
-        files_widget.set_shadow_type(gtk::ShadowType::EtchedIn);
-        files_widget.set_policy(gtk::PolicyType::Never, gtk::PolicyType::Automatic);
-        hbox.add(&files_widget);
+        let files_widget = ScrolledWindow::new();
+        // files_widget.set_shadow_type(gtk4::ShadowType::EtchedIn); TODO
+        files_widget.set_policy(gtk4::PolicyType::Never, gtk4::PolicyType::Automatic);
+        files_widget.set_can_focus(false);
+        hbox.append(&files_widget);
 
         let file_list_view = FileListView::new();
         file_list_view.set_vexpand(true);
         file_list_view.set_fixed_height_mode(true);
-        files_widget.add(&file_list_view);
+        file_list_view.set_can_focus(false);
+        files_widget.set_child(Some(&file_list_view));
 
         let image_view = ImageView::new();
         image_view.set_zoom_mode(ZoomMode::Fill);
-        hbox.add(&image_view);
+        hbox.append(&image_view);
 
-        window.connect_key_press_event(
-            clone!(@weak self as this => @default-return Propagation::Stop, move |_, e| {
-                this.on_key_press(e);
+        let key_controller = EventControllerKey::new();
+        key_controller.connect_key_pressed(clone!(
+            #[weak(rename_to = this)]
+            self,
+            #[upgrade_or]
+            Propagation::Stop,
+            move |_ctrl, key, _, _| {
+                this.on_key_press(key);
                 Propagation::Stop
-            }),
-        );
+            }
+        ));
+        self.obj().add_controller(key_controller);
 
-        image_view.connect_motion_notify_event(
-            clone!(@weak self as this => @default-return Propagation::Stop, move |_, e| {
-                this.on_mouse_move(e);
-                Propagation::Proceed
-            }),
-        );
-
-        image_view.connect_button_press_event(
-            clone!(@weak self as this => @default-return Propagation::Stop, move |_, e| {
-                this.on_mouse_press(e);
-                Propagation::Proceed
-            }),
-        );
+        let gesture_click = gtk4::GestureClick::new();
+        gesture_click.set_button(1);
+        gesture_click.connect_pressed(clone!(
+            #[weak(rename_to = this)]
+            self,
+            move |_, _n_press, x, y| this.on_mouse_press((x, y))
+        ));
+        image_view.add_controller(gesture_click);
 
         image_view.connect_closure(
             SIGNAL_VIEW_RESIZED,
             false,
-            closure_local!(@weak-allow-none self as this => move |_view: ImageView, width: i32, height: i32| {
-                if let Some(this) = this {
-                    println!("View was resized to {width} {height}");
+            closure_local!(
+                #[weak(rename_to = this)]
+                self,
+                move |_view: ImageView, width: i32, height: i32| {
+                    println!("view was resized to {width} {height}");
                     this.update_thumbnail_backend();
                 }
-            }),
+            ),
         );
 
-        file_list_view.connect_cursor_changed(clone!(@weak self as this => move |_| {
-            this.on_cursor_changed();
-        }));
+        file_list_view.connect_cursor_changed(clone!(
+            #[weak(rename_to = this)]
+            self,
+            move |_| this.on_cursor_changed()
+        ));
 
-        file_list_view.connect_row_activated(clone!(@weak self as this => move |_, path, column| {
-            this.on_row_activated(path, column);
-        }));
+        file_list_view.connect_row_activated(clone!(
+            #[weak(rename_to = this)]
+            self,
+            move |_, path, column| {
+                this.on_row_activated(path, column);
+            }
+        ));
 
         let (sender, receiver) = async_channel::unbounded::<Message>();
 
@@ -163,8 +163,12 @@ impl ObjectImpl for MViewWindowImp {
             .expect("Failed to initialize MView window");
 
         let w = self.widgets();
-        glib::spawn_future_local(
-            clone!(@strong w.image_view as image_view, @strong w.sender as sender => async move {
+        glib::spawn_future_local(clone!(
+            #[strong(rename_to = image_view)]
+            w.image_view,
+            #[strong(rename_to = sender)]
+            w.sender,
+            async move {
                 let mut current_task = 0;
                 let mut command = TCommand::default();
                 while let Ok(msg) = receiver.recv().await {
@@ -173,36 +177,63 @@ impl ObjectImpl for MViewWindowImp {
                             command = cmd;
                             current_task = 0;
                             if command.needs_work() {
-                                start_thumbnail_task(&sender, &image_view, &command, &mut current_task);
-                                start_thumbnail_task(&sender, &image_view, &command, &mut current_task);
-                                start_thumbnail_task(&sender, &image_view, &command, &mut current_task);
+                                start_thumbnail_task(
+                                    &sender,
+                                    &image_view,
+                                    &command,
+                                    &mut current_task,
+                                );
+                                start_thumbnail_task(
+                                    &sender,
+                                    &image_view,
+                                    &command,
+                                    &mut current_task,
+                                );
+                                start_thumbnail_task(
+                                    &sender,
+                                    &image_view,
+                                    &command,
+                                    &mut current_task,
+                                );
                             } else {
                                 image_view.set_image_post();
                             }
                         }
                         Message::Result(res) => {
                             if handle_thumbnail_result(&image_view, &mut command, res) {
-                                start_thumbnail_task(&sender, &image_view, &command, &mut current_task);
+                                start_thumbnail_task(
+                                    &sender,
+                                    &image_view,
+                                    &command,
+                                    &mut current_task,
+                                );
                             }
                         }
                     }
                 }
-            }),
-        );
+            }
+        ));
 
-        window.show_all();
-
-        let display_size = window.display_size();
-        dbg!(display_size);
+        self.show_files_widget(true, true);
+        window.set_child(Some(&w.hbox));
+        window.show();
 
         self.set_backend(<dyn Backend>::current_dir(), Selection::None, false);
 
-        println!("MViewWindowSub: constructed done");
+        println!("MViewWindow: constructed");
     }
 }
 
 impl WidgetImpl for MViewWindowImp {}
-impl ContainerImpl for MViewWindowImp {}
-impl BinImpl for MViewWindowImp {}
 impl WindowImpl for MViewWindowImp {}
 impl ApplicationWindowImpl for MViewWindowImp {}
+
+impl MViewWidgets {
+    pub fn filter(&self) -> Filter {
+        if self.files_widget.is_visible() {
+            Filter::None
+        } else {
+            Filter::Image
+        }
+    }
+}

@@ -3,12 +3,12 @@ mod imp;
 use crate::application::MviewApplication;
 use gio::File;
 use glib::subclass::types::ObjectSubclassIsExt;
-use gtk::glib;
+use gtk4::glib;
 pub use imp::MViewWidgets;
 
 glib::wrapper! {
     pub struct MViewWindow(ObjectSubclass<imp::MViewWindowImp>)
-        @extends gtk::Widget, gtk::Container, gtk::Bin, gtk::Window, gtk::ApplicationWindow;
+        @extends gtk4::Widget, gtk4::Window, gtk4::ApplicationWindow;
 }
 
 impl MViewWindow {

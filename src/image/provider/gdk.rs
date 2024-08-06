@@ -5,13 +5,13 @@ use crate::{
     error::MviewResult,
     image::{animation::Animation, draw::draw_text, Image},
 };
-use gdk::prelude::{PixbufAnimationExt, PixbufAnimationExtManual, PixbufLoaderExt};
 use gdk_pixbuf::PixbufLoader;
 use gio::{
     prelude::{FileExt, InputStreamExt},
     Cancellable, File, MemoryInputStream,
 };
-use glib::{Bytes, IsA};
+use glib::{object::IsA, Bytes};
+use gtk4::prelude::{PixbufAnimationExt, PixbufAnimationExtManual, PixbufLoaderExt};
 
 pub struct GdkImageLoader {}
 

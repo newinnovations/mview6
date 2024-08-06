@@ -1,6 +1,6 @@
-use cairo::{Context, Format, ImageSurface, Surface};
-use gdk::pixbuf_get_from_surface;
+use cairo::{Context, Format, ImageSurface};
 use gdk_pixbuf::Pixbuf;
+use gtk4::gdk::pixbuf_get_from_surface;
 
 use crate::{
     backends::thumbnail::TMessage,
@@ -229,7 +229,7 @@ pub fn text_thumb(message: TMessage) -> MviewResult<Pixbuf> {
     }
 }
 
-pub fn transparency_background(window: &gdk::Window) -> MviewResult<Surface> {
+pub fn transparency_background() -> MviewResult<ImageSurface> {
     // #define CHECK_MEDIUM 8
     // #define CHECK_BLACK "#000000"
     // #define CHECK_DARK "#555555"
@@ -238,9 +238,7 @@ pub fn transparency_background(window: &gdk::Window) -> MviewResult<Surface> {
     // #define CHECK_WHITE "#ffffff"
     let check_size = 8;
 
-    let surface = window
-        .create_similar_surface(cairo::Content::ColorAlpha, check_size * 2, check_size * 2)
-        .ok_or(MviewError::from("could not create transparency_background"))?;
+    let surface = ImageSurface::create(Format::ARgb32, check_size * 2, check_size * 2)?;
 
     let context = Context::new(&surface)?;
 

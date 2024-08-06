@@ -4,8 +4,8 @@ pub mod model;
 mod sort;
 
 pub use cursor::{Cursor, TreeModelMviewExt};
-use glib::{Cast, IsA};
-use gtk::{
+use glib::object::{Cast, IsA};
+use gtk4::{
     glib,
     prelude::{TreeModelExt, TreeSortableExtManual, TreeViewExt},
     ListStore, TreeView, TreeViewColumn,
@@ -15,7 +15,7 @@ pub use sort::Sort;
 
 glib::wrapper! {
 pub struct FileListView(ObjectSubclass<imp::FileListViewImp>)
-    @extends gtk::Container, gtk::Widget, gtk::TreeView, gtk::Scrollable;
+    @extends gtk4::Widget, gtk4::TreeView, gtk4::Scrollable;
 }
 
 impl FileListView {
@@ -34,6 +34,8 @@ pub trait FileListViewExt: IsA<FileListView> + IsA<TreeView> + 'static {
     fn store(&self) -> Option<ListStore>;
     fn goto(&self, selection: &Selection) -> bool;
     fn current(&self) -> Option<Cursor>;
+    fn home(&self);
+    fn end(&self);
     fn navigate(&self, direction: Direction, filter: Filter, count: i32);
     fn set_unsorted(&self);
 }
@@ -79,7 +81,7 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
                         Selection::None => true,
                     };
                     if found {
-                        let tp = store.path(&iter).unwrap_or_default();
+                        let tp = store.path(&iter); //.unwrap_or_default();
                         self.set_cursor(&tp, None::<&TreeViewColumn>, false);
                         return true;
                     }
@@ -90,6 +92,27 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
             }
         }
         false
+    }
+
+    fn home(&self) {
+        if let Some(store) = self.store() {
+            if let Some(iter) = store.iter_first() {
+                let tp = store.path(&iter);
+                self.set_cursor(&tp, None::<&TreeViewColumn>, false);
+            }
+        }
+    }
+
+    fn end(&self) {
+        if let Some(store) = self.store() {
+            let num_items = store.iter_n_children(None);
+            if num_items > 1 {
+                if let Some(iter) = store.iter_nth_child(None, num_items - 1) {
+                    let tp = store.path(&iter);
+                    self.set_cursor(&tp, None::<&TreeViewColumn>, false);
+                }
+            }
+        }
     }
 
     fn navigate(&self, direction: Direction, filter: Filter, count: i32) {

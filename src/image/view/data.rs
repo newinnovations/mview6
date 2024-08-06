@@ -1,8 +1,14 @@
-use cairo::{Filter, Surface};
-use gdk::prelude::GdkPixbufExt;
-use gtk::prelude::WidgetExt;
+use std::slice;
 
-use crate::image::{Image, MAX_IMAGE_SIZE};
+use cairo::{Filter, ImageSurface};
+use gdk_pixbuf::{
+    ffi::{gdk_pixbuf_get_byte_length, gdk_pixbuf_read_pixels},
+    Pixbuf,
+};
+use glib::translate::ToGlibPtr;
+use gtk4::prelude::WidgetExt;
+
+use crate::{image::Image, performance::Performance};
 
 use super::{ImageView, ZoomMode};
 
@@ -18,10 +24,11 @@ pub struct ImageViewData {
     pub xofs: f64,
     pub yofs: f64,
     pub rotation: i32,
-    pub surface: Option<Surface>,
-    pub transparency_background: Option<Surface>,
+    pub surface: Option<ImageSurface>,
+    pub transparency_background: Option<ImageSurface>,
     pub view: Option<ImageView>,
     pub zoom: f64,
+    pub mouse_position: (f64, f64),
     pub drag: Option<(f64, f64)>,
     pub quality: cairo::Filter,
 }
@@ -38,6 +45,7 @@ impl Default for ImageViewData {
             transparency_background: None,
             view: None,
             zoom: 1.0,
+            mouse_position: (0.0, 0.0),
             drag: None,
             quality: QUALITY_HIGH,
         }
@@ -51,15 +59,74 @@ pub enum ZoomState {
     ZoomedOut,
 }
 
+// https://users.rust-lang.org/t/converting-a-bgra-u8-to-rgb-u8-n-for-images/67938
+fn create_surface(p: &Pixbuf) -> Option<ImageSurface> {
+    let duration = Performance::start();
+
+    let width = p.width() as usize;
+    let height = p.height() as usize;
+    let pixbuf_stride = p.rowstride() as usize;
+
+    let surface_stride = 4 * width;
+    let mut surface_data = vec![0_u8; height * surface_stride];
+
+    unsafe {
+        // gain access without the copy of pixbuf memory
+        let pixbuf_data_raw = gdk_pixbuf_read_pixels(p.to_glib_none().0);
+        let pixbuf_data_len = gdk_pixbuf_get_byte_length(p.to_glib_none().0);
+        let pixbuf_data = slice::from_raw_parts(pixbuf_data_raw, pixbuf_data_len);
+
+        if p.has_alpha() {
+            for (src_row, dst_row) in pixbuf_data
+                .chunks_exact(pixbuf_stride)
+                .zip(surface_data.chunks_exact_mut(surface_stride))
+            {
+                for (src, dst) in src_row.chunks_exact(4).zip(dst_row.chunks_exact_mut(4)) {
+                    dst[0] = src[2];
+                    dst[1] = src[1];
+                    dst[2] = src[0];
+                    dst[3] = src[3];
+                }
+            }
+        } else {
+            for (src_row, dst_row) in pixbuf_data
+                .chunks_exact(pixbuf_stride)
+                .zip(surface_data.chunks_exact_mut(surface_stride))
+            {
+                for (src, dst) in src_row.chunks_exact(3).zip(dst_row.chunks_exact_mut(4)) {
+                    dst[0] = src[2];
+                    dst[1] = src[1];
+                    dst[2] = src[0];
+                    dst[3] = 255;
+                }
+            }
+        }
+    }
+
+    let surface = match ImageSurface::create_for_data(
+        surface_data,
+        cairo::Format::ARgb32,
+        width as i32,
+        height as i32,
+        surface_stride as i32,
+    ) {
+        Ok(s) => Some(s),
+        Err(e) => {
+            dbg!(e);
+            None
+        }
+    };
+
+    duration.elapsed("surface");
+
+    surface
+}
+
 impl ImageViewData {
     pub(super) fn create_surface(&mut self) {
-        if let (Some(pixbuf), Some(view)) = (&self.image.pixbuf, &self.view) {
-            if pixbuf.width() > MAX_IMAGE_SIZE || pixbuf.height() > MAX_IMAGE_SIZE {
-                println!("Image dimensions too large to process");
-                self.surface = None;
-            } else {
-                self.surface = pixbuf.create_surface(1, view.window().as_ref());
-            }
+        if let Some(pixbuf) = &self.image.pixbuf {
+            // self.surface = pixbuf.create_surface(1, view.window().as_ref());
+            self.surface = create_surface(pixbuf);
         } else {
             self.surface = None;
         }

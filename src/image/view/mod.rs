@@ -4,17 +4,19 @@ mod imp;
 use std::time::SystemTime;
 
 use data::QUALITY_HIGH;
-use gdk::{Cursor, CursorType};
 use gdk_pixbuf::Pixbuf;
 use glib::subclass::types::ObjectSubclassIsExt;
-use gtk::{glib, prelude::WidgetExt};
+use gtk4::{
+    glib,
+    prelude::{DisplayExt, NativeExt, SeatExt, SurfaceExt, WidgetExt},
+};
 
 use super::Image;
 pub use imp::SIGNAL_VIEW_RESIZED;
 
 glib::wrapper! {
     pub struct ImageView(ObjectSubclass<imp::ImageViewImp>)
-        @extends gtk::DrawingArea, gtk::Widget, @implements gtk::Buildable;
+        @extends gtk4::DrawingArea, gtk4::Widget, @implements gtk4::Buildable;
 }
 
 impl Default for ImageView {
@@ -86,18 +88,27 @@ impl ImageView {
         (p.xofs, p.yofs)
     }
 
-    pub fn set_cursor(&self, view_cursor: ViewCursor) {
-        if let Some(toplevel) = self.toplevel() {
-            if let Some(window) = toplevel.window() {
-                let display = toplevel.display();
-                let cursor = match view_cursor {
-                    ViewCursor::Normal => None,
-                    ViewCursor::Hidden => Cursor::for_display(&display, CursorType::BlankCursor),
-                    ViewCursor::Drag => Cursor::for_display(&display, CursorType::Fleur),
-                };
-                window.set_cursor(cursor.as_ref());
-            }
-        }
+    pub fn set_view_cursor(&self, view_cursor: ViewCursor) {
+        match view_cursor {
+            ViewCursor::Normal => self.set_cursor_from_name(Some("default")),
+            ViewCursor::Hidden => self.set_cursor_from_name(Some("none")),
+            ViewCursor::Drag => self.set_cursor_from_name(Some("move")),
+        };
+    }
+
+    pub fn update_mouse_position(&self) -> Option<()> {
+        let seat = self.display().default_seat()?;
+        let device = seat.pointer()?;
+        let root = self.root()?;
+        let surface = root.surface()?;
+        let (t_x, t_y) = root.surface_transform();
+        // println!("trans {t_x} {t_y}");
+        let (src_x, src_y, _) = surface.device_position(&device)?;
+        let (x, y) = root.translate_coordinates(self, src_x - t_x, src_y - t_y)?;
+        println!("ump {x} {y}");
+        let mut p = self.imp().data.borrow_mut();
+        p.mouse_position = (x, y);
+        Some(())
     }
 
     // Operations on image

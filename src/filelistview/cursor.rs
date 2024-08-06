@@ -1,6 +1,6 @@
-use glib::IsA;
-use gtk::{
-    prelude::{GtkListStoreExtManual, TreeModelExt, TreeSortableExtManual},
+use glib::object::IsA;
+use gtk4::{
+    prelude::{TreeModelExt, TreeModelExtManual, TreeSortableExtManual},
     ListStore, SortColumn, SortType, TreeIter, TreeModel, TreePath,
 };
 
@@ -99,7 +99,7 @@ impl Cursor {
             };
             if !result {
                 if count != cnt {
-                    return self.store.path(&last);
+                    return Some(self.store.path(&last));
                 }
                 return None;
             }
@@ -122,7 +122,7 @@ impl Cursor {
                 break;
             }
         }
-        self.store.path(&self.iter)
+        Some(self.store.path(&self.iter))
     }
 
     pub fn next(&self) -> bool {
@@ -136,33 +136,45 @@ pub trait TreeModelMviewExt: IsA<TreeModel> {
     fn category_id(&self, iter: &TreeIter) -> u32;
     fn category(&self, iter: &TreeIter) -> Category;
     fn index(&self, iter: &TreeIter) -> u32;
+    fn modified(&self, iter: &TreeIter) -> u64;
+    fn size(&self, iter: &TreeIter) -> u64;
 }
 
 impl<O: IsA<TreeModel>> TreeModelMviewExt for O {
     fn name(&self, iter: &TreeIter) -> String {
-        self.value(iter, Columns::Name as i32)
+        self.get_value(iter, Columns::Name as i32)
             .get::<String>()
             .unwrap_or_default()
     }
     fn folder(&self, iter: &TreeIter) -> String {
-        self.value(iter, Columns::Folder as i32)
+        self.get_value(iter, Columns::Folder as i32)
             .get::<String>()
             .unwrap_or_default()
     }
     fn category_id(&self, iter: &TreeIter) -> u32 {
-        self.value(iter, Columns::Cat as i32)
+        self.get_value(iter, Columns::Cat as i32)
             .get::<u32>()
             .unwrap_or(Category::Unsupported.id())
     }
     fn category(&self, iter: &TreeIter) -> Category {
-        match self.value(iter, Columns::Cat as i32).get::<u32>() {
+        match self.get_value(iter, Columns::Cat as i32).get::<u32>() {
             Ok(id) => Category::from(id),
             Err(_) => Default::default(),
         }
     }
     fn index(&self, iter: &TreeIter) -> u32 {
-        self.value(iter, Columns::Index as i32)
+        self.get_value(iter, Columns::Index as i32)
             .get::<u32>()
+            .unwrap_or(0)
+    }
+    fn modified(&self, iter: &TreeIter) -> u64 {
+        self.get_value(iter, Columns::Modified as i32)
+            .get::<u64>()
+            .unwrap_or(0)
+    }
+    fn size(&self, iter: &TreeIter) -> u64 {
+        self.get_value(iter, Columns::Size as i32)
+            .get::<u64>()
             .unwrap_or(0)
     }
 }

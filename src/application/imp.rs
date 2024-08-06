@@ -1,8 +1,12 @@
+use std::cell::OnceCell;
+
 use gio::File;
-use glib::once_cell::unsync::OnceCell;
-use gtk::glib;
-use gtk::prelude::*;
-use gtk::subclass::prelude::*;
+use gtk4::{
+    glib,
+    prelude::{GtkWindowExt, WidgetExt},
+    subclass::prelude::*,
+    Application,
+};
 
 use crate::window::MViewWindow;
 
@@ -15,7 +19,7 @@ pub struct MviewApplicationImp {
 impl ObjectSubclass for MviewApplicationImp {
     const NAME: &'static str = "MviewApplication";
     type Type = super::MviewApplication;
-    type ParentType = gtk::Application;
+    type ParentType = Application;
 }
 
 impl ObjectImpl for MviewApplicationImp {}
@@ -31,7 +35,7 @@ impl ApplicationImpl for MviewApplicationImp {
     fn activate(&self) {
         let window = self.window.get().expect("failed to get window");
         println!("window:activate");
-        window.show_all();
+        window.show(); //show_all();
         window.present();
     }
 

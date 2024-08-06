@@ -7,7 +7,7 @@ use crate::{
     filelistview::{Direction, FileListViewExt, Filter, Selection, Sort},
 };
 use gio::File;
-use gtk::{prelude::*, TreePath, TreeViewColumn};
+use gtk4::{prelude::*, TreePath, TreeViewColumn};
 
 impl MViewWindowImp {
     pub(super) fn on_cursor_changed(&self) {
@@ -25,7 +25,7 @@ impl MViewWindowImp {
         }
     }
 
-    pub(super) fn on_row_activated(&self, _path: &TreePath, _column: &TreeViewColumn) {
+    pub(super) fn on_row_activated(&self, _path: &TreePath, _column: Option<&TreeViewColumn>) {
         println!("on_row_activated");
         self.dir_enter(None);
     }

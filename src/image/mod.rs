@@ -6,9 +6,9 @@ pub mod view;
 
 use animation::Animation;
 use cairo::ImageSurface;
-use gdk::ffi::gdk_pixbuf_get_from_surface;
 use gdk_pixbuf::{Pixbuf, PixbufRotation};
 use glib::translate::from_glib_full;
+use gtk4::gdk::ffi::gdk_pixbuf_get_from_surface;
 use std::{
     cmp::min,
     sync::atomic::{AtomicU32, Ordering},

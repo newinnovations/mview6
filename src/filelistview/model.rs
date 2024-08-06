@@ -1,4 +1,4 @@
-use gtk::{prelude::TreeSortableExtManual, ListStore};
+use gtk4::{prelude::TreeSortableExtManual, ListStore};
 
 use crate::backends::thumbnail::TReference;
 
@@ -45,7 +45,7 @@ impl Columns {
         ];
         let store = ListStore::new(&col_types);
         store.set_sort_func(
-            gtk::SortColumn::Index(Columns::Cat as u32),
+            gtk4::SortColumn::Index(Columns::Cat as u32),
             |model, iter1, iter2| {
                 let cat1 = model.category_id(iter1);
                 let cat2 = model.category_id(iter2);
@@ -57,6 +57,7 @@ impl Columns {
                 } else {
                     result
                 }
+                .into()
             },
         );
         store

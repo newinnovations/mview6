@@ -10,11 +10,7 @@ use crate::{
     image::draw::thumbnail_sheet,
     window::MViewWidgets,
 };
-use gdk::Rectangle;
-use gtk::{
-    prelude::{GtkListStoreExtManual, TreeModelExt},
-    ListStore,
-};
+use gtk4::{prelude::TreeModelExt, Allocation, ListStore};
 pub use model::{Message, TCommand, TEntry, TMessage, TReference, TResult, TResultOption, TTask};
 
 const FOOTER: i32 = 50;
@@ -40,7 +36,7 @@ pub struct Thumbnail {
 }
 
 impl Thumbnail {
-    pub fn new(sheet_size: Rectangle, position: i32, size: i32) -> Option<Self> {
+    pub fn new(sheet_size: Allocation, position: i32, size: i32) -> Option<Self> {
         let width = sheet_size.width();
         let height = sheet_size.height();
 
@@ -142,7 +138,7 @@ impl Backend for Thumbnail {
     fn store(&self) -> ListStore {
         let parent_store = self.parent.borrow().store();
         let num_items = parent_store.iter_n_children(None);
-        let pages = (1 + num_items / self.capacity()) as u32;
+        let pages = 1 + ((num_items - 1) / self.capacity()) as u32;
         let store = Columns::store();
         let cat = Category::Image;
 

@@ -6,7 +6,7 @@ use crate::{
     image::draw::draw_text,
     window::MViewWidgets,
 };
-use gtk::{prelude::GtkListStoreExtManual, ListStore};
+use gtk4::ListStore;
 use std::{
     cell::{Cell, RefCell},
     fs, io,
