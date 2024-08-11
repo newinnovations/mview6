@@ -1,6 +1,10 @@
+pub mod cursor;
+pub mod model;
+pub mod sort;
+
 use std::cell::OnceCell;
 
-use crate::filelistview;
+use crate::file_view;
 use chrono::{
     offset::LocalResult,
     {Local, TimeZone},
@@ -20,7 +24,8 @@ use gtk4::{
 };
 use human_bytes::human_bytes;
 
-use super::{Columns, TreeModelMviewExt};
+use cursor::TreeModelMviewExt;
+use model::Columns;
 
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -39,7 +44,7 @@ pub struct FileListViewImp {
 #[glib::object_subclass]
 impl ObjectSubclass for FileListViewImp {
     const NAME: &'static str = "FileListView";
-    type Type = filelistview::FileListView;
+    type Type = file_view::FileListView;
     type ParentType = TreeView;
 }
 

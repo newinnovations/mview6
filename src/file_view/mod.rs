@@ -1,17 +1,16 @@
-mod cursor;
 mod imp;
-pub mod model;
-mod sort;
 
-pub use cursor::{Cursor, TreeModelMviewExt};
 use glib::{object::Cast, subclass::types::ObjectSubclassIsExt};
 use gtk4::{
     glib,
     prelude::{TreeModelExt, TreeSortableExtManual, TreeViewExt},
     ListStore, TreeViewColumn,
 };
-pub use model::{Columns, Direction, Filter, Selection};
-pub use sort::Sort;
+pub use imp::{
+    cursor::{Cursor, TreeModelMviewExt},
+    model::{Columns, Direction, Filter, Selection},
+    sort::Sort,
+};
 
 glib::wrapper! {
 pub struct FileListView(ObjectSubclass<imp::FileListViewImp>)

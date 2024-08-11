@@ -2,7 +2,7 @@ use super::Image;
 use gtk4::ListStore;
 
 use crate::{
-    filelistview::{Columns, Cursor, Sort},
+    file_view::{Columns, Cursor, Sort},
     window::MViewWidgets,
 };
 

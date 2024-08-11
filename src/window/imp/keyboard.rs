@@ -4,7 +4,7 @@ use gtk4::{gdk::Key, prelude::*, subclass::prelude::*, SortColumn};
 
 use crate::{
     backends::{thumbnail::Thumbnail, Backend},
-    filelistview::{Direction, Filter, Selection, Sort},
+    file_view::{Direction, Filter, Selection, Sort},
     image::view::ZoomMode,
 };
 

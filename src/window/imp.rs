@@ -11,7 +11,7 @@ use crate::{
         },
         Backend,
     },
-    filelistview::{FileListView, Filter, Selection, Sort},
+    file_view::{FileListView, Filter, Selection, Sort},
     image::view::{ImageView, ZoomMode, SIGNAL_VIEW_RESIZED},
     info_view::InfoView,
 };

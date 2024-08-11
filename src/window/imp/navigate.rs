@@ -4,7 +4,7 @@ use super::MViewWindowImp;
 
 use crate::{
     backends::Backend,
-    filelistview::{Direction, Filter, Selection, Sort},
+    file_view::{Direction, Filter, Selection, Sort},
 };
 use gio::File;
 use gtk4::{prelude::*, TreePath, TreeViewColumn};

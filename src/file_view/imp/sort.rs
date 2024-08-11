@@ -2,7 +2,7 @@ use std::{cell::Cell, fmt::Display};
 
 use gtk4::{prelude::TreeSortableExtManual, ListStore, SortColumn, SortType};
 
-use super::Columns;
+use super::model::Columns;
 
 #[derive(Clone, Copy, Debug, Default)]
 pub enum Sort {

@@ -6,7 +6,7 @@ use std::cell::{Cell, RefCell};
 use super::{Backend, Image, Selection};
 use crate::{
     category::Category,
-    filelistview::{Columns, Cursor, Sort},
+    file_view::{Columns, Cursor, Sort},
     image::draw::thumbnail_sheet,
     window::MViewWidgets,
 };

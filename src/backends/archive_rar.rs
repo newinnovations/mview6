@@ -13,7 +13,7 @@ use unrar::{error::UnrarError, Archive, UnrarResult};
 use crate::{
     category::Category,
     error::MviewResult,
-    filelistview::{Columns, Cursor, Sort},
+    file_view::{Columns, Cursor, Sort},
     image::{
         draw::draw_error,
         provider::{image_rs::RsImageLoader, ImageLoader, ImageSaver},
