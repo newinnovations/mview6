@@ -46,7 +46,6 @@ fn insert(store: &ListStore, key: &str, value: &str) {
 
 impl InfoView {
     pub fn update(&self, image: &Image) {
-        println!("Updating info view");
         let store = Columns::store();
 
         match &image.pixbuf {

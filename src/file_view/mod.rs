@@ -13,23 +13,23 @@ pub use imp::{
 };
 
 glib::wrapper! {
-pub struct FileListView(ObjectSubclass<imp::FileListViewImp>)
+pub struct FileView(ObjectSubclass<imp::FileViewImp>)
     @extends gtk4::Widget, gtk4::TreeView, gtk4::Scrollable;
 }
 
-impl FileListView {
+impl FileView {
     pub fn new() -> Self {
         glib::Object::builder().build()
     }
 }
 
-impl Default for FileListView {
+impl Default for FileView {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl FileListView {
+impl FileView {
     fn store(&self) -> Option<ListStore> {
         if let Some(model) = self.model() {
             model.downcast::<ListStore>().ok()

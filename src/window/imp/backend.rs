@@ -62,9 +62,9 @@ impl MViewWindowImp {
             .unwrap_or_default();
         self.obj().set_title(Some(&format!("MView6 - {filename}")));
 
-        w.file_list_view.set_model(Some(&new_store));
+        w.file_view.set_model(Some(&new_store));
         self.skip_loading.set(skip_loading);
-        w.file_list_view.goto(&goto);
+        w.file_view.goto(&goto);
     }
 
     pub fn update_thumbnail_backend(&self) {

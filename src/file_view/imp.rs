@@ -29,7 +29,7 @@ use model::Columns;
 
 #[derive(Debug)]
 #[allow(dead_code)]
-struct FileListColumns {
+struct FileViewColumns {
     category: TreeViewColumn,
     name: TreeViewColumn,
     size: TreeViewColumn,
@@ -37,18 +37,18 @@ struct FileListColumns {
 }
 
 #[derive(Default)]
-pub struct FileListViewImp {
-    columns: OnceCell<FileListColumns>,
+pub struct FileViewImp {
+    columns: OnceCell<FileViewColumns>,
 }
 
 #[glib::object_subclass]
-impl ObjectSubclass for FileListViewImp {
+impl ObjectSubclass for FileViewImp {
     const NAME: &'static str = "FileListView";
-    type Type = file_view::FileListView;
+    type Type = file_view::FileView;
     type ParentType = TreeView;
 }
 
-impl FileListViewImp {
+impl FileViewImp {
     pub(super) fn set_extended(&self, extended: bool) {
         let columns = self.columns.get().unwrap();
         if extended != columns.size.is_visible() {
@@ -58,7 +58,7 @@ impl FileListViewImp {
     }
 }
 
-impl ObjectImpl for FileListViewImp {
+impl ObjectImpl for FileViewImp {
     fn constructed(&self) {
         self.parent_constructed();
         let instance = self.obj();
@@ -135,7 +135,7 @@ impl ObjectImpl for FileListViewImp {
         instance.append_column(&col_date);
 
         self.columns
-            .set(FileListColumns {
+            .set(FileViewColumns {
                 category: col_category,
                 name: col_name,
                 size: col_size,
@@ -145,8 +145,8 @@ impl ObjectImpl for FileListViewImp {
     }
 }
 
-impl WidgetImpl for FileListViewImp {}
+impl WidgetImpl for FileViewImp {}
 
-impl TreeViewImpl for FileListViewImp {}
+impl TreeViewImpl for FileViewImp {}
 
-impl FileListViewImp {}
+impl FileViewImp {}
