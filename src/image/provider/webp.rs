@@ -3,6 +3,7 @@ use std::{
     io::{BufRead, BufReader, Cursor, Seek},
 };
 
+use exif::Exif;
 use gdk_pixbuf::Pixbuf;
 use glib::Bytes;
 use image::{buffer::ConvertBuffer, RgbImage, RgbaImage};
@@ -19,25 +20,31 @@ use crate::{
 pub struct WebP {}
 
 impl WebP {
-    pub fn image_from_file(reader: BufReader<File>) -> MviewResult<Image> {
+    pub fn image_from_file(reader: BufReader<File>, exif: Option<Exif>) -> MviewResult<Image> {
         let mut decoder = WebPDecoder::new(reader)?;
         if decoder.is_animated() {
             Ok(Image::new_animation(Animation::WebPFile(Box::new(
                 WebPAnimation::<BufReader<File>>::new(decoder)?,
             ))))
         } else {
-            Ok(Image::new_pixbuf(Some(Self::read_image(&mut decoder)?)))
+            Ok(Image::new_pixbuf(
+                Some(Self::read_image(&mut decoder)?),
+                exif,
+            ))
         }
     }
 
-    pub fn image_from_memory(reader: Cursor<Vec<u8>>) -> MviewResult<Image> {
+    pub fn image_from_memory(reader: Cursor<Vec<u8>>, exif: Option<Exif>) -> MviewResult<Image> {
         let mut decoder = WebPDecoder::new(reader)?;
         if decoder.is_animated() {
             Ok(Image::new_animation(Animation::WebPMemory(Box::new(
                 WebPAnimation::<Cursor<Vec<u8>>>::new(decoder)?,
             ))))
         } else {
-            Ok(Image::new_pixbuf(Some(Self::read_image(&mut decoder)?)))
+            Ok(Image::new_pixbuf(
+                Some(Self::read_image(&mut decoder)?),
+                exif,
+            ))
         }
     }
 

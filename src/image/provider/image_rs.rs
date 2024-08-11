@@ -1,20 +1,20 @@
-use std::io::{BufRead, Cursor, Seek};
+use std::{
+    fs::File,
+    io::{BufRead, BufReader, Cursor, Seek},
+};
 
+use exif::Exif;
 use gdk_pixbuf::Pixbuf;
 use glib::Bytes;
 use image::{DynamicImage, GenericImageView, ImageReader};
 
 use crate::{error::MviewResult, image::Image};
 
-use super::webp::WebP;
+use super::{webp::WebP, ExifReader};
 
 pub struct RsImageLoader {}
 
 impl RsImageLoader {
-    // pub fn image_from_memory(buffer: &Vec<u8>) -> MviewResult<Image> {
-    //     Self::image(ImageReader::new(Cursor::new(buffer)))
-    // }
-
     pub fn dynimg_from_memory(buffer: &Vec<u8>) -> MviewResult<DynamicImage> {
         Self::dynimg(ImageReader::new(Cursor::new(buffer)))
     }
@@ -25,26 +25,30 @@ impl RsImageLoader {
 }
 
 impl RsImageLoader {
-    pub fn image_from_file(filename: &str) -> MviewResult<Image> {
-        let reader = ImageReader::open(filename)?;
-        let reader = reader.with_guessed_format()?;
-        if let Some(format) = reader.format() {
+    pub fn image_from_file(mut reader: BufReader<File>) -> MviewResult<Image> {
+        let exif = reader.exif();
+        let image_reader = ImageReader::new(reader);
+        let image_reader = image_reader.with_guessed_format()?;
+        if let Some(format) = image_reader.format() {
             match format {
-                image::ImageFormat::WebP => WebP::image_from_file(reader.into_inner()),
-                _ => Self::image(reader),
+                image::ImageFormat::WebP => WebP::image_from_file(image_reader.into_inner(), exif),
+                _ => Self::image(image_reader, exif),
             }
         } else {
             Err("Unrecognized image format".into())
         }
     }
 
-    pub fn image_from_memory(buffer: Vec<u8>) -> MviewResult<Image> {
-        let reader = ImageReader::new(Cursor::new(buffer));
-        let reader = reader.with_guessed_format()?;
-        if let Some(format) = reader.format() {
+    pub fn image_from_memory(mut reader: Cursor<Vec<u8>>) -> MviewResult<Image> {
+        let exif = reader.exif();
+        let image_reader = ImageReader::new(reader);
+        let image_reader = image_reader.with_guessed_format()?;
+        if let Some(format) = image_reader.format() {
             match format {
-                image::ImageFormat::WebP => WebP::image_from_memory(reader.into_inner()),
-                _ => Self::image(reader),
+                image::ImageFormat::WebP => {
+                    WebP::image_from_memory(image_reader.into_inner(), exif)
+                }
+                _ => Self::image(image_reader, exif),
             }
         } else {
             Err("Unrecognized image format".into())
@@ -53,8 +57,11 @@ impl RsImageLoader {
 }
 
 impl RsImageLoader {
-    pub fn image<T: BufRead + Seek>(reader: ImageReader<T>) -> MviewResult<Image> {
-        Ok(Image::new_pixbuf(Some(Self::pixbuf(reader)?)))
+    pub fn image<T: BufRead + Seek>(
+        reader: ImageReader<T>,
+        exif: Option<Exif>,
+    ) -> MviewResult<Image> {
+        Ok(Image::new_pixbuf(Some(Self::pixbuf(reader)?), exif))
     }
 
     pub fn pixbuf<T: BufRead + Seek>(reader: ImageReader<T>) -> MviewResult<Pixbuf> {

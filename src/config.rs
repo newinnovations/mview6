@@ -1,4 +1,9 @@
-use std::{env, fs::{self, File}, io::{self, BufWriter, Write}, sync::OnceLock};
+use std::{
+    env,
+    fs::{self, File},
+    io::{self, BufWriter, Write},
+    sync::OnceLock,
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -39,16 +44,17 @@ impl Config {
 impl Default for Config {
     fn default() -> Self {
         let config = Self {
-            bookmarks: vec![
-                Bookmark {
-                    name: "Home folder".to_string(),
-                    folder: Self::home(),
-                },
-            ],
+            bookmarks: vec![Bookmark {
+                name: "Home folder".to_string(),
+                folder: Self::home(),
+            }],
         };
         match config.save() {
             Ok(_) => println!("Saved default configuration to {}", Self::filename()),
-            Err(_) => println!("Failed to save default configuration to {}", Self::filename()),
+            Err(_) => println!(
+                "Failed to save default configuration to {}",
+                Self::filename()
+            ),
         };
         config
     }

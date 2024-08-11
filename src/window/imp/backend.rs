@@ -5,7 +5,7 @@ use gtk4::prelude::{GtkWindowExt, TreeSortableExt, TreeSortableExtManual, TreeVi
 
 use crate::{
     backends::{thumbnail::Thumbnail, Backend},
-    filelistview::{FileListViewExt, Selection},
+    filelistview::Selection,
     window::imp::Sort,
 };
 

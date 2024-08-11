@@ -9,8 +9,7 @@ use crate::image::{
     draw::transparency_background,
     Image,
 };
-use gio::prelude::ObjectExt;
-use gio::prelude::StaticType;
+use gio::prelude::{ObjectExt, StaticType};
 use glib::{
     clone, ffi::g_source_remove, result_from_gboolean, subclass::Signal, BoolError, Propagation,
     SourceId,

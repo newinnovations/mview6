@@ -4,7 +4,7 @@ use gtk4::{gdk::Key, prelude::*, subclass::prelude::*, SortColumn};
 
 use crate::{
     backends::{thumbnail::Thumbnail, Backend},
-    filelistview::{Direction, FileListViewExt, Filter, Selection, Sort},
+    filelistview::{Direction, Filter, Selection, Sort},
     image::view::ZoomMode,
 };
 
@@ -16,14 +16,14 @@ impl MViewWindowImp {
                 self.obj().close();
             }
             Key::d => {
+                self.show_files_widget(true);
                 if !self.backend.borrow().is_bookmarks() {
-                    self.show_files_widget(true, false);
                     self.set_backend(<dyn Backend>::bookmarks(), Selection::None, true);
                 }
             }
-            // Key::i => {
-            //     ImageLoader::test();
-            // }
+            Key::i => {
+                self.show_info_widget(!w.info_widget.is_visible());
+            }
             Key::t => {
                 if self.backend.borrow().is_container() {
                     let position = if let Some(cursor) = w.file_list_view.current() {
@@ -54,14 +54,14 @@ impl MViewWindowImp {
                 self.hop(Direction::Down);
             }
             Key::space | Key::KP_Divide => {
-                self.show_files_widget(!w.files_widget.is_visible(), false);
+                self.show_files_widget(!w.files_widget.is_visible());
             }
             Key::f | Key::KP_Multiply => {
                 if self.full_screen.get() {
                     self.obj().unfullscreen();
                     self.full_screen.set(false);
                 } else {
-                    self.show_files_widget(false, false);
+                    self.show_files_widget(false);
                     self.obj().fullscreen();
                     self.full_screen.set(true);
                 }
@@ -84,7 +84,7 @@ impl MViewWindowImp {
             Key::BackSpace => {
                 self.dir_leave();
                 if self.backend.borrow().is_thumbnail() {
-                    self.show_files_widget(false, false);
+                    self.show_files_widget(false);
                 }
             }
             Key::n => {

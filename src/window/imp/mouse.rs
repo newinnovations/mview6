@@ -1,5 +1,3 @@
-use crate::filelistview::FileListViewExt;
-
 use super::MViewWindowImp;
 
 impl MViewWindowImp {

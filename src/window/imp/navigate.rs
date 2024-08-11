@@ -4,7 +4,7 @@ use super::MViewWindowImp;
 
 use crate::{
     backends::Backend,
-    filelistview::{Direction, FileListViewExt, Filter, Selection, Sort},
+    filelistview::{Direction, Filter, Selection, Sort},
 };
 use gio::File;
 use gtk4::{prelude::*, TreePath, TreeViewColumn};
@@ -15,6 +15,7 @@ impl MViewWindowImp {
         if !self.skip_loading.get() {
             if let Some(current) = w.file_list_view.current() {
                 let image = self.backend.borrow().image(w, &current);
+                w.info_view.update(&image);
                 if self.backend.borrow().is_thumbnail() {
                     w.image_view.set_image_pre(image);
                     // w.image_view.set_image_post();

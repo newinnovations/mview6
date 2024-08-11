@@ -5,6 +5,7 @@ mod config;
 mod error;
 mod filelistview;
 mod image;
+mod info_view;
 mod performance;
 mod window;
 
