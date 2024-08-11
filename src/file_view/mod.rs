@@ -1,46 +1,35 @@
-mod cursor;
 mod imp;
-pub mod model;
-mod sort;
 
-pub use cursor::{Cursor, TreeModelMviewExt};
-use glib::object::{Cast, IsA};
+use glib::{object::Cast, subclass::types::ObjectSubclassIsExt};
 use gtk4::{
     glib,
     prelude::{TreeModelExt, TreeSortableExtManual, TreeViewExt},
-    ListStore, TreeView, TreeViewColumn,
+    ListStore, TreeViewColumn,
 };
-pub use model::{Columns, Direction, Filter, Selection};
-pub use sort::Sort;
+pub use imp::{
+    cursor::{Cursor, TreeModelMviewExt},
+    model::{Columns, Direction, Filter, Selection},
+    sort::Sort,
+};
 
 glib::wrapper! {
-pub struct FileListView(ObjectSubclass<imp::FileListViewImp>)
+pub struct FileView(ObjectSubclass<imp::FileViewImp>)
     @extends gtk4::Widget, gtk4::TreeView, gtk4::Scrollable;
 }
 
-impl FileListView {
+impl FileView {
     pub fn new() -> Self {
         glib::Object::builder().build()
     }
 }
 
-impl Default for FileListView {
+impl Default for FileView {
     fn default() -> Self {
         Self::new()
     }
 }
 
-pub trait FileListViewExt: IsA<FileListView> + IsA<TreeView> + 'static {
-    fn store(&self) -> Option<ListStore>;
-    fn goto(&self, selection: &Selection) -> bool;
-    fn current(&self) -> Option<Cursor>;
-    fn home(&self);
-    fn end(&self);
-    fn navigate(&self, direction: Direction, filter: Filter, count: i32);
-    fn set_unsorted(&self);
-}
-
-impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
+impl FileView {
     fn store(&self) -> Option<ListStore> {
         if let Some(model) = self.model() {
             model.downcast::<ListStore>().ok()
@@ -49,7 +38,7 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
         }
     }
 
-    fn current(&self) -> Option<Cursor> {
+    pub fn current(&self) -> Option<Cursor> {
         let (tree_path, _) = self.cursor();
         if let Some(store) = self.store() {
             if let Some(path) = tree_path {
@@ -70,7 +59,7 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
         }
     }
 
-    fn goto(&self, selection: &Selection) -> bool {
+    pub fn goto(&self, selection: &Selection) -> bool {
         // println!("Goto {:?}", selection);
         if let Some(store) = self.store() {
             if let Some(iter) = store.iter_first() {
@@ -94,7 +83,7 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
         false
     }
 
-    fn home(&self) {
+    pub fn home(&self) {
         if let Some(store) = self.store() {
             if let Some(iter) = store.iter_first() {
                 let tp = store.path(&iter);
@@ -103,7 +92,7 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
         }
     }
 
-    fn end(&self) {
+    pub fn end(&self) {
         if let Some(store) = self.store() {
             let num_items = store.iter_n_children(None);
             if num_items > 1 {
@@ -115,7 +104,7 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
         }
     }
 
-    fn navigate(&self, direction: Direction, filter: Filter, count: i32) {
+    pub fn navigate(&self, direction: Direction, filter: Filter, count: i32) {
         if let Some(current) = self.current() {
             if let Some(tree_path) = current.navigate(direction, filter, count) {
                 self.set_cursor(&tree_path, None::<&TreeViewColumn>, false);
@@ -123,9 +112,13 @@ impl<O: IsA<FileListView> + IsA<TreeView>> FileListViewExt for O {
         }
     }
 
-    fn set_unsorted(&self) {
+    pub fn set_unsorted(&self) {
         if let Some(store) = self.store() {
             store.set_unsorted();
         }
+    }
+
+    pub fn set_extended(&self, extended: bool) {
+        self.imp().set_extended(extended);
     }
 }

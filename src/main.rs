@@ -3,8 +3,9 @@ mod backends;
 mod category;
 mod config;
 mod error;
-mod filelistview;
+mod file_view;
 mod image;
+mod info_view;
 mod performance;
 mod window;
 

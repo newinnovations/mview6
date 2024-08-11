@@ -6,6 +6,7 @@ pub mod view;
 
 use animation::Animation;
 use cairo::ImageSurface;
+use exif::Exif;
 use gdk_pixbuf::{Pixbuf, PixbufRotation};
 use glib::translate::from_glib_full;
 use gtk4::gdk::ffi::gdk_pixbuf_get_from_surface;
@@ -26,8 +27,9 @@ fn get_image_id() -> u32 {
 #[derive(Default)]
 pub struct Image {
     id: u32,
-    pixbuf: Option<Pixbuf>,
+    pub pixbuf: Option<Pixbuf>,
     animation: Animation,
+    pub exif: Option<Exif>,
     zoom_mode: ZoomMode,
 }
 
@@ -46,15 +48,17 @@ impl Image {
             id: get_image_id(),
             pixbuf,
             animation: Animation::None,
+            exif: None,
             zoom_mode,
         }
     }
 
-    pub fn new_pixbuf(pixbuf: Option<Pixbuf>) -> Self {
+    pub fn new_pixbuf(pixbuf: Option<Pixbuf>, exif: Option<Exif>) -> Self {
         Image {
             id: get_image_id(),
             pixbuf,
             animation: Animation::None,
+            exif,
             zoom_mode: ZoomMode::NotSpecified,
         }
     }
@@ -70,6 +74,7 @@ impl Image {
             id: get_image_id(),
             pixbuf,
             animation,
+            exif: None,
             zoom_mode: ZoomMode::NotSpecified,
         }
     }
@@ -98,6 +103,10 @@ impl Image {
 
     pub fn is_movable(&self) -> bool {
         self.zoom_mode != ZoomMode::NoZoom
+    }
+
+    pub fn exif(&self) -> Option<&Exif> {
+        self.exif.as_ref()
     }
 
     pub fn draw_pixbuf(&self, pixbuf: &Pixbuf, dest_x: i32, dest_y: i32) {

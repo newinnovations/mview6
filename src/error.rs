@@ -39,6 +39,8 @@ pub enum MviewError {
 
     Image(image::ImageError),
 
+    Exif(exif::Error),
+
     WebP(image_webp::DecodingError),
 
     Cairo(cairo::Error),
@@ -107,6 +109,12 @@ impl From<image::ImageError> for MviewError {
     }
 }
 
+impl From<exif::Error> for MviewError {
+    fn from(err: exif::Error) -> MviewError {
+        MviewError::Exif(err)
+    }
+}
+
 impl From<image_webp::DecodingError> for MviewError {
     fn from(err: image_webp::DecodingError) -> Self {
         MviewError::WebP(err)
@@ -128,6 +136,7 @@ impl fmt::Display for MviewError {
             MviewError::Rar(err) => err.fmt(fmt),
             MviewError::Cairo(err) => err.fmt(fmt),
             MviewError::Image(err) => err.fmt(fmt),
+            MviewError::Exif(err) => err.fmt(fmt),
             MviewError::WebP(err) => err.fmt(fmt),
             MviewError::Glib(err) => err.fmt(fmt),
         }

@@ -2,7 +2,7 @@ use super::Image;
 use crate::{
     category::Category,
     error::MviewResult,
-    filelistview::{Columns, Cursor, Direction, Sort},
+    file_view::{Columns, Cursor, Direction, Sort},
     image::provider::{image_rs::RsImageLoader, ImageLoader, ImageSaver},
     window::MViewWidgets,
 };

@@ -9,7 +9,7 @@ use none::NoneBackend;
 use thumbnail::{TEntry, Thumbnail};
 
 use crate::{
-    filelistview::{Cursor, Direction, Selection, Sort},
+    file_view::{Cursor, Direction, Selection, Sort},
     image::Image,
     window::MViewWidgets,
 };

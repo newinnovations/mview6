@@ -1,67 +1,34 @@
-use std::{fs, path::Path, time::SystemTime};
+use std::{
+    cmp::min,
+    io::{BufRead, Seek},
+    time::SystemTime,
+};
 
 use crate::{
-    category::Category,
     error::MviewResult,
-    image::{animation::Animation, draw::draw_text, Image},
+    image::{animation::Animation, provider::ExifReader, Image},
 };
 use gdk_pixbuf::PixbufLoader;
-use gio::{
-    prelude::{FileExt, InputStreamExt},
-    Cancellable, File, MemoryInputStream,
-};
-use glib::{object::IsA, Bytes};
 use gtk4::prelude::{PixbufAnimationExt, PixbufAnimationExtManual, PixbufLoaderExt};
 
 pub struct GdkImageLoader {}
 
 impl GdkImageLoader {
-    pub fn image_from_file(filename: &str) -> MviewResult<Image> {
-        let path = Path::new(&filename);
-
-        let cat = match fs::metadata(path) {
-            Ok(metadata) => Category::determine(filename, metadata.is_dir()),
-            Err(_) => Category::Unsupported,
-        };
-
-        match cat {
-            Category::Folder | Category::Archive | Category::Unsupported => {
-                let name = path
-                    .file_name()
-                    .unwrap_or_default()
-                    .to_str()
-                    .unwrap_or_default();
-                return Ok(draw_text(&cat.name(), name, cat.colors()));
-            }
-            _ => (),
-        };
-
-        let file = File::for_parse_name(filename);
-        let stream = file.read(Cancellable::NONE)?;
-        Self::image_from_stream(&stream)
-    }
-
-    pub fn image_from_memory(buf: &Vec<u8>) -> MviewResult<Image> {
-        let bytes = Bytes::from(buf);
-        let stream = MemoryInputStream::from_bytes(&bytes);
-        Self::image_from_stream(&stream)
-    }
-
-    pub fn image_from_stream(stream: &impl IsA<gio::InputStream>) -> MviewResult<Image> {
-        let cancellable = Option::<Cancellable>::None.as_ref();
+    pub fn image_from_reader<T: BufRead + Seek>(reader: &mut T) -> MviewResult<Image> {
+        let mut buf = [0u8; 65536];
         let loader = PixbufLoader::new();
         loop {
-            let b = stream.read_bytes(65536, cancellable)?;
-            if b.len() == 0 {
+            let num_read = reader.read(&mut buf)?;
+            if num_read == 0 {
                 break;
             }
-            loader.write_bytes(&b)?;
+            let num_read = min(num_read, buf.len());
+            loader.write(&buf[0..num_read])?;
         }
         loader.close()?;
-        stream.close(cancellable)?;
         if let Some(animation) = loader.animation() {
             if animation.is_static_image() {
-                Ok(Image::new_pixbuf(animation.static_image()))
+                Ok(Image::new_pixbuf(animation.static_image(), reader.exif()))
             } else {
                 let iter = animation.iter(Some(SystemTime::now()));
                 Ok(Image::new_animation(Animation::Gdk(iter)))

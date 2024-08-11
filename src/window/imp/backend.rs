@@ -5,8 +5,7 @@ use gtk4::prelude::{GtkWindowExt, TreeSortableExt, TreeSortableExtManual, TreeVi
 
 use crate::{
     backends::{thumbnail::Thumbnail, Backend},
-    filelistview::{FileListViewExt, Selection},
-    window::imp::Sort,
+    file_view::{Selection, Sort},
 };
 
 use super::MViewWindowImp;
@@ -63,9 +62,9 @@ impl MViewWindowImp {
             .unwrap_or_default();
         self.obj().set_title(Some(&format!("MView6 - {filename}")));
 
-        w.file_list_view.set_model(Some(&new_store));
+        w.file_view.set_model(Some(&new_store));
         self.skip_loading.set(skip_loading);
-        w.file_list_view.goto(&goto);
+        w.file_view.goto(&goto);
     }
 
     pub fn update_thumbnail_backend(&self) {

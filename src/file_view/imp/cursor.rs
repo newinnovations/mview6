@@ -6,10 +6,7 @@ use gtk4::{
 
 use crate::category::Category;
 
-use super::{
-    model::{Direction, Filter},
-    Columns,
-};
+use super::model::{Columns, Direction, Filter};
 
 pub struct Cursor {
     pub store: ListStore,

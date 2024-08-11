@@ -11,8 +11,9 @@ use crate::{
         },
         Backend,
     },
-    filelistview::{FileListView, Filter, Selection, Sort},
+    file_view::{FileView, Filter, Selection, Sort},
     image::view::{ImageView, ZoomMode, SIGNAL_VIEW_RESIZED},
+    info_view::InfoView,
 };
 use async_channel::Sender;
 use glib::{clone, closure_local};
@@ -27,8 +28,10 @@ use std::cell::{Cell, OnceCell, RefCell};
 #[derive(Debug)]
 pub struct MViewWidgets {
     hbox: gtk4::Box,
-    files_widget: ScrolledWindow,
-    file_list_view: FileListView,
+    file_widget: ScrolledWindow,
+    file_view: FileView,
+    info_widget: ScrolledWindow,
+    info_view: InfoView,
     image_view: ImageView,
     pub sender: Sender<Message>,
 }
@@ -55,19 +58,41 @@ impl MViewWindowImp {
         self.widget_cell.get().unwrap()
     }
 
-    pub fn show_files_widget(&self, show: bool, force: bool) {
+    pub fn show_files_widget(&self, show: bool) {
         let w = self.widgets();
-        if w.files_widget.is_visible() != show || force {
-            w.files_widget.set_visible(show);
-            let border = if show { 8 } else { 0 };
-            w.hbox.set_spacing(border);
-            w.file_list_view.set_margin_start(border);
-            w.file_list_view.set_margin_top(border);
-            w.file_list_view.set_margin_bottom(border);
-            w.image_view.set_margin_end(border);
-            w.image_view.set_margin_top(border);
-            w.image_view.set_margin_bottom(border);
+        if w.file_widget.is_visible() != show {
+            w.file_widget.set_visible(show);
+            self.update_margins();
         }
+    }
+
+    pub fn show_info_widget(&self, show: bool) {
+        let w = self.widgets();
+        if w.info_widget.is_visible() != show {
+            w.info_widget.set_visible(show);
+            self.update_margins();
+        }
+    }
+
+    pub fn update_margins(&self) {
+        let w = self.widgets();
+        let border = if w.file_widget.is_visible() || w.info_widget.is_visible() {
+            8
+        } else {
+            0
+        };
+        w.hbox.set_spacing(0);
+        w.file_widget.set_margin_start(border);
+        w.file_widget.set_margin_top(border);
+        w.file_widget.set_margin_bottom(border);
+        w.image_view.set_margin_start(border);
+        w.image_view.set_margin_top(border);
+        w.image_view.set_margin_bottom(border);
+        w.image_view.set_margin_end(border);
+        w.info_widget.set_margin_end(border);
+        w.info_widget.set_margin_top(border);
+        w.info_widget.set_margin_bottom(border);
+        w.file_view.set_extended(!w.info_widget.is_visible());
     }
 }
 
@@ -85,21 +110,32 @@ impl ObjectImpl for MViewWindowImp {
 
         let hbox = gtk4::Box::new(gtk4::Orientation::Horizontal, 8);
 
-        let files_widget = ScrolledWindow::new();
+        let file_widget = ScrolledWindow::new();
         // files_widget.set_shadow_type(gtk4::ShadowType::EtchedIn); TODO
-        files_widget.set_policy(gtk4::PolicyType::Never, gtk4::PolicyType::Automatic);
-        files_widget.set_can_focus(false);
-        hbox.append(&files_widget);
+        file_widget.set_policy(gtk4::PolicyType::Never, gtk4::PolicyType::Automatic);
+        file_widget.set_can_focus(false);
+        hbox.append(&file_widget);
 
-        let file_list_view = FileListView::new();
-        file_list_view.set_vexpand(true);
-        file_list_view.set_fixed_height_mode(true);
-        file_list_view.set_can_focus(false);
-        files_widget.set_child(Some(&file_list_view));
+        let file_view = FileView::new();
+        file_view.set_vexpand(true);
+        file_view.set_fixed_height_mode(true);
+        file_view.set_can_focus(false);
+        file_widget.set_child(Some(&file_view));
 
         let image_view = ImageView::new();
         image_view.set_zoom_mode(ZoomMode::Fill);
         hbox.append(&image_view);
+
+        let info_widget = ScrolledWindow::new();
+        info_widget.set_policy(gtk4::PolicyType::Never, gtk4::PolicyType::Automatic);
+        info_widget.set_can_focus(false);
+        hbox.append(&info_widget);
+
+        let info_view = InfoView::new();
+        info_view.set_vexpand(true);
+        // info_view.set_fixed_height_mode(true);
+        info_view.set_can_focus(false);
+        info_widget.set_child(Some(&info_view));
 
         let key_controller = EventControllerKey::new();
         key_controller.connect_key_pressed(clone!(
@@ -136,13 +172,13 @@ impl ObjectImpl for MViewWindowImp {
             ),
         );
 
-        file_list_view.connect_cursor_changed(clone!(
+        file_view.connect_cursor_changed(clone!(
             #[weak(rename_to = this)]
             self,
             move |_| this.on_cursor_changed()
         ));
 
-        file_list_view.connect_row_activated(clone!(
+        file_view.connect_row_activated(clone!(
             #[weak(rename_to = this)]
             self,
             move |_, path, column| {
@@ -155,8 +191,10 @@ impl ObjectImpl for MViewWindowImp {
         self.widget_cell
             .set(MViewWidgets {
                 hbox,
-                file_list_view,
-                files_widget,
+                file_view,
+                file_widget,
+                info_widget,
+                info_view,
                 image_view,
                 sender,
             })
@@ -214,7 +252,7 @@ impl ObjectImpl for MViewWindowImp {
             }
         ));
 
-        self.show_files_widget(true, true);
+        self.show_info_widget(false);
         window.set_child(Some(&w.hbox));
         window.show();
 
@@ -230,7 +268,7 @@ impl ApplicationWindowImpl for MViewWindowImp {}
 
 impl MViewWidgets {
     pub fn filter(&self) -> Filter {
-        if self.files_widget.is_visible() {
+        if self.file_widget.is_visible() {
             Filter::None
         } else {
             Filter::Image

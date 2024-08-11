@@ -4,7 +4,7 @@ use super::MViewWindowImp;
 
 use crate::{
     backends::Backend,
-    filelistview::{Direction, FileListViewExt, Filter, Selection, Sort},
+    file_view::{Direction, Filter, Selection, Sort},
 };
 use gio::File;
 use gtk4::{prelude::*, TreePath, TreeViewColumn};
@@ -13,8 +13,9 @@ impl MViewWindowImp {
     pub(super) fn on_cursor_changed(&self) {
         let w = self.widgets();
         if !self.skip_loading.get() {
-            if let Some(current) = w.file_list_view.current() {
+            if let Some(current) = w.file_view.current() {
                 let image = self.backend.borrow().image(w, &current);
+                w.info_view.update(&image);
                 if self.backend.borrow().is_thumbnail() {
                     w.image_view.set_image_pre(image);
                     // w.image_view.set_image_post();
@@ -32,7 +33,7 @@ impl MViewWindowImp {
 
     pub fn dir_enter(&self, force_sort: Option<Sort>) {
         let w = self.widgets();
-        if let Some(current) = w.file_list_view.current() {
+        if let Some(current) = w.file_view.current() {
             let backend = self.backend.borrow();
             let new_backend = backend.enter(&current);
             drop(backend);
@@ -81,7 +82,7 @@ impl MViewWindowImp {
         // goto and navigate in parent
         self.skip_loading.set(true);
         self.dir_leave();
-        w.file_list_view.navigate(direction, Filter::Container, 1);
+        w.file_view.navigate(direction, Filter::Container, 1);
 
         // enter dir with remembered sort
         self.skip_loading.set(false);

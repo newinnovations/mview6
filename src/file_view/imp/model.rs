@@ -1,8 +1,7 @@
 use gtk4::{prelude::TreeSortableExtManual, ListStore};
 
+use super::cursor::TreeModelMviewExt;
 use crate::backends::thumbnail::TReference;
-
-use super::TreeModelMviewExt;
 
 #[derive(Debug)]
 #[repr(i32)]
