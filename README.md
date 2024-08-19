@@ -145,6 +145,14 @@ Put the executable `./target/release/MView6` somewhere in your path.
 
 The following libraries have to be installed
 
+### Ubuntu
+
 ```shell
 sudo apt-get install libglib2.0-dev libgdk-pixbuf-2.0-dev libgraphene-1.0-dev libgtk-4-dev
+```
+
+### MacOS
+
+```shell
+brew install pkg-config cairo gtk4
 ```
