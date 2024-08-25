@@ -67,18 +67,14 @@ impl InfoView {
     pub fn update(&self, image: &Image) {
         let store = Columns::store();
 
-        match &image.pixbuf {
-            Some(pixbuf) => {
-                insert(&store, "width", &format!("{} px", pixbuf.width()));
-                insert(&store, "height", &format!("{} px", pixbuf.height()));
-                insert(
-                    &store,
-                    "alpha channel",
-                    if pixbuf.has_alpha() { "yes" } else { "no" },
-                );
-            }
-            None => insert(&store, "", "no image"),
-        }
+        let (width, height) = image.size();
+        insert(&store, "width", &format!("{:.0} px", width));
+        insert(&store, "height", &format!("{:.0} px", height));
+        insert(
+            &store,
+            "alpha channel",
+            if image.has_alpha() { "yes" } else { "no" },
+        );
 
         match &image.exif {
             Some(exif) => {

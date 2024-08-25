@@ -26,7 +26,7 @@ use std::{
 use crate::image::{
     colors::{CairoColorExt, Color},
     draw::transparency_background,
-    Image,
+    Image, ImageData,
 };
 use gio::prelude::{ObjectExt, StaticType};
 use glib::{
@@ -39,6 +39,7 @@ use gtk4::{
     subclass::prelude::*,
     EventControllerMotion, EventControllerScroll, EventControllerScrollFlags,
 };
+use rsvg::prelude::HandleExt;
 
 use super::{
     data::{ImageViewData, ZoomState, QUALITY_HIGH, QUALITY_LOW, ZOOM_MULTIPLIER},
@@ -192,10 +193,8 @@ impl ImageViewImp {
         context.set_fill_rule(cairo::FillRule::EvenOdd);
         let _ = context.fill();
 
-        if let (Some(pixbuf), Some(transparency_background)) =
-            (&p.image.pixbuf, &p.transparency_background)
-        {
-            if pixbuf.has_alpha() {
+        if let Some(transparency_background) = &p.transparency_background {
+            if p.image.has_alpha() {
                 let _ = context.set_source_surface(transparency_background, xofs, yofs);
                 context.source().set_extend(cairo::Extend::Repeat);
                 context.rectangle(xofs, yofs, scaled_width, scaled_height);
@@ -209,16 +208,20 @@ impl ImageViewImp {
          */
         context.rectangle(xofs, yofs, scaled_width, scaled_height);
         context.clip();
-
-        context.scale(p.zoom, p.zoom);
-        if let Some(surface) = p.surface.as_ref() {
-            let _ = context.set_source_surface(surface, xofs / p.zoom, yofs / p.zoom);
+        if let ImageData::Svg(handle) = &p.image.image_data {
+            let viewport = rsvg::Rectangle::new(xofs, yofs, scaled_width, scaled_height);
+            handle.render_document(context, &viewport).unwrap();
+        } else {
+            context.scale(p.zoom, p.zoom);
+            if let Some(surface) = p.surface.as_ref() {
+                let _ = context.set_source_surface(surface, xofs / p.zoom, yofs / p.zoom);
+            }
+            context.source().set_extend(cairo::Extend::Pad);
+            if p.zoom_state() != ZoomState::NoZoom {
+                context.source().set_filter(p.quality);
+            }
+            let _ = context.paint();
         }
-        context.source().set_extend(cairo::Extend::Pad);
-        if p.zoom_state() != ZoomState::NoZoom {
-            context.source().set_filter(p.quality);
-        }
-        let _ = context.paint();
     }
 
     fn button_press_event(&self, position: (f64, f64)) {

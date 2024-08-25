@@ -29,6 +29,7 @@ use exif::Exif;
 use gdk_pixbuf::{Pixbuf, PixbufRotation};
 use glib::translate::from_glib_full;
 use gtk4::gdk::ffi::gdk_pixbuf_get_from_surface;
+use rsvg::{prelude::HandleExt, Handle};
 use std::{
     cmp::min,
     sync::atomic::{AtomicU32, Ordering},
@@ -44,9 +45,26 @@ fn get_image_id() -> u32 {
 }
 
 #[derive(Default)]
+pub enum ImageData {
+    #[default]
+    None,
+    Pixbuf(Pixbuf),
+    Svg(Handle),
+}
+
+impl From<Option<Pixbuf>> for ImageData {
+    fn from(value: Option<Pixbuf>) -> Self {
+        match value {
+            Some(pixbuf) => ImageData::Pixbuf(pixbuf),
+            None => ImageData::None,
+        }
+    }
+}
+
+#[derive(Default)]
 pub struct Image {
     id: u32,
-    pub pixbuf: Option<Pixbuf>,
+    pub image_data: ImageData,
     animation: Animation,
     pub exif: Option<Exif>,
     zoom_mode: ZoomMode,
@@ -65,7 +83,7 @@ impl Image {
         };
         Image {
             id: get_image_id(),
-            pixbuf,
+            image_data: pixbuf.into(),
             animation: Animation::None,
             exif: None,
             zoom_mode,
@@ -75,7 +93,7 @@ impl Image {
     pub fn new_pixbuf(pixbuf: Option<Pixbuf>, exif: Option<Exif>) -> Self {
         Image {
             id: get_image_id(),
-            pixbuf,
+            image_data: pixbuf.into(),
             animation: Animation::None,
             exif,
             zoom_mode: ZoomMode::NotSpecified,
@@ -91,8 +109,18 @@ impl Image {
         };
         Image {
             id: get_image_id(),
-            pixbuf,
+            image_data: pixbuf.into(),
             animation,
+            exif: None,
+            zoom_mode: ZoomMode::NotSpecified,
+        }
+    }
+
+    pub fn new_svg(svg: Handle) -> Self {
+        Image {
+            id: get_image_id(),
+            image_data: ImageData::Svg(svg),
+            animation: Animation::None,
             exif: None,
             zoom_mode: ZoomMode::NotSpecified,
         }
@@ -100,6 +128,22 @@ impl Image {
 
     pub fn id(&self) -> u32 {
         self.id
+    }
+
+    pub fn size(&self) -> (f64, f64) {
+        match &self.image_data {
+            ImageData::None => (0.0, 0.0),
+            ImageData::Pixbuf(pixbuf) => (pixbuf.width() as f64, pixbuf.height() as f64),
+            ImageData::Svg(handle) => handle.intrinsic_size_in_pixels().unwrap_or((64.0, 64.0)),
+        }
+    }
+
+    pub fn has_alpha(&self) -> bool {
+        match &self.image_data {
+            ImageData::None => false,
+            ImageData::Pixbuf(pixbuf) => pixbuf.has_alpha(),
+            ImageData::Svg(_handle) => true,
+        }
     }
 
     pub fn rotate(&mut self, angle: i32) {
@@ -111,8 +155,15 @@ impl Image {
                 return;
             }
         };
-        if let Some(pixbuf) = &self.pixbuf {
-            self.pixbuf = pixbuf.rotate_simple(rotation);
+
+        match &self.image_data {
+            ImageData::None => (),
+            ImageData::Pixbuf(pixbuf) => {
+                self.image_data = pixbuf.rotate_simple(rotation).into();
+            }
+            ImageData::Svg(_) => {
+                println!("TODO: implement rotation for SVG")
+            }
         }
     }
 
@@ -129,7 +180,7 @@ impl Image {
     }
 
     pub fn draw_pixbuf(&self, pixbuf: &Pixbuf, dest_x: i32, dest_y: i32) {
-        if let Some(my_pixpuf) = &self.pixbuf {
+        if let ImageData::Pixbuf(my_pixpuf) = &self.image_data {
             pixbuf.copy_area(
                 0,
                 0,
@@ -143,7 +194,7 @@ impl Image {
     }
 
     pub fn crop_to_max_size(&mut self) {
-        if let Some(pixbuf) = &self.pixbuf {
+        if let ImageData::Pixbuf(pixbuf) = &self.image_data {
             if pixbuf.width() > MAX_IMAGE_SIZE || pixbuf.height() > MAX_IMAGE_SIZE {
                 let new_width = min(pixbuf.width(), MAX_IMAGE_SIZE);
                 let new_height = min(pixbuf.height(), MAX_IMAGE_SIZE);
@@ -157,7 +208,7 @@ impl Image {
                 if let Some(new_pixbuf) = &new_pixpuf {
                     pixbuf.copy_area(0, 0, new_width, new_height, new_pixbuf, 0, 0);
                 }
-                self.pixbuf = new_pixpuf;
+                self.image_data = new_pixpuf.into();
                 self.animation = Animation::None;
             }
         }

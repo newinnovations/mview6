@@ -142,7 +142,7 @@ impl Backend for RarArchive {
     fn image(&self, _w: &MViewWidgets, cursor: &Cursor) -> Image {
         let sel = cursor.name();
         match extract_rar(&self.filename, &sel) {
-            Ok(bytes) => ImageLoader::image_from_memory(bytes),
+            Ok(bytes) => ImageLoader::image_from_memory(bytes, sel.to_lowercase().contains(".svg")),
             Err(error) => draw_error(error.into()),
         }
     }
