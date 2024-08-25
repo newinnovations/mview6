@@ -59,6 +59,13 @@ impl ImageLoader {
             _ => (),
         };
 
+        if filename.to_lowercase().contains(".svg") {
+            if let Ok(Some(handle)) = rsvg::Handle::from_file(filename) {
+                duration.elapsed("decode svg (file)");
+                return Image::new_svg(handle);
+            }
+        }
+
         let input = match std::fs::File::open(path) {
             Ok(file) => file,
             Err(error) => return draw_error(error.into()),
@@ -79,8 +86,15 @@ impl ImageLoader {
         image
     }
 
-    pub fn image_from_memory(buf: Vec<u8>) -> Image {
+    pub fn image_from_memory(buf: Vec<u8>, try_svg: bool) -> Image {
         let duration = Performance::start();
+
+        if try_svg {
+            if let Ok(Some(handle)) = rsvg::Handle::from_data(&buf) {
+                duration.elapsed("decode svg (mem)");
+                return Image::new_svg(handle);
+            }
+        }
 
         let mut reader = Cursor::new(buf);
 

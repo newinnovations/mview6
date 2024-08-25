@@ -28,7 +28,7 @@ use image_webp::WebPDecoder;
 
 use crate::error::MviewResult;
 
-use super::{provider::webp::WebP, Image};
+use super::{provider::webp::WebP, Image, ImageData};
 
 #[derive(Default)]
 pub enum Animation {
@@ -70,7 +70,7 @@ impl Image {
             Animation::None => false,
             Animation::Gdk(animation) => {
                 if animation.advance(current_time) {
-                    self.pixbuf = Some(animation.pixbuf());
+                    self.image_data = ImageData::Pixbuf(animation.pixbuf());
                     true
                 } else {
                     false
@@ -78,14 +78,14 @@ impl Image {
             }
             Animation::WebPFile(animation) => match animation.advance(current_time) {
                 Some(pixbuf) => {
-                    self.pixbuf = Some(pixbuf);
+                    self.image_data = ImageData::Pixbuf(pixbuf);
                     true
                 }
                 None => false,
             },
             Animation::WebPMemory(animation) => match animation.advance(current_time) {
                 Some(pixbuf) => {
-                    self.pixbuf = Some(pixbuf);
+                    self.image_data = ImageData::Pixbuf(pixbuf);
                     true
                 }
                 None => false,

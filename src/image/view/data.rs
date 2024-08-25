@@ -27,7 +27,10 @@ use gdk_pixbuf::{
 use glib::translate::ToGlibPtr;
 use gtk4::prelude::WidgetExt;
 
-use crate::{image::Image, performance::Performance};
+use crate::{
+    image::{Image, ImageData},
+    performance::Performance,
+};
 
 use super::{ImageView, ZoomMode};
 
@@ -143,8 +146,7 @@ fn create_surface(p: &Pixbuf) -> Option<ImageSurface> {
 
 impl ImageViewData {
     pub(super) fn create_surface(&mut self) {
-        if let Some(pixbuf) = &self.image.pixbuf {
-            // self.surface = pixbuf.create_surface(1, view.window().as_ref());
+        if let ImageData::Pixbuf(pixbuf) = &self.image.image_data {
             self.surface = create_surface(pixbuf);
         } else {
             self.surface = None;
@@ -152,11 +154,8 @@ impl ImageViewData {
     }
 
     fn compute_scaled_size(&self, zoom: f64) -> (f64, f64) {
-        if let Some(pixbuf) = &self.image.pixbuf {
-            (pixbuf.width() as f64 * zoom, pixbuf.height() as f64 * zoom)
-        } else {
-            (0.0, 0.0)
-        }
+        let (width, height) = self.image.size();
+        (width * zoom, height * zoom)
     }
 
     pub fn center(&self) -> (f64, f64) {
@@ -194,14 +193,15 @@ impl ImageViewData {
     }
 
     pub fn apply_zoom(&mut self) {
-        if let (Some(pixbuf), Some(view)) = (&self.image.pixbuf, &self.view) {
+        if let Some(view) = &self.view {
             let allocation = view.allocation();
             let allocation_width = allocation.width() as f64;
             let allocation_height = allocation.height() as f64;
-            let src_width = pixbuf.width() as f64;
-            let src_height = pixbuf.height() as f64;
+            let (src_width, src_height) = self.image.size();
 
-            let zoom_mode = if self.image.zoom_mode == ZoomMode::NotSpecified {
+            let zoom_mode = if src_width < 0.1 || src_height < 0.1 {
+                ZoomMode::NoZoom
+            } else if self.image.zoom_mode == ZoomMode::NotSpecified {
                 if self.zoom_mode == ZoomMode::NotSpecified {
                     ZoomMode::NoZoom
                 } else {

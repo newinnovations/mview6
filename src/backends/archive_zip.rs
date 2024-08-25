@@ -139,7 +139,9 @@ impl Backend for ZipArchive {
 
     fn image(&self, _w: &MViewWidgets, cursor: &Cursor) -> Image {
         match extract_zip(&self.filename, cursor.index() as usize) {
-            Ok(bytes) => ImageLoader::image_from_memory(bytes),
+            Ok(bytes) => {
+                ImageLoader::image_from_memory(bytes, cursor.name().to_lowercase().contains(".svg"))
+            }
             Err(error) => draw_error(error.into()),
         }
     }
