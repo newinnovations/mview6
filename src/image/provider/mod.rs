@@ -32,7 +32,10 @@ use std::{
     path::Path,
 };
 
-use super::draw::{draw_error, draw_text};
+use super::{
+    draw::{draw_error, draw_text},
+    view::ZoomMode,
+};
 
 pub struct ImageLoader {}
 
@@ -62,7 +65,7 @@ impl ImageLoader {
         if filename.to_lowercase().contains(".svg") {
             if let Ok(Some(handle)) = rsvg::Handle::from_file(filename) {
                 duration.elapsed("decode svg (file)");
-                return Image::new_svg(handle);
+                return Image::new_svg(handle, None, ZoomMode::NotSpecified);
             }
         }
 
@@ -92,7 +95,7 @@ impl ImageLoader {
         if try_svg {
             if let Ok(Some(handle)) = rsvg::Handle::from_data(&buf) {
                 duration.elapsed("decode svg (mem)");
-                return Image::new_svg(handle);
+                return Image::new_svg(handle, None, ZoomMode::NotSpecified);
             }
         }
 
@@ -110,6 +113,14 @@ impl ImageLoader {
         duration.elapsed("decode (mem)");
 
         image
+    }
+
+    pub fn image_from_svg_data(buf: &[u8], tag: Option<String>) -> Option<Image> {
+        if let Ok(Some(handle)) = rsvg::Handle::from_data(buf) {
+            Some(Image::new_svg(handle, tag, ZoomMode::Fill))
+        } else {
+            None
+        }
     }
 }
 

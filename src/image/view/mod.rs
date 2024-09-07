@@ -150,4 +150,8 @@ impl ImageView {
         p.move_center_to(center);
         p.redraw(QUALITY_HIGH);
     }
+
+    pub fn has_tag(&self, tag: &str) -> bool {
+        self.imp().data.borrow().image.has_tag(tag)
+    }
 }

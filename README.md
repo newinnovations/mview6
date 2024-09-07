@@ -20,6 +20,10 @@ Opiniated image browser written in Rust and GTK4
 - Tagging images as favorites or trash
 - Hopping between sub-directories and archives while viewing
 
+## Help
+
+Press <kbd>h</kbd> for help. Press <kbd>h</kbd> again for the second help page.
+
 ## Navigation
 
 | Key(s)                                                  | Function                                                 |
@@ -148,7 +152,7 @@ The following libraries have to be installed
 ### Ubuntu
 
 ```shell
-sudo apt-get install libglib2.0-dev libgdk-pixbuf-2.0-dev libgraphene-1.0-dev libgtk-4-dev
+sudo apt-get install libglib2.0-dev libgdk-pixbuf-2.0-dev libgraphene-1.0-dev libgtk-4-dev librsvg2-dev
 ```
 
 ### MacOS

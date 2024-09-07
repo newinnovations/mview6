@@ -24,7 +24,7 @@ use gtk4::{gdk::Key, prelude::*, subclass::prelude::*, SortColumn};
 use crate::{
     backends::{thumbnail::Thumbnail, Backend},
     file_view::{Direction, Filter, Selection, Sort},
-    image::view::ZoomMode,
+    image::{provider::ImageLoader, view::ZoomMode},
 };
 
 impl MViewWindowImp {
@@ -33,6 +33,22 @@ impl MViewWindowImp {
         match e {
             Key::q => {
                 self.obj().close();
+            }
+            Key::h => {
+                let image = if w.image_view.has_tag("help1") {
+                    ImageLoader::image_from_svg_data(
+                        include_bytes!("../../../resources/mv6-help-2.svgz"),
+                        Some("help2".to_string()),
+                    )
+                } else {
+                    ImageLoader::image_from_svg_data(
+                        include_bytes!("../../../resources/mv6-help-1.svgz"),
+                        Some("help1".to_string()),
+                    )
+                };
+                if let Some(image) = image {
+                    w.image_view.set_image(image);
+                }
             }
             Key::d => {
                 self.show_files_widget(true);

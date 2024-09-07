@@ -68,6 +68,7 @@ pub struct Image {
     animation: Animation,
     pub exif: Option<Exif>,
     zoom_mode: ZoomMode,
+    tag: Option<String>,
 }
 
 impl Image {
@@ -87,6 +88,7 @@ impl Image {
             animation: Animation::None,
             exif: None,
             zoom_mode,
+            tag: None,
         }
     }
 
@@ -97,6 +99,7 @@ impl Image {
             animation: Animation::None,
             exif,
             zoom_mode: ZoomMode::NotSpecified,
+            tag: None,
         }
     }
 
@@ -113,16 +116,18 @@ impl Image {
             animation,
             exif: None,
             zoom_mode: ZoomMode::NotSpecified,
+            tag: None,
         }
     }
 
-    pub fn new_svg(svg: Handle) -> Self {
+    pub fn new_svg(svg: Handle, tag: Option<String>, zoom_mode: ZoomMode) -> Self {
         Image {
             id: get_image_id(),
             image_data: ImageData::Svg(svg),
             animation: Animation::None,
             exif: None,
-            zoom_mode: ZoomMode::NotSpecified,
+            zoom_mode,
+            tag,
         }
     }
 
@@ -143,6 +148,13 @@ impl Image {
             ImageData::None => false,
             ImageData::Pixbuf(pixbuf) => pixbuf.has_alpha(),
             ImageData::Svg(_handle) => true,
+        }
+    }
+
+    pub fn has_tag(&self, tag: &str) -> bool {
+        match &self.tag {
+            Some(t) => t.eq(tag),
+            None => false,
         }
     }
 
